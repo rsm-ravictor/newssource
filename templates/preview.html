@@ -1,28 +1,33 @@
 {#-
-  Preview harness for the digest email.
+  Preview harness for the digest emails.
 
-  Renders a static, dependency-free page: a dark "canvas" holding one iframe
-  with the email inside it, wrapped in either desktop-mail-client chrome or a
-  phone shell. The iframe never moves in the DOM when you toggle — only the
-  surrounding chrome and the frame dimensions change — so the email is not
-  reloaded and its scroll position survives the switch.
+  Renders a static, dependency-free page: a dark "canvas" holding one iframe per
+  report type, wrapped in either desktop-mail-client chrome or a phone shell.
+  Two independent toggles - report type (Tenants / Competitors) and device
+  (Desktop / Mobile) - are pure CSS class switches on <body>, so nothing reloads
+  and no iframe moves in the DOM when you switch.
 
-  The email is embedded via srcdoc so this page works from file:// with no
-  server and no fetch (which file:// would block).
+  Report types are driven by config/report_types.yaml via build_preview.py; this
+  template loops over whatever it is given and generates the matching CSS, so
+  adding a third type needs no edit here.
 
-  Context: subject, preheader, from_name, from_address, to_address, sent_label,
-           email_html, built_at, model_note, total_alerts, total_companies
+  Emails are embedded via srcdoc so the page works from file:// with no server
+  and no fetch (which file:// would block).
+
+  Context: reports[] (key, label, subject, preheader, from_name, from_address,
+           to_address, sent_label, email_html, raw_name, total_alerts,
+           total_companies, entity_noun_plural, initials),
+           default_type, built_at, model_note
 -#}
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Digest Preview — Tenant Intelligence</title>
+<title>Digest Preview — Tenant &amp; Competitor Intelligence</title>
 <style>
   :root {
     --canvas:   #0b0e14;
-    --canvas-2: #12161f;
     --bar:      #151a24;
     --line:     #262d3b;
     --line-2:   #333c4e;
@@ -42,18 +47,23 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* ── Toolbar ──────────────────────────────────────────────────────── */
+  /* ── Per-report-type visibility, generated from the config ────────────── */
+{% for r in reports %}
+  body:not(.type-{{ r.key }}) .only-{{ r.key }} { display: none !important; }
+{% endfor %}
+
+  /* ── Toolbar ──────────────────────────────────────────────────────────── */
   .toolbar {
     position: sticky; top: 0; z-index: 10;
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
     padding: 14px 22px;
     background: rgba(21,26,36,0.92);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--line);
   }
   .brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; }
-  .brand-name { font-size: 14px; font-weight: 600; letter-spacing: 0.2px; }
-  .brand-sub { font-size: 12px; color: var(--faint); }
+  .brand-name { font-size: 14px; font-weight: 600; letter-spacing: 0.2px; white-space: nowrap; }
+  .brand-sub { font-size: 12px; color: var(--faint); white-space: nowrap; }
   .tag {
     font-size: 10.5px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
     color: #fbbf24; background: rgba(251,191,36,0.12);
@@ -61,7 +71,6 @@
     padding: 3px 8px; border-radius: 20px; white-space: nowrap;
   }
 
-  /* Segmented device switch */
   .segmented {
     display: inline-flex; padding: 3px; gap: 3px;
     background: var(--pill); border: 1px solid var(--line); border-radius: 9px;
@@ -71,6 +80,7 @@
     font: inherit; font-size: 13px; font-weight: 500;
     color: var(--muted); background: transparent;
     border: 0; border-radius: 6px; padding: 7px 14px; cursor: pointer;
+    white-space: nowrap;
     transition: background 120ms ease, color 120ms ease;
   }
   .segmented button:hover { color: var(--text); }
@@ -84,17 +94,25 @@
     font-size: 10px; color: var(--faint);
     border: 1px solid var(--line-2); border-radius: 4px; padding: 1px 4px;
   }
+  .switch-label {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--faint); margin-right: -6px;
+  }
+  /* Two segmented controls plus two buttons overflow a 1280px viewport once the
+     group labels are in; drop the labels first, then the findings count. */
+  @media (max-width: 1330px) { .switch-label { display: none; } }
+  @media (max-width: 1150px) { .brand-sub { display: none !important; } }
 
   .btn {
     font: inherit; font-size: 13px; color: var(--muted);
     background: var(--pill); border: 1px solid var(--line);
     border-radius: 8px; padding: 8px 13px; cursor: pointer; text-decoration: none;
-    display: inline-flex; align-items: center; gap: 7px;
+    display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
     transition: color 120ms ease, border-color 120ms ease;
   }
   .btn:hover { color: var(--text); border-color: var(--line-2); }
 
-  /* ── Stage ────────────────────────────────────────────────────────── */
+  /* ── Stage ────────────────────────────────────────────────────────────── */
   .stage {
     display: flex; justify-content: center;
     padding: 40px 20px 72px;
@@ -105,15 +123,13 @@
   }
 
   /* The shell needs an EXPLICIT width per mode. Left to shrink-to-fit it
-     collapses to the caption's width (~620px), which is under the email's own
-     620px breakpoint — the desktop preview would silently render the mobile
-     layout. Set the width here and the frame just fills it. */
+     collapses to the caption's width, which is under the email's own 620px
+     breakpoint - the desktop preview would silently render the mobile layout. */
   .shell { transition: width 260ms cubic-bezier(0.4,0,0.2,1); }
   body.desktop .shell { width: 760px; max-width: 100%; }
   body.mobile  .shell { width: 392px; max-width: 100%; }
 
   .frame { width: 100%; display: flex; flex-direction: column; }
-  /* Desktop: a mail-client window. Mobile: a handset. */
   body.desktop .frame {
     background: #1a202c; border: 1px solid var(--line-2); border-radius: 12px;
     overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.5);
@@ -127,8 +143,8 @@
     body.mobile .frame { border-radius: 28px; padding: 6px; }
   }
 
-  /* Chrome visibility is the whole toggle. */
-  body.desktop .only-mobile,  body.mobile .only-desktop { display: none !important; }
+  /* Device chrome visibility. */
+  body.desktop .only-mobile, body.mobile .only-desktop { display: none !important; }
 
   /* Desktop window chrome */
   .titlebar {
@@ -151,8 +167,7 @@
   }
   .msg-from { flex: 1 1 auto; min-width: 0; line-height: 1.45; }
   .msg-from .who { font-size: 13px; font-weight: 600; color: var(--text); }
-  .msg-from .addr,
-  .msg-from .to { font-size: 11.5px; color: var(--faint); }
+  .msg-from .addr, .msg-from .to { font-size: 11.5px; color: var(--faint); }
   .msg-time { font-size: 11.5px; color: var(--faint); white-space: nowrap; align-self: flex-start; }
   .msg-preheader {
     margin-top: 12px; padding-top: 11px; border-top: 1px dashed var(--line);
@@ -179,7 +194,7 @@
   .homebar { display: flex; justify-content: center; padding: 9px 0 4px; }
   .homebar span { width: 118px; height: 4px; border-radius: 2px; background: #39445a; }
 
-  /* ── The email itself ─────────────────────────────────────────────── */
+  /* ── The emails ───────────────────────────────────────────────────────── */
   .screen { background: #eef1f5; overflow: hidden; }
   /* Bottom corners only, so the email meets the app bar flush. */
   body.mobile .screen { border-radius: 0 0 30px 30px; }
@@ -205,60 +220,74 @@
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
 </style>
 </head>
-<body class="desktop">
+<body class="desktop type-{{ default_type }}">
 
 <div class="toolbar">
   <div class="brand">
     <span class="brand-name">Digest Preview</span>
-    <span class="brand-sub">{{ total_alerts }} findings &middot; {{ total_companies }} tenants</span>
+    {% for r in reports %}
+    <span class="brand-sub only-{{ r.key }}">{{ r.total_alerts }} findings &middot; {{ r.total_companies }} {{ r.entity_noun_plural }}</span>
+    {% endfor %}
   </div>
 
-  <span class="tag">Sample data &middot; fictional tenants</span>
+  <span class="tag">Sample data &middot; fictional entities</span>
 
+  <span class="switch-label">Report</span>
+  <div class="segmented" role="tablist" aria-label="Report type">
+    {% for r in reports %}
+    <button class="type-btn" data-type="{{ r.key }}" data-raw="{{ r.raw_name }}" role="tab"
+            aria-selected="{{ 'true' if r.key == default_type else 'false' }}">
+      {{ r.label }} <span class="kbd">{{ loop.index }}</span>
+    </button>
+    {% endfor %}
+  </div>
+
+  <span class="switch-label">View</span>
   <div class="segmented" role="tablist" aria-label="Preview device">
-    <button id="btn-desktop" role="tab" aria-selected="true" aria-controls="screen">
+    <button id="btn-desktop" role="tab" aria-selected="true">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
       Desktop <span class="kbd">D</span>
     </button>
-    <button id="btn-mobile" role="tab" aria-selected="false" aria-controls="screen">
+    <button id="btn-mobile" role="tab" aria-selected="false">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18.5h2"/></svg>
       Mobile <span class="kbd">M</span>
     </button>
   </div>
 
-  <button class="btn" id="copy-html" type="button">Copy email HTML</button>
-  <a class="btn" href="digest.html" target="_blank" rel="noopener">Open raw&nbsp;&#8599;</a>
+  <button class="btn" id="copy-html" type="button">Copy HTML</button>
+  <a class="btn" id="open-raw" href="{{ reports[0].raw_name }}" target="_blank" rel="noopener">Open raw&nbsp;&#8599;</a>
 </div>
 
 <div class="stage">
   <div class="shell">
     <div class="frame">
 
-      <!-- Desktop mail-client chrome -->
-      <div class="only-desktop">
+      {% for r in reports %}
+      <!-- Desktop mail-client chrome, {{ r.label }} -->
+      <div class="only-desktop only-{{ r.key }}">
         <div class="titlebar">
           <span class="dot" style="background:#ff5f57"></span>
           <span class="dot" style="background:#febc2e"></span>
           <span class="dot" style="background:#28c840"></span>
-          <span class="label">Inbox &mdash; {{ to_address }}</span>
+          <span class="label">Inbox &mdash; {{ r.to_address }}</span>
         </div>
         <div class="msg-head">
-          <div class="msg-subject">{{ subject }}</div>
+          <div class="msg-subject">{{ r.subject }}</div>
           <div class="msg-meta">
-            <div class="avatar">TI</div>
+            <div class="avatar">{{ r.initials }}</div>
             <div class="msg-from">
-              <div class="who">{{ from_name }}</div>
-              <div class="addr">{{ from_address }}</div>
-              <div class="to">to {{ to_address }}</div>
+              <div class="who">{{ r.from_name }}</div>
+              <div class="addr">{{ r.from_address }}</div>
+              <div class="to">to {{ r.to_address }}</div>
             </div>
-            <div class="msg-time">{{ sent_label }}</div>
+            <div class="msg-time">{{ r.sent_label }}</div>
           </div>
-          <div class="msg-preheader"><b>Preview text:</b> {{ preheader }}</div>
+          <div class="msg-preheader"><b>Preview text:</b> {{ r.preheader }}</div>
         </div>
       </div>
 
-      <!-- Phone chrome -->
-      <div class="only-mobile">
+      <!-- Phone chrome, {{ r.label }} -->
+      <div class="only-mobile only-{{ r.key }}">
         <div class="statusbar">
           <span>9:41</span>
           <span class="glyphs"><span>&#9679;&#9679;&#9679;</span><span>&#9679;</span><span>100%</span></span>
@@ -266,24 +295,29 @@
         <div class="appbar">
           <span class="back">&#8249; Inbox</span>
           <div class="who-m">
-            <div class="n">{{ from_name }}</div>
-            <div class="s">{{ subject }}</div>
+            <div class="n">{{ r.from_name }}</div>
+            <div class="s">{{ r.subject }}</div>
           </div>
         </div>
       </div>
+      {% endfor %}
 
-      <!-- One iframe, shared by both modes. -->
+      <!-- One iframe per report type; the inactive one is hidden, never moved. -->
       <div class="screen" id="screen">
-        <iframe title="Digest email preview" srcdoc="{{ email_html|e }}"></iframe>
+        {% for r in reports %}
+        <iframe class="only-{{ r.key }}" data-type="{{ r.key }}"
+                title="{{ r.label }} digest preview" srcdoc="{{ r.email_html|e }}"></iframe>
+        {% endfor %}
       </div>
 
       <div class="only-mobile homebar"><span></span></div>
     </div>
 
     <p class="caption">
-      Placeholder template at <code>templates/digest.html</code> &mdash; drop the real one in and rebuild
-      with <code>python build_preview.py</code>. Summaries generated via <code>utils/connect.py</code> ({{ model_note }}).
-      Built {{ built_at }}.
+      Placeholder template at <code>templates/digest.html</code>, one file for both reports &mdash;
+      categories and criteria live in <code>config/report_types.yaml</code>.
+      Rebuild with <code>python build_preview.py</code>. Summaries generated via
+      <code>utils/connect.py</code> ({{ model_note }}). Built {{ built_at }}.
     </p>
   </div>
 </div>
@@ -293,10 +327,26 @@
 <script>
   (function () {
     var body = document.body;
+    var typeBtns = Array.prototype.slice.call(document.querySelectorAll('.type-btn'));
+    var types = typeBtns.map(function (b) { return b.dataset.type; });
     var btnD = document.getElementById('btn-desktop');
     var btnM = document.getElementById('btn-mobile');
+    var openRaw = document.getElementById('open-raw');
     var toast = document.getElementById('toast');
     var toastTimer;
+    var activeType = {{ default_type | tojson }};
+
+    function setType(key) {
+      if (types.indexOf(key) === -1) return;
+      activeType = key;
+      types.forEach(function (t) { body.classList.toggle('type-' + t, t === key); });
+      typeBtns.forEach(function (b) {
+        var on = b.dataset.type === key;
+        b.setAttribute('aria-selected', String(on));
+        if (on) { openRaw.setAttribute('href', b.dataset.raw); }
+      });
+      try { localStorage.setItem('digestPreviewType', key); } catch (e) {}
+    }
 
     function setMode(mode) {
       var mobile = mode === 'mobile';
@@ -307,6 +357,9 @@
       try { localStorage.setItem('digestPreviewMode', mode); } catch (e) {}
     }
 
+    typeBtns.forEach(function (b) {
+      b.addEventListener('click', function () { setType(b.dataset.type); });
+    });
     btnD.addEventListener('click', function () { setMode('desktop'); });
     btnM.addEventListener('click', function () { setMode('mobile'); });
 
@@ -314,13 +367,20 @@
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       var k = e.key.toLowerCase();
       if (k === 'd') setMode('desktop');
-      if (k === 'm') setMode('mobile');
+      else if (k === 'm') setMode('mobile');
+      else if (/^[1-9]$/.test(k)) {
+        var i = parseInt(k, 10) - 1;
+        if (i < types.length) setType(types[i]);
+      }
     });
 
+    // Restore both switches independently.
     try {
-      var saved = localStorage.getItem('digestPreviewMode');
-      if (saved === 'mobile' || saved === 'desktop') setMode(saved);
-    } catch (e) {}
+      var savedType = localStorage.getItem('digestPreviewType');
+      if (savedType) setType(savedType); else setType(activeType);
+      var savedMode = localStorage.getItem('digestPreviewMode');
+      if (savedMode === 'mobile' || savedMode === 'desktop') setMode(savedMode);
+    } catch (e) { setType(activeType); }
 
     function flash(msg) {
       toast.textContent = msg;
@@ -330,14 +390,16 @@
     }
 
     document.getElementById('copy-html').addEventListener('click', function () {
-      var html = document.querySelector('#screen iframe').getAttribute('srcdoc');
+      var frame = document.querySelector('#screen iframe[data-type="' + activeType + '"]');
+      if (!frame) { flash('Nothing to copy'); return; }
+      var html = frame.getAttribute('srcdoc');
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(html).then(
-          function () { flash('Email HTML copied'); },
-          function () { flash('Copy blocked — use "Open raw"'); }
+          function () { flash(activeType + ' email HTML copied'); },
+          function () { flash('Copy blocked - use "Open raw"'); }
         );
       } else {
-        flash('Clipboard unavailable — use "Open raw"');
+        flash('Clipboard unavailable - use "Open raw"');
       }
     });
   })();

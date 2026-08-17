@@ -1,0 +1,18 @@
+# Competitor watchlist — one entity per line.
+#
+# Format:  Name
+#      or  Name, City
+#
+# Lines starting with # and blank lines are ignored.
+#
+# The placeholders below are fictional rival landlords / owner-operators, matching the
+# assumption documented in config/report_types.yaml. If your competitors are a different
+# kind of firm, update the `criteria` and `categories` for `competitors` in that file too.
+#
+# >>> REPLACE the fictional placeholders below with your real competitor list. <<<
+
+Sandpiper Property Group, San Diego
+Aventine Realty Trust, Irvine
+Two Palms Industrial, Otay Mesa
+Bayfront Asset Partners, San Diego
+Copperline REIT, Phoenix

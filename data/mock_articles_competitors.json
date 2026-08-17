@@ -1,0 +1,114 @@
+{
+  "_note": "Stand-in for Tavily search output on the competitor watchlist. Fictional firms, outlets, and stories. Includes deliberate decoys (award, ESG report, conference panel, market-wide commentary) that the criteria should reject.",
+  "run_date": "2026-08-17",
+  "period_label": "Week of Aug 11 – Aug 17, 2026",
+  "companies": [
+    {
+      "display_name": "Sandpiper Property Group",
+      "city": "San Diego",
+      "articles": [
+        {
+          "title": "Sandpiper acquires four-building Sorrento Mesa flex portfolio for $212M",
+          "snippet": "Sandpiper Property Group has closed on a four-building, 480,000-square-foot flex and R&D portfolio in Sorrento Mesa for $212 million, its largest San Diego purchase to date. The seller was an East Coast institutional fund. Sandpiper said it plans a $30 million repositioning program and will push asking rents roughly 12 percent above current in-place levels on rollover.",
+          "source_name": "Coastal Business Chronicle",
+          "source_url": "https://example.com/coastal-chronicle/sandpiper-sorrento-portfolio",
+          "published_date": "Aug 12, 2026"
+        },
+        {
+          "title": "Sandpiper names new head of West Coast leasing",
+          "snippet": "Sandpiper Property Group has hired veteran leasing executive Marcus Del Rio as head of West Coast leasing, a newly created role. Del Rio previously ran agency leasing for a national brokerage and said his mandate is to shorten downtime on vacancy across the firm's California holdings.",
+          "source_name": "Commercial Property Wire",
+          "source_url": "https://example.com/cpw/sandpiper-leasing-head",
+          "published_date": "Aug 14, 2026"
+        },
+        {
+          "title": "Sandpiper publishes 2026 sustainability report",
+          "snippet": "Sandpiper Property Group released its annual sustainability report, highlighting a 14 percent reduction in portfolio energy intensity and new LED retrofits across 22 buildings.",
+          "source_name": "Commercial Property Wire",
+          "source_url": "https://example.com/cpw/sandpiper-esg-report",
+          "published_date": "Aug 11, 2026"
+        }
+      ]
+    },
+    {
+      "display_name": "Aventine Realty Trust",
+      "city": "Irvine",
+      "articles": [
+        {
+          "title": "Aventine breaks ground on 310,000 SF Otay Mesa industrial project",
+          "snippet": "Aventine Realty Trust has broken ground on a speculative 310,000-square-foot industrial development in Otay Mesa, with delivery targeted for late 2027. The project adds meaningful competing supply to a submarket where vacancy sits near 4 percent. Aventine has not preleased any of the space.",
+          "source_name": "North County Commercial Report",
+          "source_url": "https://example.com/nccr/aventine-otay-groundbreaking",
+          "published_date": "Aug 13, 2026"
+        },
+        {
+          "title": "Aventine closes $600M value-add fund, targets Southern California",
+          "snippet": "Aventine Realty Trust announced the final close of a $600 million value-add fund, oversubscribed against a $500 million target. Management said Southern California industrial and life-science assets are the primary target, with roughly $1.5 billion of buying power including leverage.",
+          "source_name": "Real Estate Capital Daily",
+          "source_url": "https://example.com/recd/aventine-fund-close",
+          "published_date": "Aug 15, 2026"
+        }
+      ]
+    },
+    {
+      "display_name": "Two Palms Industrial",
+      "city": "Otay Mesa",
+      "articles": [
+        {
+          "title": "Two Palms signs 140,000 SF lease with third-party logistics firm",
+          "snippet": "Two Palms Industrial has signed a 140,000-square-foot lease with a national third-party logistics provider at its Otay Mesa campus, taking the property to 96 percent leased. Brokers said the deal included roughly eight months of free rent and an above-market improvement allowance, terms that may reset expectations for competing landlords in the submarket.",
+          "source_name": "Supply Chain Register",
+          "source_url": "https://example.com/scr/two-palms-3pl-lease",
+          "published_date": "Aug 14, 2026"
+        },
+        {
+          "title": "Industrial vacancy edges up across San Diego County",
+          "snippet": "County-wide industrial vacancy rose 40 basis points in the second quarter, according to a quarterly market report. Analysts attribute the move to new deliveries rather than weakening demand.",
+          "source_name": "North County Commercial Report",
+          "source_url": "https://example.com/nccr/sd-industrial-vacancy-q2",
+          "published_date": "Aug 12, 2026"
+        }
+      ]
+    },
+    {
+      "display_name": "Bayfront Asset Partners",
+      "city": "San Diego",
+      "articles": [
+        {
+          "title": "Bayfront sells downtown office tower at 38% discount to 2019 basis",
+          "snippet": "Bayfront Asset Partners has sold a 340,000-square-foot downtown San Diego office tower for $96 million, a 38 percent discount to its 2019 purchase price. The buyer is a private group expected to pursue residential conversion. Bayfront said the sale completes its planned exit from central business district office.",
+          "source_name": "Coastal Business Chronicle",
+          "source_url": "https://example.com/coastal-chronicle/bayfront-tower-sale",
+          "published_date": "Aug 15, 2026"
+        },
+        {
+          "title": "Bayfront executive to speak at regional development conference",
+          "snippet": "A Bayfront Asset Partners managing director will join a panel on adaptive reuse at next month's regional development conference.",
+          "source_name": "Commercial Property Wire",
+          "source_url": "https://example.com/cpw/bayfront-conference-panel",
+          "published_date": "Aug 13, 2026"
+        }
+      ]
+    },
+    {
+      "display_name": "Copperline REIT",
+      "city": "Phoenix",
+      "articles": [
+        {
+          "title": "Copperline extends $480M credit facility, cites refinancing wall",
+          "snippet": "Copperline REIT has extended a $480 million revolving credit facility by three years at a spread roughly 90 basis points wider than its prior terms. Management acknowledged a 2027 refinancing wall across its office holdings and said it would slow acquisitions until pricing stabilizes.",
+          "source_name": "Real Estate Capital Daily",
+          "source_url": "https://example.com/recd/copperline-facility-extension",
+          "published_date": "Aug 16, 2026"
+        },
+        {
+          "title": "Copperline REIT wins regional Landlord of the Year award",
+          "snippet": "Copperline REIT was named Landlord of the Year by a regional industry association, citing tenant satisfaction scores and community engagement.",
+          "source_name": "Commercial Property Wire",
+          "source_url": "https://example.com/cpw/copperline-award",
+          "published_date": "Aug 11, 2026"
+        }
+      ]
+    }
+  ]
+}

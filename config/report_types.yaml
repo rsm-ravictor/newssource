@@ -1,0 +1,133 @@
+# Report-type definitions. Everything that differs between the Tenants digest and
+# the Competitors digest lives here — categories, judging criteria, wording — so
+# neither the email template nor the scripts hardcode either one.
+#
+# WHEN THE REAL WATCHLISTS ARRIVE:
+#   1. Paste the names into the file named by `watchlist` (one per line).
+#   2. Adjust `categories` and `criteria` below if the signals that matter differ.
+#      The competitors block currently assumes RIVAL LANDLORDS / OWNER-OPERATORS —
+#      firms you compete with for tenants. If your competitors are instead your
+#      tenants' competitors, or brokerages, rewrite that block; nothing else changes.
+
+# Priority styling is shared by both report types.
+priorities:
+  high:   {label: High,   dot: '#d92d20', fg: '#b42318'}
+  medium: {label: Medium, dot: '#f79009', fg: '#b54708'}
+  low:    {label: Low,    dot: '#98a2b3', fg: '#475467'}
+
+report_types:
+
+  # ─────────────────────────────────────────────────────────────────────────
+  tenants:
+    label: Tenants
+    brandmark: Tenant Intelligence
+    title: Portfolio developments
+    subject_prefix: 'Tenant intel'
+    entity_noun: tenant
+    entity_noun_plural: tenants
+    monitored_label: tenants monitored
+    affected_label: tenants affected
+    from_name: Tenant Intelligence
+    from_address: tenant-intel@yourfirm.com
+    to_address: asset-management@yourfirm.com
+    watchlist: data/watchlists/tenants.txt
+    articles: data/mock_articles_tenants.json
+    alerts: data/sample_alerts_tenants.json
+    privacy_note: >-
+      only tenant names were sent to the search provider. Rent, lease terms, addresses, and the
+      portfolio list never left the local database.
+
+    categories:
+      financial_distress: {label: Financial distress, bg: '#fef3f2', fg: '#b42318'}
+      expansion:          {label: Expansion,          bg: '#ecfdf3', fg: '#027a48'}
+      office_move:        {label: Office move,        bg: '#eff8ff', fg: '#175cd3'}
+      leadership_change:  {label: Leadership change,  bg: '#f4f3ff', fg: '#5925dc'}
+
+    criteria: |
+      You are a commercial real-estate analyst screening news about tenants in a landlord's
+      portfolio. For each article, decide whether it is a MEANINGFUL development that a landlord's
+      asset-management team would act on.
+
+      RELEVANT categories (pick exactly one):
+      - financial_distress: covenant breaches, defaults, restructuring/bankruptcy advisors,
+        layoffs, going-concern doubt, missed payments, credit downgrades.
+      - expansion: funding rounds or contracts that fund growth, headcount growth, new locations,
+        stated intent to take more space.
+      - office_move: consolidations, relocations, subleasing, headquarters changes, footprint
+        reductions, space searches, lease decisions.
+      - leadership_change: CEO/CFO/managing-partner changes, or leadership changes explicitly tied
+        to a real-estate or cost strategy review.
+
+      EXCLUDE (set is_relevant=false and fill reason_if_excluded):
+      - Routine business news with no space or credit implication.
+      - Product launches, feature releases, pricing news.
+      - Marketing, awards, sponsorships, "best places to work", CSR announcements.
+      - Minor personnel changes below the executive level, ordinary associate or staff hires.
+      - Opinion pieces, listicles, and articles that merely mention the company in passing.
+
+      PRIORITY rubric:
+      - high: an act-this-week signal. Credit risk to rent collection, or a concrete
+        move/expansion decision that affects space demand now.
+      - medium: a real signal worth tracking that has no immediate action attached.
+      - low: weak or speculative, relevant only as background.
+
+  # ─────────────────────────────────────────────────────────────────────────
+  competitors:
+    label: Competitors
+    brandmark: Competitor Intelligence
+    title: Competitive activity
+    subject_prefix: 'Competitor intel'
+    entity_noun: competitor
+    entity_noun_plural: competitors
+    monitored_label: competitors monitored
+    affected_label: competitors active
+    from_name: Competitor Intelligence
+    from_address: market-intel@yourfirm.com
+    to_address: acquisitions@yourfirm.com
+    watchlist: data/watchlists/competitors.txt
+    articles: data/mock_articles_competitors.json
+    alerts: data/sample_alerts_competitors.json
+    privacy_note: >-
+      only competitor names were sent to the search provider. Your own portfolio, rents, and
+      pipeline never left the local database.
+
+    categories:
+      acquisition:       {label: Acquisition,   bg: '#eff8ff', fg: '#175cd3'}
+      disposition:       {label: Disposition,   bg: '#fffaeb', fg: '#b54708'}
+      development:       {label: Development,   bg: '#ecfdf3', fg: '#027a48'}
+      leasing:           {label: Leasing,       bg: '#f0f9ff', fg: '#026aa2'}
+      capital:           {label: Capital,       bg: '#fef3f2', fg: '#b42318'}
+      leadership_change: {label: Leadership,    bg: '#f4f3ff', fg: '#5925dc'}
+
+    criteria: |
+      You are a commercial real-estate analyst tracking RIVAL LANDLORDS AND OWNER-OPERATORS —
+      firms your company competes with to win and keep commercial tenants. For each article,
+      decide whether it is a MEANINGFUL competitive development your acquisitions and asset
+      management teams would act on.
+
+      RELEVANT categories (pick exactly one):
+      - acquisition: buying buildings, portfolios, or platforms; entering a submarket by purchase;
+        winning a bid you may also have chased.
+      - disposition: selling assets, exiting a submarket, portfolio pruning, recapitalizations
+        that hand over control.
+      - development: groundbreakings, new construction, major repositioning or renovation that
+        adds competing supply.
+      - leasing: signing a notable tenant, large blocks let, occupancy or asking-rate moves,
+        aggressive concession packages.
+      - capital: fund closes, equity raises, refinancing, credit facilities, distress on their
+        own balance sheet.
+      - leadership_change: CEO/CIO/head-of-leasing changes, or team hires that signal a strategy
+        or market shift.
+
+      EXCLUDE (set is_relevant=false and fill reason_if_excluded):
+      - Routine corporate news with no competitive or supply implication.
+      - Marketing, awards, sponsorships, ESG and CSR announcements, conference appearances.
+      - Minor personnel changes below the executive or team-lead level.
+      - Opinion pieces, market-wide commentary not specific to the firm, and articles that merely
+        mention the firm in passing.
+
+      PRIORITY rubric:
+      - high: an act-this-week signal. Competing supply landing in a submarket you own, a tenant
+        you want being signed elsewhere, or a deal you could still bid on.
+      - medium: a real competitive signal worth tracking with no immediate action attached.
+      - low: weak or speculative, relevant only as background.

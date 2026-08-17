@@ -1,0 +1,16 @@
+# Tenant watchlist — one entity per line.
+#
+# Format:  Name
+#      or  Name, City        (city narrows the search and is the only extra field sent out)
+#
+# Lines starting with # and blank lines are ignored. Names here are the ONLY tenant
+# data that ever leaves the machine. In the full pipeline this list is derived from
+# the rent-roll Excel import instead of maintained by hand.
+#
+# >>> REPLACE the fictional placeholders below with your real tenant list. <<<
+
+Meridian Health Partners, San Diego
+Calyx Biosciences, La Jolla
+Harborline Logistics, Chula Vista
+Kestrel Legal LLP, San Diego
+Pacific Sun Robotics, Carlsbad
