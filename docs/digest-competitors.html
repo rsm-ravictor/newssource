@@ -7,450 +7,559 @@
 <meta name="supported-color-schemes" content="light only">
 <title>Competitor intel: 7 developments across 5 competitors</title>
 <style>
-  /* Mobile breakpoint. Fires inside the 390px phone preview and in real mail
-     apps; Outlook desktop drops it and keeps the inline styles. */
-  @media only screen and (max-width: 620px) {
-    .sheet      { width: 100% !important; }
-    .gutter     { padding-left: 20px !important; padding-right: 20px !important; }
-    .band       { padding: 24px 20px !important; }
-    .brandmark  { font-size: 11px !important; letter-spacing: 1.4px !important; }
-    .title      { font-size: 21px !important; line-height: 28px !important; }
-    .headline   { font-size: 16px !important; line-height: 23px !important; }
-    .summary    { font-size: 14px !important; line-height: 22px !important; }
-    .card       { padding: 16px !important; }
-    /* Metric strip: three columns become full-width stacked rows. */
-    .metric     { display: block !important; width: 100% !important;
-                  border-right: 0 !important; border-bottom: 1px solid #e4e7ec !important;
-                  padding: 12px 0 !important; text-align: left !important; }
-    .metric-last{ border-bottom: 0 !important; }
-    .metric-num { display: inline-block !important; font-size: 20px !important;
-                  margin-right: 8px !important; }
-    .metric-lbl { display: inline-block !important; }
-    /* Source line: outlet and link stop sharing a row. */
+  /* Vertical ticker. Only clients that honour keyframes animate (Apple Mail);
+     Gmail and Outlook strip it and the list simply sits static, still readable. */
+  @keyframes aat-ticker {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-165px); }
+  }
+    .ticker-reel { animation: aat-ticker 12s linear infinite; }
+  
+  /* Mobile: the two summary columns stack, everything else reflows. */
+  @media only screen and (max-width: 680px) {
+    .sheet     { width: 100% !important; }
+    .gutter    { padding-left: 18px !important; padding-right: 18px !important; }
+    .band      { padding: 20px 18px !important; }
+    .col       { display: block !important; width: 100% !important;
+                 padding: 0 !important; }
+    .col-left  { padding-bottom: 16px !important; }
+    .bannerttl { font-size: 18px !important; }
+    .bannerdate{ font-size: 11.5px !important; }
+    .headline  { font-size: 15.5px !important; line-height: 22px !important; }
+    .summary   { font-size: 14px !important; line-height: 22px !important; }
+    .card      { padding: 15px !important; }
+    .ticker-window { height: 132px !important; }
     .src-cell, .src-link { display: block !important; width: 100% !important;
                            text-align: left !important; }
-    .src-link   { padding-top: 8px !important; }
-    .co-count   { display: none !important; }
+    .src-link  { padding-top: 7px !important; }
   }
   a { text-decoration: none; }
 </style>
 </head>
 <body style="margin:0; padding:0; background-color:#eef1f5; -webkit-font-smoothing:antialiased;">
 
-<!-- Inbox preview text, then whitespace to stop the client pulling in body copy. -->
+<!-- Inbox preview text, then whitespace so the client stops pulling in body copy. -->
 <div style="display:none; font-size:1px; color:#eef1f5; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;">
   Aventine Realty Trust — Aventine breaks ground on 310,000 SF spec industrial in Otay Mesa&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
 </div>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#eef1f5;">
   <tr>
-    <td align="center" style="padding:32px 12px;">
+    <td align="center" style="padding:28px 12px;">
 
-      <table role="presentation" class="sheet" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(16,24,40,0.10);">
+      <table role="presentation" class="sheet" width="660" cellpadding="0" cellspacing="0" border="0" style="width:660px; max-width:660px; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(16,24,40,0.10);">
 
-        <!-- ── Header band ────────────────────────────────────────────── -->
+        <!-- ═══ 1. Banner ═══════════════════════════════════════════════ -->
         <tr>
-          <td class="band" style="background-color:#0f1f33; padding:28px 32px;">
+          <td class="band" style="background-color:#0f1f33; padding:20px 26px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div class="brandmark" style="font-size:11.5px; font-weight:700; letter-spacing:1.8px; text-transform:uppercase; color:#7dd3fc;">
+                <td valign="middle" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                  <div class="bannerttl" style="font-size:20px; line-height:26px; font-weight:600; color:#ffffff;">
+                    AAT Intel Briefing
+                  </div>
+                  <div style="font-size:11px; line-height:16px; letter-spacing:1.2px; text-transform:uppercase; color:#7dd3fc; padding-top:4px;">
                     Competitor Intelligence
                   </div>
-                  <div class="title" style="font-size:24px; line-height:32px; font-weight:600; color:#ffffff; padding-top:8px;">
-                    Competitive activity
-                  </div>
-                  <div style="font-size:13.5px; line-height:20px; color:#94a3b8; padding-top:6px;">
-                    Week of Aug 11 – Aug 17, 2026
-                  </div>
+                </td>
+                <td valign="middle" align="right" class="bannerdate" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; color:#94a3b8; white-space:nowrap;">
+                  August 17, 2026
                 </td>
               </tr>
             </table>
           </td>
         </tr>
-
-        <!-- ── Metric strip ───────────────────────────────────────────── -->
+        <!-- ═══ 2. Two-column summary ═══════════════════════════════════ -->
         <tr>
-          <td class="gutter" style="padding:0 32px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid #e4e7ec;">
-              <tr>                <td class="metric" width="33.33%" valign="top"
-                    style="padding:20px 0; text-align:center; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; border-right:1px solid #e4e7ec;">
-                  <div class="metric-num" style="font-size:26px; line-height:32px; font-weight:600; color:#0f1f33;">7</div>
-                  <div class="metric-lbl" style="font-size:11.5px; line-height:16px; color:#667085; letter-spacing:0.3px; padding-top:2px;">developments to review</div>
-                </td>                <td class="metric" width="33.33%" valign="top"
-                    style="padding:20px 0; text-align:center; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; border-right:1px solid #e4e7ec;">
-                  <div class="metric-num" style="font-size:26px; line-height:32px; font-weight:600; color:#0f1f33;">5</div>
-                  <div class="metric-lbl" style="font-size:11.5px; line-height:16px; color:#667085; letter-spacing:0.3px; padding-top:2px;">competitors active</div>
-                </td>                <td class="metric metric-last" width="33.33%" valign="top"
-                    style="padding:20px 0; text-align:center; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div class="metric-num" style="font-size:26px; line-height:32px; font-weight:600; color:#0f1f33;">5</div>
-                  <div class="metric-lbl" style="font-size:11.5px; line-height:16px; color:#667085; letter-spacing:0.3px; padding-top:2px;">competitors monitored</div>
-                </td>              </tr>
-            </table>
-          </td>
-        </tr>        <!-- ── Findings, grouped by tenant ────────────────────────────── -->        <tr>
-          <td class="gutter" style="padding:26px 32px 0 32px;">
-
-            <!-- Tenant header -->
+          <td class="gutter" style="padding:22px 26px 6px 26px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td valign="middle" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div style="font-size:17px; line-height:24px; font-weight:600; color:#101828;">Aventine Realty Trust</div>                  <div style="font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;">Irvine</div>                </td>
-                <td class="co-count" valign="middle" align="right" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;">
-                  2 items
+
+                <!-- ── Left column (~58%): Top Intel + index ──────────── -->
+                <td class="col col-left" width="58%" valign="top" style="padding-right:14px;">
+
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e4e7ec; border-radius:10px;">
+                    <tr>
+                      <td style="padding:14px 16px 4px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        <div style="font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#0f1f33;">
+                          Top Intel
+                        </div>
+                      </td>
+                    </tr>                    <tr>
+                      <td style="padding:9px 16px 10px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                        <div style="padding-top:6px;">
+                          <a href="https://example.com/nccr/aventine-otay-groundbreaking" style="font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;">Aventine breaks ground on 310,000 SF spec industrial in Otay Mesa</a>
+                        </div>
+                        <div style="font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;">
+                          <span style="color:#027a48;">Development</span> &middot; Aventine Realty Trust
+                        </div>
+                      </td>
+                    </tr>                    <tr>
+                      <td style="padding:9px 16px 10px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;">
+                        <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                        <div style="padding-top:6px;">
+                          <a href="https://example.com/recd/aventine-fund-close" style="font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;">Aventine closes $600M value-add fund targeting SoCal industrial, life science</a>
+                        </div>
+                        <div style="font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;">
+                          <span style="color:#b42318;">Capital</span> &middot; Aventine Realty Trust
+                        </div>
+                      </td>
+                    </tr>                    <tr>
+                      <td style="padding:9px 16px 10px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;">
+                        <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                        <div style="padding-top:6px;">
+                          <a href="https://example.com/coastal-chronicle/sandpiper-sorrento-portfolio" style="font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;">Sandpiper buys 480K SF Sorrento Mesa flex portfolio for $212M, plans $30M reno</a>
+                        </div>
+                        <div style="font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;">
+                          <span style="color:#175cd3;">Acquisition</span> &middot; Sandpiper Property Group
+                        </div>
+                      </td>
+                    </tr>                    <tr>
+                      <td style="padding:9px 16px 10px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;">
+                        <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                        <div style="padding-top:6px;">
+                          <a href="https://example.com/coastal-chronicle/bayfront-tower-sale" style="font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;">Bayfront sells 340K-SF downtown SD office tower at 38% discount, exits CBD</a>
+                        </div>
+                        <div style="font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;">
+                          <span style="color:#b54708;">Disposition</span> &middot; Bayfront Asset Partners
+                        </div>
+                      </td>
+                    </tr>                    <tr>
+                      <td style="padding:9px 16px 10px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;">
+                        <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                        <div style="padding-top:6px;">
+                          <a href="https://example.com/recd/copperline-facility-extension" style="font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;">Copperline extends $480M credit facility at +90bps; to slow acquisitions amid 2027 refi wall</a>
+                        </div>
+                        <div style="font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;">
+                          <span style="color:#b42318;">Capital</span> &middot; Copperline REIT
+                        </div>
+                      </td>
+                    </tr>                  </table>
+
+                  <!-- Index pills. Anchor links work in Apple Mail and most webmail;
+                       Gmail strips ids, where these degrade to inert labels. -->
+                  <div id="aat-index" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:#667085; padding:18px 2px 9px 2px;">
+                    Who&rsquo;s in the News &mdash; Jump to Full Briefing
+                  </div>
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:0; line-height:0;">                        <a href="#aventine-realty-trust" style="display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;">Aventine Realty Trust</a>                        <a href="#sandpiper-property-group" style="display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;">Sandpiper Property Group</a>                        <a href="#bayfront-asset-partners" style="display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;">Bayfront Asset Partners</a>                        <a href="#copperline-reit" style="display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;">Copperline REIT</a>                        <a href="#two-palms-industrial" style="display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;">Two Palms Industrial</a>                      </td>
+                    </tr>
+                  </table>
+
                 </td>
+
+                <!-- ── Right column (~38%): Trending Now ─────────────── -->
+                <td class="col" width="38%" valign="top">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f3ff; border:1px solid #e0d9fe; border-radius:10px;">
+                    <tr>
+                      <td style="padding:14px 15px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        <div style="font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#5925dc;">
+                          Trending Now
+                        </div>
+
+                        <!-- Fixed window; the reel is the list twice over so the
+                             translateY loop meets itself seamlessly. -->
+                        <div class="ticker-window" style="height:132px; overflow:hidden; margin-top:10px;">
+                          <div class="ticker-reel">                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Aventine Realty Trust
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Sandpiper Property Group
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Bayfront Asset Partners
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Copperline REIT
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Two Palms Industrial
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Aventine Realty Trust
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Sandpiper Property Group
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Bayfront Asset Partners
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Copperline REIT
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Two Palms Industrial
+                            </div>                          </div>
+                        </div>
+
+                        <div style="font-size:11px; line-height:16px; color:#7f56d9; padding-top:9px; border-top:1px solid #e0d9fe; margin-top:8px;">
+                          5 companies in today&rsquo;s briefing
+                          &middot; 5 competitors monitored
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+
               </tr>
             </table>
+          </td>
+        </tr>
 
-            <!-- Alert cards -->            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
+        <!-- ═══ 3. Divider ══════════════════════════════════════════════ -->
+        <tr>
+          <td class="gutter" style="padding:18px 26px 0 26px;">
+            <div style="height:1px; background-color:#e4e7ec; line-height:1px; font-size:0;">&nbsp;</div>
+          </td>
+        </tr>
+
+        <!-- ═══ 4. Full Briefing ════════════════════════════════════════ -->
+        <tr>
+          <td class="gutter" style="padding:18px 26px 0 26px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            <div style="font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#0f1f33;">
+              Full Briefing
+            </div>
+            <div style="font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:4px;">
+              Week of Aug 11 – Aug 17, 2026 &middot; 7 developments &middot; high and medium priority
+            </div>
+          </td>
+        </tr>        <tr>
+          <td class="gutter" style="padding:14px 26px 0 26px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
               <tr>
-                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <td class="card" style="padding:16px 18px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-                  <!-- Category pill + priority chip -->
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <!-- Entity header + back link -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td style="padding-right:10px;">
-                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:#ecfdf3; color:#027a48; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">Development</span>
-                      </td>
-                      <td>
-                        <span style="display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;">
-                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;High</span>
-                        </span>
+                      <td valign="middle" id="aventine-realty-trust">
+                        <div style="font-size:16px; line-height:22px; font-weight:600; color:#101828;">Aventine Realty Trust</div>                        <div style="font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;">Irvine</div>                      </td>
+                      <td valign="middle" align="right" style="white-space:nowrap;">
+                        <a href="#aat-index" style="font-size:11px; color:#98a2b3; text-decoration:none;">&uarr;&nbsp;Back to index</a>
                       </td>
                     </tr>
                   </table>
 
-                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
-                    Aventine breaks ground on 310,000 SF spec industrial in Otay Mesa
-                  </div>
+                  <!-- Events for this entity -->                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="padding-top:14px; padding-bottom:5px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
-                    Aventine Realty Trust has broken ground on a 310,000-square-foot speculative industrial building in Otay Mesa, targeting a late 2027 delivery with no preleasing in place. The project enters a submarket where vacancy is currently near 4 percent, adding meaningful new supply. Asset management teams with Otay Mesa exposure should monitor leasing activity closely as delivery approaches.
-                  </div>
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="padding-right:8px;">
+                              <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                            </td>
+                            <td>
+                              <span style="display:inline-block; padding:2px 8px; border-radius:9px; background-color:#ecfdf3; color:#027a48; font-size:10.5px; font-weight:600; white-space:nowrap;">Development</span>
+                            </td>
+                          </tr>
+                        </table>
 
-                  <!-- Source line -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
-                    <tr>
-                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        North County Commercial Report &middot; Aug 13, 2026                      </td>
-                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        <a href="https://example.com/nccr/aventine-otay-groundbreaking" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
+                        <div class="headline" style="font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;">
+                          Aventine breaks ground on 310,000 SF spec industrial in Otay Mesa
+                        </div>
+
+                        <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;">
+                          Aventine Realty Trust has broken ground on a 310,000-square-foot speculative industrial building in Otay Mesa, targeting a late 2027 delivery with no preleasing in place. The project enters a submarket where vacancy is currently near 4 percent, adding meaningful new supply. Asset management teams with Otay Mesa exposure should monitor leasing activity closely as delivery approaches.
+                        </div>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:11px;">
+                          <tr>
+                            <td class="src-cell" valign="middle" style="font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              North County Commercial Report &middot; Aug 13, 2026                            </td>
+                            <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">                              <a href="https://example.com/nccr/aventine-otay-groundbreaking" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>                            </td>
+                          </tr>
+                        </table>
+
+                      </td>
+                    </tr>
+                  </table>                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="padding-top:14px; padding-bottom:5px; border-top:1px solid #e4e7ec; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="padding-right:8px;">
+                              <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                            </td>
+                            <td>
+                              <span style="display:inline-block; padding:2px 8px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:10.5px; font-weight:600; white-space:nowrap;">Capital</span>
+                            </td>
+                          </tr>
+                        </table>
+
+                        <div class="headline" style="font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;">
+                          Aventine closes $600M value-add fund targeting SoCal industrial, life science
+                        </div>
+
+                        <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;">
+                          Aventine Realty Trust has closed a $600 million value-add fund, oversubscribed against its $500 million target, with Southern California industrial and life-science assets identified as the primary investment focus. Including leverage, the firm commands approximately $1.5 billion in buying power, signaling an aggressive near-term acquisition campaign in the region. Acquisitions teams should anticipate heightened competition from Aventine on Southern California deals in both sectors.
+                        </div>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:11px;">
+                          <tr>
+                            <td class="src-cell" valign="middle" style="font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              Real Estate Capital Daily &middot; Aug 15, 2026                            </td>
+                            <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">                              <a href="https://example.com/recd/aventine-fund-close" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>                            </td>
+                          </tr>
+                        </table>
+
                       </td>
                     </tr>
                   </table>
-
-                </td>
-              </tr>
-            </table>            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
-              <tr>
-                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-
-                  <!-- Category pill + priority chip -->
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                    <tr>
-                      <td style="padding-right:10px;">
-                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:#fef3f2; color:#b42318; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">Capital</span>
-                      </td>
-                      <td>
-                        <span style="display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;">
-                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;High</span>
-                        </span>
-                      </td>
-                    </tr>
-                  </table>
-
-                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
-                    Aventine closes $600M value-add fund targeting SoCal industrial, life science
-                  </div>
-
-                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
-                    Aventine Realty Trust has closed a $600 million value-add fund, oversubscribed against its $500 million target, with Southern California industrial and life-science assets identified as the primary investment focus. Including leverage, the firm commands approximately $1.5 billion in buying power, signaling an aggressive near-term acquisition campaign in the region. Acquisitions teams should anticipate heightened competition from Aventine on Southern California deals in both sectors.
-                  </div>
-
-                  <!-- Source line -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
-                    <tr>
-                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        Real Estate Capital Daily &middot; Aug 15, 2026                      </td>
-                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        <a href="https://example.com/recd/aventine-fund-close" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
-                      </td>
-                    </tr>
-                  </table>
-
                 </td>
               </tr>
             </table>
           </td>
         </tr>        <tr>
-          <td class="gutter" style="padding:26px 32px 0 32px;">
-
-            <!-- Tenant header -->
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <td class="gutter" style="padding:14px 26px 0 26px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
               <tr>
-                <td valign="middle" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div style="font-size:17px; line-height:24px; font-weight:600; color:#101828;">Sandpiper Property Group</div>                  <div style="font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;">San Diego</div>                </td>
-                <td class="co-count" valign="middle" align="right" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;">
-                  2 items
-                </td>
-              </tr>
-            </table>
+                <td class="card" style="padding:16px 18px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-            <!-- Alert cards -->            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
-              <tr>
-                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-
-                  <!-- Category pill + priority chip -->
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <!-- Entity header + back link -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td style="padding-right:10px;">
-                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:#eff8ff; color:#175cd3; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">Acquisition</span>
-                      </td>
-                      <td>
-                        <span style="display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;">
-                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;High</span>
-                        </span>
+                      <td valign="middle" id="sandpiper-property-group">
+                        <div style="font-size:16px; line-height:22px; font-weight:600; color:#101828;">Sandpiper Property Group</div>                        <div style="font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;">San Diego</div>                      </td>
+                      <td valign="middle" align="right" style="white-space:nowrap;">
+                        <a href="#aat-index" style="font-size:11px; color:#98a2b3; text-decoration:none;">&uarr;&nbsp;Back to index</a>
                       </td>
                     </tr>
                   </table>
 
-                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
-                    Sandpiper buys 480K SF Sorrento Mesa flex portfolio for $212M, plans $30M reno
-                  </div>
+                  <!-- Events for this entity -->                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="padding-top:14px; padding-bottom:5px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
-                    Sandpiper Property Group has closed on a four-building, 480,000-square-foot flex and R&amp;D portfolio in Sorrento Mesa for $212 million, its largest San Diego acquisition to date. The firm has announced a $30 million repositioning program and intends to push asking rents approximately 12 percent above current in-place levels upon lease rollover. This adds significant competing supply to the Sorrento Mesa flex/R&amp;D submarket and signals an aggressive near-term leasing posture.
-                  </div>
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="padding-right:8px;">
+                              <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                            </td>
+                            <td>
+                              <span style="display:inline-block; padding:2px 8px; border-radius:9px; background-color:#eff8ff; color:#175cd3; font-size:10.5px; font-weight:600; white-space:nowrap;">Acquisition</span>
+                            </td>
+                          </tr>
+                        </table>
 
-                  <!-- Source line -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
-                    <tr>
-                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        Coastal Business Chronicle &middot; Aug 12, 2026                      </td>
-                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        <a href="https://example.com/coastal-chronicle/sandpiper-sorrento-portfolio" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
+                        <div class="headline" style="font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;">
+                          Sandpiper buys 480K SF Sorrento Mesa flex portfolio for $212M, plans $30M reno
+                        </div>
+
+                        <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;">
+                          Sandpiper Property Group has closed on a four-building, 480,000-square-foot flex and R&amp;D portfolio in Sorrento Mesa for $212 million, its largest San Diego acquisition to date. The firm has announced a $30 million repositioning program and intends to push asking rents approximately 12 percent above current in-place levels upon lease rollover. This adds significant competing supply to the Sorrento Mesa flex/R&amp;D submarket and signals an aggressive near-term leasing posture.
+                        </div>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:11px;">
+                          <tr>
+                            <td class="src-cell" valign="middle" style="font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              Coastal Business Chronicle &middot; Aug 12, 2026                            </td>
+                            <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">                              <a href="https://example.com/coastal-chronicle/sandpiper-sorrento-portfolio" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>                            </td>
+                          </tr>
+                        </table>
+
+                      </td>
+                    </tr>
+                  </table>                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="padding-top:14px; padding-bottom:5px; border-top:1px solid #e4e7ec; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="padding-right:8px;">
+                              <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fffaeb; color:#b54708; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Watch</span>
+                            </td>
+                            <td>
+                              <span style="display:inline-block; padding:2px 8px; border-radius:9px; background-color:#f4f3ff; color:#5925dc; font-size:10.5px; font-weight:600; white-space:nowrap;">Leadership</span>
+                            </td>
+                          </tr>
+                        </table>
+
+                        <div class="headline" style="font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;">
+                          Sandpiper hires Marcus Del Rio as head of West Coast leasing to cut vacancy downtime
+                        </div>
+
+                        <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;">
+                          Sandpiper Property Group has appointed Marcus Del Rio, a veteran brokerage leasing executive, to the newly created role of head of West Coast leasing. His stated mandate is to reduce vacancy downtime across Sandpiper&#39;s California portfolio, signaling a more aggressive leasing strategy. This hire, combined with Sandpiper&#39;s recent Sorrento Mesa acquisition, suggests the firm is building operational capacity to compete more actively for tenants in San Diego.
+                        </div>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:11px;">
+                          <tr>
+                            <td class="src-cell" valign="middle" style="font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              Commercial Property Wire &middot; Aug 14, 2026                            </td>
+                            <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">                              <a href="https://example.com/cpw/sandpiper-leasing-head" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>                            </td>
+                          </tr>
+                        </table>
+
                       </td>
                     </tr>
                   </table>
-
-                </td>
-              </tr>
-            </table>            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
-              <tr>
-                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-
-                  <!-- Category pill + priority chip -->
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                    <tr>
-                      <td style="padding-right:10px;">
-                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:#f4f3ff; color:#5925dc; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">Leadership</span>
-                      </td>
-                      <td>
-                        <span style="display:inline-block; font-size:11px; font-weight:600; color:#b54708; letter-spacing:0.3px; white-space:nowrap;">
-                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#f79009; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;Medium</span>
-                        </span>
-                      </td>
-                    </tr>
-                  </table>
-
-                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
-                    Sandpiper hires Marcus Del Rio as head of West Coast leasing to cut vacancy downtime
-                  </div>
-
-                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
-                    Sandpiper Property Group has appointed Marcus Del Rio, a veteran brokerage leasing executive, to the newly created role of head of West Coast leasing. His stated mandate is to reduce vacancy downtime across Sandpiper&#39;s California portfolio, signaling a more aggressive leasing strategy. This hire, combined with Sandpiper&#39;s recent Sorrento Mesa acquisition, suggests the firm is building operational capacity to compete more actively for tenants in San Diego.
-                  </div>
-
-                  <!-- Source line -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
-                    <tr>
-                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        Commercial Property Wire &middot; Aug 14, 2026                      </td>
-                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        <a href="https://example.com/cpw/sandpiper-leasing-head" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
-                      </td>
-                    </tr>
-                  </table>
-
                 </td>
               </tr>
             </table>
           </td>
         </tr>        <tr>
-          <td class="gutter" style="padding:26px 32px 0 32px;">
-
-            <!-- Tenant header -->
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <td class="gutter" style="padding:14px 26px 0 26px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
               <tr>
-                <td valign="middle" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div style="font-size:17px; line-height:24px; font-weight:600; color:#101828;">Bayfront Asset Partners</div>                  <div style="font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;">San Diego</div>                </td>
-                <td class="co-count" valign="middle" align="right" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;">
-                  1 item
-                </td>
-              </tr>
-            </table>
+                <td class="card" style="padding:16px 18px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-            <!-- Alert cards -->            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
-              <tr>
-                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-
-                  <!-- Category pill + priority chip -->
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <!-- Entity header + back link -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td style="padding-right:10px;">
-                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:#fffaeb; color:#b54708; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">Disposition</span>
-                      </td>
-                      <td>
-                        <span style="display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;">
-                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;High</span>
-                        </span>
+                      <td valign="middle" id="bayfront-asset-partners">
+                        <div style="font-size:16px; line-height:22px; font-weight:600; color:#101828;">Bayfront Asset Partners</div>                        <div style="font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;">San Diego</div>                      </td>
+                      <td valign="middle" align="right" style="white-space:nowrap;">
+                        <a href="#aat-index" style="font-size:11px; color:#98a2b3; text-decoration:none;">&uarr;&nbsp;Back to index</a>
                       </td>
                     </tr>
                   </table>
 
-                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
-                    Bayfront sells 340K-SF downtown SD office tower at 38% discount, exits CBD
-                  </div>
+                  <!-- Events for this entity -->                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="padding-top:14px; padding-bottom:5px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
-                    Bayfront Asset Partners has divested a 340,000-square-foot downtown San Diego office tower for $96 million, representing a 38% discount to its 2019 acquisition price. The buyer is a private group anticipated to pursue residential conversion of the asset. Bayfront confirmed this sale completes its planned withdrawal from the central business district office market.
-                  </div>
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="padding-right:8px;">
+                              <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                            </td>
+                            <td>
+                              <span style="display:inline-block; padding:2px 8px; border-radius:9px; background-color:#fffaeb; color:#b54708; font-size:10.5px; font-weight:600; white-space:nowrap;">Disposition</span>
+                            </td>
+                          </tr>
+                        </table>
 
-                  <!-- Source line -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
-                    <tr>
-                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        Coastal Business Chronicle &middot; Aug 15, 2026                      </td>
-                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        <a href="https://example.com/coastal-chronicle/bayfront-tower-sale" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
+                        <div class="headline" style="font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;">
+                          Bayfront sells 340K-SF downtown SD office tower at 38% discount, exits CBD
+                        </div>
+
+                        <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;">
+                          Bayfront Asset Partners has divested a 340,000-square-foot downtown San Diego office tower for $96 million, representing a 38% discount to its 2019 acquisition price. The buyer is a private group anticipated to pursue residential conversion of the asset. Bayfront confirmed this sale completes its planned withdrawal from the central business district office market.
+                        </div>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:11px;">
+                          <tr>
+                            <td class="src-cell" valign="middle" style="font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              Coastal Business Chronicle &middot; Aug 15, 2026                            </td>
+                            <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">                              <a href="https://example.com/coastal-chronicle/bayfront-tower-sale" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>                            </td>
+                          </tr>
+                        </table>
+
                       </td>
                     </tr>
                   </table>
-
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>        <tr>
-          <td class="gutter" style="padding:26px 32px 0 32px;">
-
-            <!-- Tenant header -->
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-              <tr>
-                <td valign="middle" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div style="font-size:17px; line-height:24px; font-weight:600; color:#101828;">Copperline REIT</div>                  <div style="font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;">Phoenix</div>                </td>
-                <td class="co-count" valign="middle" align="right" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;">
-                  1 item
-                </td>
-              </tr>
-            </table>
-
-            <!-- Alert cards -->            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
-              <tr>
-                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-
-                  <!-- Category pill + priority chip -->
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                    <tr>
-                      <td style="padding-right:10px;">
-                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:#fef3f2; color:#b42318; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">Capital</span>
-                      </td>
-                      <td>
-                        <span style="display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;">
-                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;High</span>
-                        </span>
-                      </td>
-                    </tr>
-                  </table>
-
-                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
-                    Copperline extends $480M credit facility at +90bps; to slow acquisitions amid 2027 refi wall
-                  </div>
-
-                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
-                    Copperline REIT has extended its $480 million revolving credit facility by three years at a spread approximately 90 basis points wider than prior terms, signaling tighter balance-sheet conditions. Management cited a 2027 refinancing wall across its office portfolio and stated it will slow acquisitions until pricing stabilizes. This indicates Copperline is likely to be less aggressive in Phoenix acquisition activity in the near term, potentially opening opportunities for competing bidders.
-                  </div>
-
-                  <!-- Source line -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
-                    <tr>
-                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        Real Estate Capital Daily &middot; Aug 16, 2026                      </td>
-                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        <a href="https://example.com/recd/copperline-facility-extension" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
-                      </td>
-                    </tr>
-                  </table>
-
                 </td>
               </tr>
             </table>
           </td>
         </tr>        <tr>
-          <td class="gutter" style="padding:26px 32px 0 32px;">
-
-            <!-- Tenant header -->
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <td class="gutter" style="padding:14px 26px 0 26px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
               <tr>
-                <td valign="middle" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div style="font-size:17px; line-height:24px; font-weight:600; color:#101828;">Two Palms Industrial</div>                  <div style="font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;">Otay Mesa</div>                </td>
-                <td class="co-count" valign="middle" align="right" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;">
-                  1 item
+                <td class="card" style="padding:16px 18px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+                  <!-- Entity header + back link -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td valign="middle" id="copperline-reit">
+                        <div style="font-size:16px; line-height:22px; font-weight:600; color:#101828;">Copperline REIT</div>                        <div style="font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;">Phoenix</div>                      </td>
+                      <td valign="middle" align="right" style="white-space:nowrap;">
+                        <a href="#aat-index" style="font-size:11px; color:#98a2b3; text-decoration:none;">&uarr;&nbsp;Back to index</a>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Events for this entity -->                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="padding-top:14px; padding-bottom:5px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="padding-right:8px;">
+                              <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                            </td>
+                            <td>
+                              <span style="display:inline-block; padding:2px 8px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:10.5px; font-weight:600; white-space:nowrap;">Capital</span>
+                            </td>
+                          </tr>
+                        </table>
+
+                        <div class="headline" style="font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;">
+                          Copperline extends $480M credit facility at +90bps; to slow acquisitions amid 2027 refi wall
+                        </div>
+
+                        <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;">
+                          Copperline REIT has extended its $480 million revolving credit facility by three years at a spread approximately 90 basis points wider than prior terms, signaling tighter balance-sheet conditions. Management cited a 2027 refinancing wall across its office portfolio and stated it will slow acquisitions until pricing stabilizes. This indicates Copperline is likely to be less aggressive in Phoenix acquisition activity in the near term, potentially opening opportunities for competing bidders.
+                        </div>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:11px;">
+                          <tr>
+                            <td class="src-cell" valign="middle" style="font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              Real Estate Capital Daily &middot; Aug 16, 2026                            </td>
+                            <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">                              <a href="https://example.com/recd/copperline-facility-extension" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>                            </td>
+                          </tr>
+                        </table>
+
+                      </td>
+                    </tr>
+                  </table>
                 </td>
               </tr>
             </table>
-
-            <!-- Alert cards -->            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
+          </td>
+        </tr>        <tr>
+          <td class="gutter" style="padding:14px 26px 0 26px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
               <tr>
-                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <td class="card" style="padding:16px 18px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-                  <!-- Category pill + priority chip -->
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <!-- Entity header + back link -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td style="padding-right:10px;">
-                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:#f0f9ff; color:#026aa2; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">Leasing</span>
-                      </td>
-                      <td>
-                        <span style="display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;">
-                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;High</span>
-                        </span>
+                      <td valign="middle" id="two-palms-industrial">
+                        <div style="font-size:16px; line-height:22px; font-weight:600; color:#101828;">Two Palms Industrial</div>                        <div style="font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;">Otay Mesa</div>                      </td>
+                      <td valign="middle" align="right" style="white-space:nowrap;">
+                        <a href="#aat-index" style="font-size:11px; color:#98a2b3; text-decoration:none;">&uarr;&nbsp;Back to index</a>
                       </td>
                     </tr>
                   </table>
 
-                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
-                    Two Palms signs 140K SF 3PL lease at Otay Mesa, reaches 96% occupancy
-                  </div>
+                  <!-- Events for this entity -->                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="padding-top:14px; padding-bottom:5px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
-                    Two Palms Industrial has leased 140,000 square feet to a national third-party logistics provider at its Otay Mesa campus, bringing the property to 96 percent leased. The deal reportedly included approximately eight months of free rent and an above-market tenant improvement allowance. Brokers indicate these concession terms may reset baseline expectations for competing landlords in the Otay Mesa submarket.
-                  </div>
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="padding-right:8px;">
+                              <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                            </td>
+                            <td>
+                              <span style="display:inline-block; padding:2px 8px; border-radius:9px; background-color:#f0f9ff; color:#026aa2; font-size:10.5px; font-weight:600; white-space:nowrap;">Leasing</span>
+                            </td>
+                          </tr>
+                        </table>
 
-                  <!-- Source line -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
-                    <tr>
-                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        Supply Chain Register &middot; Aug 14, 2026                      </td>
-                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        <a href="https://example.com/scr/two-palms-3pl-lease" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
+                        <div class="headline" style="font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;">
+                          Two Palms signs 140K SF 3PL lease at Otay Mesa, reaches 96% occupancy
+                        </div>
+
+                        <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;">
+                          Two Palms Industrial has leased 140,000 square feet to a national third-party logistics provider at its Otay Mesa campus, bringing the property to 96 percent leased. The deal reportedly included approximately eight months of free rent and an above-market tenant improvement allowance. Brokers indicate these concession terms may reset baseline expectations for competing landlords in the Otay Mesa submarket.
+                        </div>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:11px;">
+                          <tr>
+                            <td class="src-cell" valign="middle" style="font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              Supply Chain Register &middot; Aug 14, 2026                            </td>
+                            <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">                              <a href="https://example.com/scr/two-palms-3pl-lease" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>                            </td>
+                          </tr>
+                        </table>
+
                       </td>
                     </tr>
                   </table>
-
                 </td>
               </tr>
             </table>
           </td>
         </tr>
-        <tr><td style="height:28px; line-height:28px; font-size:0;">&nbsp;</td></tr>
-        <!-- ── Footer ─────────────────────────────────────────────────── -->
+        <tr><td style="height:24px; line-height:24px; font-size:0;">&nbsp;</td></tr>
+        <!-- ═══ 5. Footer ═══════════════════════════════════════════════ -->
         <tr>
-          <td class="gutter" style="padding:22px 32px 26px 32px; background-color:#f9fafb; border-top:1px solid #e4e7ec; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          <td class="gutter" style="padding:18px 26px 22px 26px; background-color:#f9fafb; border-top:1px solid #e4e7ec; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
             <div style="font-size:12px; line-height:19px; color:#667085;">
               <strong style="color:#475467;">Privacy:</strong> only competitor names were sent to the search provider. Your own portfolio, rents, and pipeline never left the local database.
             </div>
-            <div style="font-size:11.5px; line-height:18px; color:#98a2b3; padding-top:10px;">
-              Automated digest &middot; generated August 17, 2026 &middot; filtered to high and medium priority
+            <div style="font-size:11px; line-height:17px; color:#98a2b3; padding-top:9px;">
+              AAT Intel Briefing &middot; Generated automatically &middot; Aug 17, 2026 at 4:45 PM
               <br>
               <a href="#" style="color:#98a2b3; text-decoration:underline;">Adjust categories &amp; thresholds</a>
               &nbsp;&middot;&nbsp;
@@ -461,8 +570,8 @@
 
       </table>
 
-      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; line-height:17px; color:#98a2b3; padding-top:16px; max-width:600px;">
-        Tenant Intelligence Pipeline &mdash; internal use only.
+      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; line-height:17px; color:#98a2b3; padding-top:14px; max-width:660px;">
+        AAT Intel Briefing &mdash; internal use only.
       </div>
 
     </td>

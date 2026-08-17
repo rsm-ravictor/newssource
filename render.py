@@ -8,6 +8,7 @@ same context contract.
 from __future__ import annotations
 
 import json
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -62,6 +63,29 @@ def get_env() -> Environment:
     )
 
 
+def slugify(name: str) -> str:
+    """Anchor id for an entity: lowercase, non-alphanumeric runs become hyphens.
+
+    The same function feeds the index pills and the detail-section ids, so the two
+    are guaranteed to match.
+    """
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "entity"
+
+
+def build_top_intel(groups: list[dict], *, cap_per_entity: int = 2, limit: int = 5) -> list[dict]:
+    """The 'Top Intel' rows: at most N per entity, most severe first, capped.
+
+    Capping per entity first stops one noisy company from filling the whole box.
+    The sort is stable, so entities keep their reading order within a severity.
+    """
+    rows = []
+    for group in groups:
+        for alert in group["alerts"][:cap_per_entity]:
+            rows.append({**alert, "company": group["display_name"], "slug": group["slug"]})
+    rows.sort(key=lambda r: PRIORITY_ORDER.get(r.get("priority"), 9))
+    return rows[:limit]
+
+
 def build_groups(entities: list[dict], priorities: list[str]) -> list[dict]:
     """Filter to the selected priorities and sort for reading order.
 
@@ -78,6 +102,7 @@ def build_groups(entities: list[dict], priorities: list[str]) -> list[dict]:
             {
                 "display_name": entity["display_name"],
                 "city": entity.get("city", ""),
+                "slug": slugify(entity["display_name"]),
                 "alerts": kept,
             }
         )
@@ -142,9 +167,16 @@ def build_context(
         preheader = f"{monitored} {spec['entity_noun_plural']} screened, nothing met the alert threshold."
 
     return {
+        "briefing_name": shared.get("briefing_name", "Intel Briefing"),
         "brandmark": spec["brandmark"],
         "title": spec["title"],
         "run_date": format_run_date(run_date),
+        # Top Intel box + the ticker/index need these derived views.
+        "top_intel": build_top_intel(groups),
+        "generated_at": datetime.now().strftime("%b %d, %Y at %I:%M %p").replace(" 0", " "),
+        # The ticker scrolls a duplicated list; 33px per row, 4 rows visible.
+        "ticker_row_px": 33,
+        "ticker_window_px": 132,
         "period_label": period_label,
         "subject": subject,
         "preheader": preheader,

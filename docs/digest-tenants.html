@@ -7,450 +7,559 @@
 <meta name="supported-color-schemes" content="light only">
 <title>Tenant intel: 7 developments across 5 tenants</title>
 <style>
-  /* Mobile breakpoint. Fires inside the 390px phone preview and in real mail
-     apps; Outlook desktop drops it and keeps the inline styles. */
-  @media only screen and (max-width: 620px) {
-    .sheet      { width: 100% !important; }
-    .gutter     { padding-left: 20px !important; padding-right: 20px !important; }
-    .band       { padding: 24px 20px !important; }
-    .brandmark  { font-size: 11px !important; letter-spacing: 1.4px !important; }
-    .title      { font-size: 21px !important; line-height: 28px !important; }
-    .headline   { font-size: 16px !important; line-height: 23px !important; }
-    .summary    { font-size: 14px !important; line-height: 22px !important; }
-    .card       { padding: 16px !important; }
-    /* Metric strip: three columns become full-width stacked rows. */
-    .metric     { display: block !important; width: 100% !important;
-                  border-right: 0 !important; border-bottom: 1px solid #e4e7ec !important;
-                  padding: 12px 0 !important; text-align: left !important; }
-    .metric-last{ border-bottom: 0 !important; }
-    .metric-num { display: inline-block !important; font-size: 20px !important;
-                  margin-right: 8px !important; }
-    .metric-lbl { display: inline-block !important; }
-    /* Source line: outlet and link stop sharing a row. */
+  /* Vertical ticker. Only clients that honour keyframes animate (Apple Mail);
+     Gmail and Outlook strip it and the list simply sits static, still readable. */
+  @keyframes aat-ticker {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-165px); }
+  }
+    .ticker-reel { animation: aat-ticker 12s linear infinite; }
+  
+  /* Mobile: the two summary columns stack, everything else reflows. */
+  @media only screen and (max-width: 680px) {
+    .sheet     { width: 100% !important; }
+    .gutter    { padding-left: 18px !important; padding-right: 18px !important; }
+    .band      { padding: 20px 18px !important; }
+    .col       { display: block !important; width: 100% !important;
+                 padding: 0 !important; }
+    .col-left  { padding-bottom: 16px !important; }
+    .bannerttl { font-size: 18px !important; }
+    .bannerdate{ font-size: 11.5px !important; }
+    .headline  { font-size: 15.5px !important; line-height: 22px !important; }
+    .summary   { font-size: 14px !important; line-height: 22px !important; }
+    .card      { padding: 15px !important; }
+    .ticker-window { height: 132px !important; }
     .src-cell, .src-link { display: block !important; width: 100% !important;
                            text-align: left !important; }
-    .src-link   { padding-top: 8px !important; }
-    .co-count   { display: none !important; }
+    .src-link  { padding-top: 7px !important; }
   }
   a { text-decoration: none; }
 </style>
 </head>
 <body style="margin:0; padding:0; background-color:#eef1f5; -webkit-font-smoothing:antialiased;">
 
-<!-- Inbox preview text, then whitespace to stop the client pulling in body copy. -->
+<!-- Inbox preview text, then whitespace so the client stops pulling in body copy. -->
 <div style="display:none; font-size:1px; color:#eef1f5; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;">
   Meridian Health Partners — Meridian Health Partners breaches leverage covenant, hires restructuring advisor&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
 </div>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#eef1f5;">
   <tr>
-    <td align="center" style="padding:32px 12px;">
+    <td align="center" style="padding:28px 12px;">
 
-      <table role="presentation" class="sheet" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(16,24,40,0.10);">
+      <table role="presentation" class="sheet" width="660" cellpadding="0" cellspacing="0" border="0" style="width:660px; max-width:660px; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(16,24,40,0.10);">
 
-        <!-- ── Header band ────────────────────────────────────────────── -->
+        <!-- ═══ 1. Banner ═══════════════════════════════════════════════ -->
         <tr>
-          <td class="band" style="background-color:#0f1f33; padding:28px 32px;">
+          <td class="band" style="background-color:#0f1f33; padding:20px 26px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div class="brandmark" style="font-size:11.5px; font-weight:700; letter-spacing:1.8px; text-transform:uppercase; color:#7dd3fc;">
+                <td valign="middle" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                  <div class="bannerttl" style="font-size:20px; line-height:26px; font-weight:600; color:#ffffff;">
+                    AAT Intel Briefing
+                  </div>
+                  <div style="font-size:11px; line-height:16px; letter-spacing:1.2px; text-transform:uppercase; color:#7dd3fc; padding-top:4px;">
                     Tenant Intelligence
                   </div>
-                  <div class="title" style="font-size:24px; line-height:32px; font-weight:600; color:#ffffff; padding-top:8px;">
-                    Portfolio developments
-                  </div>
-                  <div style="font-size:13.5px; line-height:20px; color:#94a3b8; padding-top:6px;">
-                    Week of Aug 11 – Aug 17, 2026
-                  </div>
+                </td>
+                <td valign="middle" align="right" class="bannerdate" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; color:#94a3b8; white-space:nowrap;">
+                  August 17, 2026
                 </td>
               </tr>
             </table>
           </td>
         </tr>
-
-        <!-- ── Metric strip ───────────────────────────────────────────── -->
+        <!-- ═══ 2. Two-column summary ═══════════════════════════════════ -->
         <tr>
-          <td class="gutter" style="padding:0 32px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid #e4e7ec;">
-              <tr>                <td class="metric" width="33.33%" valign="top"
-                    style="padding:20px 0; text-align:center; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; border-right:1px solid #e4e7ec;">
-                  <div class="metric-num" style="font-size:26px; line-height:32px; font-weight:600; color:#0f1f33;">7</div>
-                  <div class="metric-lbl" style="font-size:11.5px; line-height:16px; color:#667085; letter-spacing:0.3px; padding-top:2px;">developments to review</div>
-                </td>                <td class="metric" width="33.33%" valign="top"
-                    style="padding:20px 0; text-align:center; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; border-right:1px solid #e4e7ec;">
-                  <div class="metric-num" style="font-size:26px; line-height:32px; font-weight:600; color:#0f1f33;">5</div>
-                  <div class="metric-lbl" style="font-size:11.5px; line-height:16px; color:#667085; letter-spacing:0.3px; padding-top:2px;">tenants affected</div>
-                </td>                <td class="metric metric-last" width="33.33%" valign="top"
-                    style="padding:20px 0; text-align:center; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div class="metric-num" style="font-size:26px; line-height:32px; font-weight:600; color:#0f1f33;">52</div>
-                  <div class="metric-lbl" style="font-size:11.5px; line-height:16px; color:#667085; letter-spacing:0.3px; padding-top:2px;">tenants monitored</div>
-                </td>              </tr>
-            </table>
-          </td>
-        </tr>        <!-- ── Findings, grouped by tenant ────────────────────────────── -->        <tr>
-          <td class="gutter" style="padding:26px 32px 0 32px;">
-
-            <!-- Tenant header -->
+          <td class="gutter" style="padding:22px 26px 6px 26px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td valign="middle" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div style="font-size:17px; line-height:24px; font-weight:600; color:#101828;">Meridian Health Partners</div>                  <div style="font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;">San Diego</div>                </td>
-                <td class="co-count" valign="middle" align="right" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;">
-                  2 items
+
+                <!-- ── Left column (~58%): Top Intel + index ──────────── -->
+                <td class="col col-left" width="58%" valign="top" style="padding-right:14px;">
+
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e4e7ec; border-radius:10px;">
+                    <tr>
+                      <td style="padding:14px 16px 4px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        <div style="font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#0f1f33;">
+                          Top Intel
+                        </div>
+                      </td>
+                    </tr>                    <tr>
+                      <td style="padding:9px 16px 10px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                        <div style="padding-top:6px;">
+                          <a href="https://example.com/coastal-chronicle/meridian-covenant-breach" style="font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;">Meridian Health Partners breaches leverage covenant, hires restructuring advisor</a>
+                        </div>
+                        <div style="font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;">
+                          <span style="color:#b42318;">Financial distress</span> &middot; Meridian Health Partners
+                        </div>
+                      </td>
+                    </tr>                    <tr>
+                      <td style="padding:9px 16px 10px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;">
+                        <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                        <div style="padding-top:6px;">
+                          <a href="https://example.com/hcfw/meridian-cfo-exit" style="font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;">Meridian CFO Dana Whitfield resigns amid covenant breach and lender talks</a>
+                        </div>
+                        <div style="font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;">
+                          <span style="color:#5925dc;">Leadership change</span> &middot; Meridian Health Partners
+                        </div>
+                      </td>
+                    </tr>                    <tr>
+                      <td style="padding:9px 16px 10px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;">
+                        <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                        <div style="padding-top:6px;">
+                          <a href="https://example.com/nccr/pacific-sun-space-search" style="font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;">Pacific Sun Robotics touring 25K–40K SF industrial-flex space in Carlsbad</a>
+                        </div>
+                        <div style="font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;">
+                          <span style="color:#175cd3;">Office move</span> &middot; Pacific Sun Robotics
+                        </div>
+                      </td>
+                    </tr>                    <tr>
+                      <td style="padding:9px 16px 10px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;">
+                        <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                        <div style="padding-top:6px;">
+                          <a href="https://example.com/lsd/calyx-series-c" style="font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;">Calyx Biosciences raises $140M Series C, targets 120K SF in San Diego corridor</a>
+                        </div>
+                        <div style="font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;">
+                          <span style="color:#027a48;">Expansion</span> &middot; Calyx Biosciences
+                        </div>
+                      </td>
+                    </tr>                    <tr>
+                      <td style="padding:9px 16px 10px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;">
+                        <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                        <div style="padding-top:6px;">
+                          <a href="https://example.com/scr/harborline-consolidation" style="font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;">Harborline Logistics to consolidate 3 SoCal offices into one hub by mid-2027</a>
+                        </div>
+                        <div style="font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;">
+                          <span style="color:#175cd3;">Office move</span> &middot; Harborline Logistics
+                        </div>
+                      </td>
+                    </tr>                  </table>
+
+                  <!-- Index pills. Anchor links work in Apple Mail and most webmail;
+                       Gmail strips ids, where these degrade to inert labels. -->
+                  <div id="aat-index" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:#667085; padding:18px 2px 9px 2px;">
+                    Who&rsquo;s in the News &mdash; Jump to Full Briefing
+                  </div>
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:0; line-height:0;">                        <a href="#meridian-health-partners" style="display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;">Meridian Health Partners</a>                        <a href="#pacific-sun-robotics" style="display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;">Pacific Sun Robotics</a>                        <a href="#calyx-biosciences" style="display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;">Calyx Biosciences</a>                        <a href="#harborline-logistics" style="display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;">Harborline Logistics</a>                        <a href="#kestrel-legal-llp" style="display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;">Kestrel Legal LLP</a>                      </td>
+                    </tr>
+                  </table>
+
                 </td>
+
+                <!-- ── Right column (~38%): Trending Now ─────────────── -->
+                <td class="col" width="38%" valign="top">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f3ff; border:1px solid #e0d9fe; border-radius:10px;">
+                    <tr>
+                      <td style="padding:14px 15px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        <div style="font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#5925dc;">
+                          Trending Now
+                        </div>
+
+                        <!-- Fixed window; the reel is the list twice over so the
+                             translateY loop meets itself seamlessly. -->
+                        <div class="ticker-window" style="height:132px; overflow:hidden; margin-top:10px;">
+                          <div class="ticker-reel">                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Meridian Health Partners
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Pacific Sun Robotics
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Calyx Biosciences
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Harborline Logistics
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Kestrel Legal LLP
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Meridian Health Partners
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Pacific Sun Robotics
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Calyx Biosciences
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Harborline Logistics
+                            </div>                            <div style="height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              Kestrel Legal LLP
+                            </div>                          </div>
+                        </div>
+
+                        <div style="font-size:11px; line-height:16px; color:#7f56d9; padding-top:9px; border-top:1px solid #e0d9fe; margin-top:8px;">
+                          5 companies in today&rsquo;s briefing
+                          &middot; 52 tenants monitored
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+
               </tr>
             </table>
+          </td>
+        </tr>
 
-            <!-- Alert cards -->            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
+        <!-- ═══ 3. Divider ══════════════════════════════════════════════ -->
+        <tr>
+          <td class="gutter" style="padding:18px 26px 0 26px;">
+            <div style="height:1px; background-color:#e4e7ec; line-height:1px; font-size:0;">&nbsp;</div>
+          </td>
+        </tr>
+
+        <!-- ═══ 4. Full Briefing ════════════════════════════════════════ -->
+        <tr>
+          <td class="gutter" style="padding:18px 26px 0 26px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            <div style="font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#0f1f33;">
+              Full Briefing
+            </div>
+            <div style="font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:4px;">
+              Week of Aug 11 – Aug 17, 2026 &middot; 7 developments &middot; high and medium priority
+            </div>
+          </td>
+        </tr>        <tr>
+          <td class="gutter" style="padding:14px 26px 0 26px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
               <tr>
-                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <td class="card" style="padding:16px 18px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-                  <!-- Category pill + priority chip -->
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <!-- Entity header + back link -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td style="padding-right:10px;">
-                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:#fef3f2; color:#b42318; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">Financial distress</span>
-                      </td>
-                      <td>
-                        <span style="display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;">
-                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;High</span>
-                        </span>
+                      <td valign="middle" id="meridian-health-partners">
+                        <div style="font-size:16px; line-height:22px; font-weight:600; color:#101828;">Meridian Health Partners</div>                        <div style="font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;">San Diego</div>                      </td>
+                      <td valign="middle" align="right" style="white-space:nowrap;">
+                        <a href="#aat-index" style="font-size:11px; color:#98a2b3; text-decoration:none;">&uarr;&nbsp;Back to index</a>
                       </td>
                     </tr>
                   </table>
 
-                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
-                    Meridian Health Partners breaches leverage covenant, hires restructuring advisor
-                  </div>
+                  <!-- Events for this entity -->                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="padding-top:14px; padding-bottom:5px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
-                    Meridian Health Partners disclosed a leverage covenant breach for Q2 2026 and has engaged a restructuring advisor while operating under a forbearance agreement through late October. Management&#39;s cost-reduction plan targeting $18 million in annualized savings explicitly includes a review of its clinic footprint, signaling potential space reductions. The combination of lender negotiations, forbearance, and a footprint review represents an immediate credit and occupancy risk.
-                  </div>
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="padding-right:8px;">
+                              <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                            </td>
+                            <td>
+                              <span style="display:inline-block; padding:2px 8px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:10.5px; font-weight:600; white-space:nowrap;">Financial distress</span>
+                            </td>
+                          </tr>
+                        </table>
 
-                  <!-- Source line -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
-                    <tr>
-                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        Coastal Business Chronicle &middot; Aug 14, 2026                      </td>
-                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        <a href="https://example.com/coastal-chronicle/meridian-covenant-breach" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
+                        <div class="headline" style="font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;">
+                          Meridian Health Partners breaches leverage covenant, hires restructuring advisor
+                        </div>
+
+                        <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;">
+                          Meridian Health Partners disclosed a leverage covenant breach for Q2 2026 and has engaged a restructuring advisor while operating under a forbearance agreement through late October. Management&#39;s cost-reduction plan targeting $18 million in annualized savings explicitly includes a review of its clinic footprint, signaling potential space reductions. The combination of lender negotiations, forbearance, and a footprint review represents an immediate credit and occupancy risk.
+                        </div>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:11px;">
+                          <tr>
+                            <td class="src-cell" valign="middle" style="font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              Coastal Business Chronicle &middot; Aug 14, 2026                            </td>
+                            <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">                              <a href="https://example.com/coastal-chronicle/meridian-covenant-breach" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>                            </td>
+                          </tr>
+                        </table>
+
+                      </td>
+                    </tr>
+                  </table>                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="padding-top:14px; padding-bottom:5px; border-top:1px solid #e4e7ec; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="padding-right:8px;">
+                              <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                            </td>
+                            <td>
+                              <span style="display:inline-block; padding:2px 8px; border-radius:9px; background-color:#f4f3ff; color:#5925dc; font-size:10.5px; font-weight:600; white-space:nowrap;">Leadership change</span>
+                            </td>
+                          </tr>
+                        </table>
+
+                        <div class="headline" style="font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;">
+                          Meridian CFO Dana Whitfield resigns amid covenant breach and lender talks
+                        </div>
+
+                        <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;">
+                          Meridian Health Partners CFO Dana Whitfield resigned effective August 12, two days after the company&#39;s public covenant breach disclosure and during active lender negotiations. The company has named its corporate controller as interim CFO with no formal successor search underway, adding leadership instability to an already stressed financial situation. This departure compounds the financial distress signals and may affect the pace and outcome of restructuring discussions.
+                        </div>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:11px;">
+                          <tr>
+                            <td class="src-cell" valign="middle" style="font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              Healthcare Finance Wire &middot; Aug 15, 2026                            </td>
+                            <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">                              <a href="https://example.com/hcfw/meridian-cfo-exit" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>                            </td>
+                          </tr>
+                        </table>
+
                       </td>
                     </tr>
                   </table>
-
-                </td>
-              </tr>
-            </table>            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
-              <tr>
-                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-
-                  <!-- Category pill + priority chip -->
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                    <tr>
-                      <td style="padding-right:10px;">
-                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:#f4f3ff; color:#5925dc; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">Leadership change</span>
-                      </td>
-                      <td>
-                        <span style="display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;">
-                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;High</span>
-                        </span>
-                      </td>
-                    </tr>
-                  </table>
-
-                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
-                    Meridian CFO Dana Whitfield resigns amid covenant breach and lender talks
-                  </div>
-
-                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
-                    Meridian Health Partners CFO Dana Whitfield resigned effective August 12, two days after the company&#39;s public covenant breach disclosure and during active lender negotiations. The company has named its corporate controller as interim CFO with no formal successor search underway, adding leadership instability to an already stressed financial situation. This departure compounds the financial distress signals and may affect the pace and outcome of restructuring discussions.
-                  </div>
-
-                  <!-- Source line -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
-                    <tr>
-                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        Healthcare Finance Wire &middot; Aug 15, 2026                      </td>
-                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        <a href="https://example.com/hcfw/meridian-cfo-exit" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
-                      </td>
-                    </tr>
-                  </table>
-
                 </td>
               </tr>
             </table>
           </td>
         </tr>        <tr>
-          <td class="gutter" style="padding:26px 32px 0 32px;">
-
-            <!-- Tenant header -->
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <td class="gutter" style="padding:14px 26px 0 26px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
               <tr>
-                <td valign="middle" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div style="font-size:17px; line-height:24px; font-weight:600; color:#101828;">Pacific Sun Robotics</div>                  <div style="font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;">Carlsbad</div>                </td>
-                <td class="co-count" valign="middle" align="right" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;">
-                  2 items
-                </td>
-              </tr>
-            </table>
+                <td class="card" style="padding:16px 18px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-            <!-- Alert cards -->            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
-              <tr>
-                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-
-                  <!-- Category pill + priority chip -->
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <!-- Entity header + back link -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td style="padding-right:10px;">
-                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:#eff8ff; color:#175cd3; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">Office move</span>
-                      </td>
-                      <td>
-                        <span style="display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;">
-                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;High</span>
-                        </span>
+                      <td valign="middle" id="pacific-sun-robotics">
+                        <div style="font-size:16px; line-height:22px; font-weight:600; color:#101828;">Pacific Sun Robotics</div>                        <div style="font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;">Carlsbad</div>                      </td>
+                      <td valign="middle" align="right" style="white-space:nowrap;">
+                        <a href="#aat-index" style="font-size:11px; color:#98a2b3; text-decoration:none;">&uarr;&nbsp;Back to index</a>
                       </td>
                     </tr>
                   </table>
 
-                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
-                    Pacific Sun Robotics touring 25K–40K SF industrial-flex space in Carlsbad
-                  </div>
+                  <!-- Events for this entity -->                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="padding-top:14px; padding-bottom:5px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
-                    Local brokers report that Pacific Sun Robotics is actively touring industrial-flex buildings within five miles of its existing Carlsbad facility, seeking 25,000 to 40,000 square feet of additional space. A leasing decision is expected before year-end. The active tour activity and defined size requirement indicate a concrete, near-term space decision is underway.
-                  </div>
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="padding-right:8px;">
+                              <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                            </td>
+                            <td>
+                              <span style="display:inline-block; padding:2px 8px; border-radius:9px; background-color:#eff8ff; color:#175cd3; font-size:10.5px; font-weight:600; white-space:nowrap;">Office move</span>
+                            </td>
+                          </tr>
+                        </table>
 
-                  <!-- Source line -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
-                    <tr>
-                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        North County Commercial Report &middot; Aug 16, 2026                      </td>
-                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        <a href="https://example.com/nccr/pacific-sun-space-search" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
+                        <div class="headline" style="font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;">
+                          Pacific Sun Robotics touring 25K–40K SF industrial-flex space in Carlsbad
+                        </div>
+
+                        <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;">
+                          Local brokers report that Pacific Sun Robotics is actively touring industrial-flex buildings within five miles of its existing Carlsbad facility, seeking 25,000 to 40,000 square feet of additional space. A leasing decision is expected before year-end. The active tour activity and defined size requirement indicate a concrete, near-term space decision is underway.
+                        </div>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:11px;">
+                          <tr>
+                            <td class="src-cell" valign="middle" style="font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              North County Commercial Report &middot; Aug 16, 2026                            </td>
+                            <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">                              <a href="https://example.com/nccr/pacific-sun-space-search" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>                            </td>
+                          </tr>
+                        </table>
+
+                      </td>
+                    </tr>
+                  </table>                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="padding-top:14px; padding-bottom:5px; border-top:1px solid #e4e7ec; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="padding-right:8px;">
+                              <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fffaeb; color:#b54708; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Watch</span>
+                            </td>
+                            <td>
+                              <span style="display:inline-block; padding:2px 8px; border-radius:9px; background-color:#ecfdf3; color:#027a48; font-size:10.5px; font-weight:600; white-space:nowrap;">Expansion</span>
+                            </td>
+                          </tr>
+                        </table>
+
+                        <div class="headline" style="font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;">
+                          Pacific Sun Robotics wins naval subcontract, plans ~60 hires in North County SD
+                        </div>
+
+                        <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;">
+                          Pacific Sun Robotics has been awarded a multi-year naval autonomy subcontract and intends to add approximately 60 engineering and production roles in North County San Diego. Leadership acknowledged current facilities are near capacity, though no formal commitment to additional space has been made. This signals growing headcount pressure that could translate into a near-term space requirement.
+                        </div>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:11px;">
+                          <tr>
+                            <td class="src-cell" valign="middle" style="font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              Defense Tech Brief &middot; Aug 12, 2026                            </td>
+                            <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">                              <a href="https://example.com/dtb/pacific-sun-contract" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>                            </td>
+                          </tr>
+                        </table>
+
                       </td>
                     </tr>
                   </table>
-
-                </td>
-              </tr>
-            </table>            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
-              <tr>
-                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-
-                  <!-- Category pill + priority chip -->
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                    <tr>
-                      <td style="padding-right:10px;">
-                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:#ecfdf3; color:#027a48; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">Expansion</span>
-                      </td>
-                      <td>
-                        <span style="display:inline-block; font-size:11px; font-weight:600; color:#b54708; letter-spacing:0.3px; white-space:nowrap;">
-                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#f79009; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;Medium</span>
-                        </span>
-                      </td>
-                    </tr>
-                  </table>
-
-                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
-                    Pacific Sun Robotics wins naval subcontract, plans ~60 hires in North County SD
-                  </div>
-
-                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
-                    Pacific Sun Robotics has been awarded a multi-year naval autonomy subcontract and intends to add approximately 60 engineering and production roles in North County San Diego. Leadership acknowledged current facilities are near capacity, though no formal commitment to additional space has been made. This signals growing headcount pressure that could translate into a near-term space requirement.
-                  </div>
-
-                  <!-- Source line -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
-                    <tr>
-                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        Defense Tech Brief &middot; Aug 12, 2026                      </td>
-                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        <a href="https://example.com/dtb/pacific-sun-contract" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
-                      </td>
-                    </tr>
-                  </table>
-
                 </td>
               </tr>
             </table>
           </td>
         </tr>        <tr>
-          <td class="gutter" style="padding:26px 32px 0 32px;">
-
-            <!-- Tenant header -->
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <td class="gutter" style="padding:14px 26px 0 26px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
               <tr>
-                <td valign="middle" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div style="font-size:17px; line-height:24px; font-weight:600; color:#101828;">Calyx Biosciences</div>                  <div style="font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;">La Jolla</div>                </td>
-                <td class="co-count" valign="middle" align="right" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;">
-                  1 item
-                </td>
-              </tr>
-            </table>
+                <td class="card" style="padding:16px 18px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-            <!-- Alert cards -->            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
-              <tr>
-                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-
-                  <!-- Category pill + priority chip -->
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <!-- Entity header + back link -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td style="padding-right:10px;">
-                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:#ecfdf3; color:#027a48; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">Expansion</span>
-                      </td>
-                      <td>
-                        <span style="display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;">
-                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;High</span>
-                        </span>
+                      <td valign="middle" id="calyx-biosciences">
+                        <div style="font-size:16px; line-height:22px; font-weight:600; color:#101828;">Calyx Biosciences</div>                        <div style="font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;">La Jolla</div>                      </td>
+                      <td valign="middle" align="right" style="white-space:nowrap;">
+                        <a href="#aat-index" style="font-size:11px; color:#98a2b3; text-decoration:none;">&uarr;&nbsp;Back to index</a>
                       </td>
                     </tr>
                   </table>
 
-                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
-                    Calyx Biosciences raises $140M Series C, targets 120K SF in San Diego corridor
-                  </div>
+                  <!-- Events for this entity -->                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="padding-top:14px; padding-bottom:5px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
-                    Calyx Biosciences closed a $140M Series C and has publicly stated plans to grow from approximately 40,000 square feet to more than 120,000 square feet over the next 24 months. The company identified the San Diego biotech corridor as its preferred market and expects to begin touring space in Q4 2026. This represents a roughly 3x increase in footprint, funded and actively in motion.
-                  </div>
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="padding-right:8px;">
+                              <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                            </td>
+                            <td>
+                              <span style="display:inline-block; padding:2px 8px; border-radius:9px; background-color:#ecfdf3; color:#027a48; font-size:10.5px; font-weight:600; white-space:nowrap;">Expansion</span>
+                            </td>
+                          </tr>
+                        </table>
 
-                  <!-- Source line -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
-                    <tr>
-                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        Life Sciences Daily &middot; Aug 12, 2026                      </td>
-                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        <a href="https://example.com/lsd/calyx-series-c" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
+                        <div class="headline" style="font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;">
+                          Calyx Biosciences raises $140M Series C, targets 120K SF in San Diego corridor
+                        </div>
+
+                        <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;">
+                          Calyx Biosciences closed a $140M Series C and has publicly stated plans to grow from approximately 40,000 square feet to more than 120,000 square feet over the next 24 months. The company identified the San Diego biotech corridor as its preferred market and expects to begin touring space in Q4 2026. This represents a roughly 3x increase in footprint, funded and actively in motion.
+                        </div>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:11px;">
+                          <tr>
+                            <td class="src-cell" valign="middle" style="font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              Life Sciences Daily &middot; Aug 12, 2026                            </td>
+                            <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">                              <a href="https://example.com/lsd/calyx-series-c" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>                            </td>
+                          </tr>
+                        </table>
+
                       </td>
                     </tr>
                   </table>
-
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>        <tr>
-          <td class="gutter" style="padding:26px 32px 0 32px;">
-
-            <!-- Tenant header -->
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-              <tr>
-                <td valign="middle" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div style="font-size:17px; line-height:24px; font-weight:600; color:#101828;">Harborline Logistics</div>                  <div style="font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;">Chula Vista</div>                </td>
-                <td class="co-count" valign="middle" align="right" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;">
-                  1 item
-                </td>
-              </tr>
-            </table>
-
-            <!-- Alert cards -->            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
-              <tr>
-                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-
-                  <!-- Category pill + priority chip -->
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                    <tr>
-                      <td style="padding-right:10px;">
-                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:#eff8ff; color:#175cd3; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">Office move</span>
-                      </td>
-                      <td>
-                        <span style="display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;">
-                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;High</span>
-                        </span>
-                      </td>
-                    </tr>
-                  </table>
-
-                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
-                    Harborline Logistics to consolidate 3 SoCal offices into one hub by mid-2027
-                  </div>
-
-                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
-                    Harborline Logistics has confirmed plans to merge its three Southern California administrative offices into a single regional hub by mid-2027, driven by a permanent shift to hybrid work for back-office staff. The company has already begun marketing surplus space for sublease, though it has not disclosed which locations will close. This consolidation signals a meaningful reduction in the company&#39;s Southern California office footprint in the near term.
-                  </div>
-
-                  <!-- Source line -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
-                    <tr>
-                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        Supply Chain Register &middot; Aug 13, 2026                      </td>
-                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        <a href="https://example.com/scr/harborline-consolidation" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
-                      </td>
-                    </tr>
-                  </table>
-
                 </td>
               </tr>
             </table>
           </td>
         </tr>        <tr>
-          <td class="gutter" style="padding:26px 32px 0 32px;">
-
-            <!-- Tenant header -->
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <td class="gutter" style="padding:14px 26px 0 26px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
               <tr>
-                <td valign="middle" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div style="font-size:17px; line-height:24px; font-weight:600; color:#101828;">Kestrel Legal LLP</div>                  <div style="font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;">San Diego</div>                </td>
-                <td class="co-count" valign="middle" align="right" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;">
-                  1 item
+                <td class="card" style="padding:16px 18px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+                  <!-- Entity header + back link -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td valign="middle" id="harborline-logistics">
+                        <div style="font-size:16px; line-height:22px; font-weight:600; color:#101828;">Harborline Logistics</div>                        <div style="font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;">Chula Vista</div>                      </td>
+                      <td valign="middle" align="right" style="white-space:nowrap;">
+                        <a href="#aat-index" style="font-size:11px; color:#98a2b3; text-decoration:none;">&uarr;&nbsp;Back to index</a>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Events for this entity -->                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="padding-top:14px; padding-bottom:5px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="padding-right:8px;">
+                              <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Urgent</span>
+                            </td>
+                            <td>
+                              <span style="display:inline-block; padding:2px 8px; border-radius:9px; background-color:#eff8ff; color:#175cd3; font-size:10.5px; font-weight:600; white-space:nowrap;">Office move</span>
+                            </td>
+                          </tr>
+                        </table>
+
+                        <div class="headline" style="font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;">
+                          Harborline Logistics to consolidate 3 SoCal offices into one hub by mid-2027
+                        </div>
+
+                        <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;">
+                          Harborline Logistics has confirmed plans to merge its three Southern California administrative offices into a single regional hub by mid-2027, driven by a permanent shift to hybrid work for back-office staff. The company has already begun marketing surplus space for sublease, though it has not disclosed which locations will close. This consolidation signals a meaningful reduction in the company&#39;s Southern California office footprint in the near term.
+                        </div>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:11px;">
+                          <tr>
+                            <td class="src-cell" valign="middle" style="font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              Supply Chain Register &middot; Aug 13, 2026                            </td>
+                            <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">                              <a href="https://example.com/scr/harborline-consolidation" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>                            </td>
+                          </tr>
+                        </table>
+
+                      </td>
+                    </tr>
+                  </table>
                 </td>
               </tr>
             </table>
-
-            <!-- Alert cards -->            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
+          </td>
+        </tr>        <tr>
+          <td class="gutter" style="padding:14px 26px 0 26px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
               <tr>
-                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <td class="card" style="padding:16px 18px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-                  <!-- Category pill + priority chip -->
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <!-- Entity header + back link -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td style="padding-right:10px;">
-                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:#f4f3ff; color:#5925dc; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">Leadership change</span>
-                      </td>
-                      <td>
-                        <span style="display:inline-block; font-size:11px; font-weight:600; color:#b54708; letter-spacing:0.3px; white-space:nowrap;">
-                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#f79009; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;Medium</span>
-                        </span>
+                      <td valign="middle" id="kestrel-legal-llp">
+                        <div style="font-size:16px; line-height:22px; font-weight:600; color:#101828;">Kestrel Legal LLP</div>                        <div style="font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;">San Diego</div>                      </td>
+                      <td valign="middle" align="right" style="white-space:nowrap;">
+                        <a href="#aat-index" style="font-size:11px; color:#98a2b3; text-decoration:none;">&uarr;&nbsp;Back to index</a>
                       </td>
                     </tr>
                   </table>
 
-                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
-                    Kestrel Legal elects new managing partner; firmwide real-estate review ordered
-                  </div>
+                  <!-- Events for this entity -->                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="padding-top:14px; padding-bottom:5px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
-                    Kestrel Legal LLP has elected Priya Raghunathan as managing partner effective September 1, 2026. An internal memo has directed a firmwide review of real-estate commitments ahead of the firm&#39;s next lease cycle. No specific space decisions have been announced yet, but the review signals a potential change in the firm&#39;s footprint strategy.
-                  </div>
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="padding-right:8px;">
+                              <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fffaeb; color:#b54708; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Watch</span>
+                            </td>
+                            <td>
+                              <span style="display:inline-block; padding:2px 8px; border-radius:9px; background-color:#f4f3ff; color:#5925dc; font-size:10.5px; font-weight:600; white-space:nowrap;">Leadership change</span>
+                            </td>
+                          </tr>
+                        </table>
 
-                  <!-- Source line -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
-                    <tr>
-                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        Legal Practice Monitor &middot; Aug 11, 2026                      </td>
-                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        <a href="https://example.com/lpm/kestrel-managing-partner" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
+                        <div class="headline" style="font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;">
+                          Kestrel Legal elects new managing partner; firmwide real-estate review ordered
+                        </div>
+
+                        <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;">
+                          Kestrel Legal LLP has elected Priya Raghunathan as managing partner effective September 1, 2026. An internal memo has directed a firmwide review of real-estate commitments ahead of the firm&#39;s next lease cycle. No specific space decisions have been announced yet, but the review signals a potential change in the firm&#39;s footprint strategy.
+                        </div>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:11px;">
+                          <tr>
+                            <td class="src-cell" valign="middle" style="font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              Legal Practice Monitor &middot; Aug 11, 2026                            </td>
+                            <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">                              <a href="https://example.com/lpm/kestrel-managing-partner" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>                            </td>
+                          </tr>
+                        </table>
+
                       </td>
                     </tr>
                   </table>
-
                 </td>
               </tr>
             </table>
           </td>
         </tr>
-        <tr><td style="height:28px; line-height:28px; font-size:0;">&nbsp;</td></tr>
-        <!-- ── Footer ─────────────────────────────────────────────────── -->
+        <tr><td style="height:24px; line-height:24px; font-size:0;">&nbsp;</td></tr>
+        <!-- ═══ 5. Footer ═══════════════════════════════════════════════ -->
         <tr>
-          <td class="gutter" style="padding:22px 32px 26px 32px; background-color:#f9fafb; border-top:1px solid #e4e7ec; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          <td class="gutter" style="padding:18px 26px 22px 26px; background-color:#f9fafb; border-top:1px solid #e4e7ec; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
             <div style="font-size:12px; line-height:19px; color:#667085;">
               <strong style="color:#475467;">Privacy:</strong> only tenant names were sent to the search provider. Rent, lease terms, addresses, and the portfolio list never left the local database.
             </div>
-            <div style="font-size:11.5px; line-height:18px; color:#98a2b3; padding-top:10px;">
-              Automated digest &middot; generated August 17, 2026 &middot; filtered to high and medium priority
+            <div style="font-size:11px; line-height:17px; color:#98a2b3; padding-top:9px;">
+              AAT Intel Briefing &middot; Generated automatically &middot; Aug 17, 2026 at 4:45 PM
               <br>
               <a href="#" style="color:#98a2b3; text-decoration:underline;">Adjust categories &amp; thresholds</a>
               &nbsp;&middot;&nbsp;
@@ -461,8 +570,8 @@
 
       </table>
 
-      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; line-height:17px; color:#98a2b3; padding-top:16px; max-width:600px;">
-        Tenant Intelligence Pipeline &mdash; internal use only.
+      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; line-height:17px; color:#98a2b3; padding-top:14px; max-width:660px;">
+        AAT Intel Briefing &mdash; internal use only.
       </div>
 
     </td>

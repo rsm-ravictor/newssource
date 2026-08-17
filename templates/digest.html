@@ -1,40 +1,49 @@
 {#-
-  Tenant Intelligence — digest email template (PLACEHOLDER).
+  AAT Intel Briefing — digest email template.
 
-  This is a stand-in for the client's real template. It is deliberately built as
-  email-safe HTML: presentational tables, inline styles, no flexbox/grid, no
-  external assets. The only non-inline CSS is the <style> block below, which
-  holds the mobile breakpoint (Outlook desktop ignores it and falls back to the
-  inline desktop styles — that is the intended behaviour).
+  Layout follows "Email Template.md": banner, two-column summary (Top Intel +
+  index pills | Trending Now ticker), divider, full briefing with per-entity
+  cards and anchor navigation, footer.
+
+  Email-safe by construction: presentational tables, inline styles, no flexbox or
+  grid, no external assets. The only non-inline CSS is the <style> block below,
+  holding the mobile breakpoint and the ticker keyframes. Outlook desktop ignores
+  both and falls back to the inline styles plus a static list — intended.
 
   ONE template serves both report types. Everything type-specific — categories,
-  headings, wording — arrives in the context from config/report_types.yaml, so
-  adding or renaming a category never touches this file.
+  headings, wording — arrives in the context from config/report_types.yaml.
 
-  Context variables — the full contract with build_preview.py / the future
-  digest.py. Nothing here touches rent, lease terms, or addresses by design.
+  Context — the full contract with render.py. Nothing here touches rent, lease
+  terms, or addresses by design.
 
+    briefing_name   str   banner/footer name, e.g. "AAT Intel Briefing"
     brandmark       str   e.g. "Tenant Intelligence" / "Competitor Intelligence"
     title           str   e.g. "Portfolio developments" / "Competitive activity"
-    run_date        str   e.g. "August 17, 2026"
-    period_label    str   e.g. "Week of Aug 11 - Aug 17, 2026"
+    run_date        str   e.g. "August 17, 2026" (banner, right side)
+    period_label    str   e.g. "Last 30 days (Jul 18 - Aug 17, 2026)"
+    generated_at    str   footer timestamp
     subject         str   subject line (also rendered in the preview chrome)
     preheader       str   hidden inbox preview text
+    top_intel       list  <=5 alerts, capped 2/entity, severest first; each has
+                          company + slug added
+    alert_groups    list  [{ display_name, city, slug, alerts: [{ category,
+                            priority, headline, client_summary, confidence,
+                            source_name, source_url, published_date }] }]
     total_alerts    int
     total_companies int
-    portfolio_size  int   count of entities monitored (from local DB, not sent out)
-    affected_label  str   e.g. "tenants affected" / "competitors active"
+    portfolio_size  int   entities monitored (from local DB, never sent out)
+    affected_label  str   e.g. "tenants affected"
     monitored_label str   e.g. "tenants monitored"
-    privacy_note    str   the footer privacy sentence for this report type
+    entity_noun_plural str
+    privacy_note    str
     priority_label  str   e.g. "high priority only"
     categories      dict  {key: {label, bg, fg}}
-    priorities      dict  {key: {label, dot, fg}}
-    alert_groups    list  [{ display_name, city, alerts: [{
-                              category, priority, headline, client_summary,
-                              confidence, source_name, source_url, published_date }] }]
+    priorities      dict  {key: {label, dot, fg, bg}}
+    ticker_row_px / ticker_window_px  int
 -#}
 {%- set CATEGORY = categories -%}
-{%- set PRIORITY = priorities -%}
+{%- set SEV = priorities -%}
+{%- set ticker_shift = ticker_row_px * (alert_groups | length) -%}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -44,185 +53,280 @@
 <meta name="supported-color-schemes" content="light only">
 <title>{{ subject }}</title>
 <style>
-  /* Mobile breakpoint. Fires inside the 390px phone preview and in real mail
-     apps; Outlook desktop drops it and keeps the inline styles. */
-  @media only screen and (max-width: 620px) {
-    .sheet      { width: 100% !important; }
-    .gutter     { padding-left: 20px !important; padding-right: 20px !important; }
-    .band       { padding: 24px 20px !important; }
-    .brandmark  { font-size: 11px !important; letter-spacing: 1.4px !important; }
-    .title      { font-size: 21px !important; line-height: 28px !important; }
-    .headline   { font-size: 16px !important; line-height: 23px !important; }
-    .summary    { font-size: 14px !important; line-height: 22px !important; }
-    .card       { padding: 16px !important; }
-    /* Metric strip: three columns become full-width stacked rows. */
-    .metric     { display: block !important; width: 100% !important;
-                  border-right: 0 !important; border-bottom: 1px solid #e4e7ec !important;
-                  padding: 12px 0 !important; text-align: left !important; }
-    .metric-last{ border-bottom: 0 !important; }
-    .metric-num { display: inline-block !important; font-size: 20px !important;
-                  margin-right: 8px !important; }
-    .metric-lbl { display: inline-block !important; }
-    /* Source line: outlet and link stop sharing a row. */
+  /* Vertical ticker. Only clients that honour keyframes animate (Apple Mail);
+     Gmail and Outlook strip it and the list simply sits static, still readable. */
+  @keyframes aat-ticker {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-{{ ticker_shift }}px); }
+  }
+  {% if alert_groups | length > 4 %}
+  .ticker-reel { animation: aat-ticker 12s linear infinite; }
+  {% endif %}
+
+  /* Mobile: the two summary columns stack, everything else reflows. */
+  @media only screen and (max-width: 680px) {
+    .sheet     { width: 100% !important; }
+    .gutter    { padding-left: 18px !important; padding-right: 18px !important; }
+    .band      { padding: 20px 18px !important; }
+    .col       { display: block !important; width: 100% !important;
+                 padding: 0 !important; }
+    .col-left  { padding-bottom: 16px !important; }
+    .bannerttl { font-size: 18px !important; }
+    .bannerdate{ font-size: 11.5px !important; }
+    .headline  { font-size: 15.5px !important; line-height: 22px !important; }
+    .summary   { font-size: 14px !important; line-height: 22px !important; }
+    .card      { padding: 15px !important; }
+    .ticker-window { height: {{ ticker_window_px }}px !important; }
     .src-cell, .src-link { display: block !important; width: 100% !important;
                            text-align: left !important; }
-    .src-link   { padding-top: 8px !important; }
-    .co-count   { display: none !important; }
+    .src-link  { padding-top: 7px !important; }
   }
   a { text-decoration: none; }
 </style>
 </head>
 <body style="margin:0; padding:0; background-color:#eef1f5; -webkit-font-smoothing:antialiased;">
 
-<!-- Inbox preview text, then whitespace to stop the client pulling in body copy. -->
+<!-- Inbox preview text, then whitespace so the client stops pulling in body copy. -->
 <div style="display:none; font-size:1px; color:#eef1f5; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;">
   {{ preheader }}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
 </div>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#eef1f5;">
   <tr>
-    <td align="center" style="padding:32px 12px;">
+    <td align="center" style="padding:28px 12px;">
 
-      <table role="presentation" class="sheet" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(16,24,40,0.10);">
+      <table role="presentation" class="sheet" width="660" cellpadding="0" cellspacing="0" border="0" style="width:660px; max-width:660px; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(16,24,40,0.10);">
 
-        <!-- ── Header band ────────────────────────────────────────────── -->
+        <!-- ═══ 1. Banner ═══════════════════════════════════════════════ -->
         <tr>
-          <td class="band" style="background-color:#0f1f33; padding:28px 32px;">
+          <td class="band" style="background-color:#0f1f33; padding:20px 26px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div class="brandmark" style="font-size:11.5px; font-weight:700; letter-spacing:1.8px; text-transform:uppercase; color:#7dd3fc;">
+                <td valign="middle" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                  <div class="bannerttl" style="font-size:20px; line-height:26px; font-weight:600; color:#ffffff;">
+                    {{ briefing_name }}
+                  </div>
+                  <div style="font-size:11px; line-height:16px; letter-spacing:1.2px; text-transform:uppercase; color:#7dd3fc; padding-top:4px;">
                     {{ brandmark }}
                   </div>
-                  <div class="title" style="font-size:24px; line-height:32px; font-weight:600; color:#ffffff; padding-top:8px;">
-                    {{ title }}
-                  </div>
-                  <div style="font-size:13.5px; line-height:20px; color:#94a3b8; padding-top:6px;">
-                    {{ period_label }}
-                  </div>
                 </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- ── Metric strip ───────────────────────────────────────────── -->
-        <tr>
-          <td class="gutter" style="padding:0 32px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid #e4e7ec;">
-              <tr>
-                {%- set metrics = [
-                  (total_alerts,    'development' ~ ('' if total_alerts == 1 else 's') ~ ' to review'),
-                  (total_companies, affected_label),
-                  (portfolio_size,  monitored_label)
-                ] %}
-                {%- for num, label in metrics %}
-                <td class="metric{{ ' metric-last' if loop.last }}" width="33.33%" valign="top"
-                    style="padding:20px 0; text-align:center; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;{{ ' border-right:1px solid #e4e7ec;' if not loop.last }}">
-                  <div class="metric-num" style="font-size:26px; line-height:32px; font-weight:600; color:#0f1f33;">{{ num }}</div>
-                  <div class="metric-lbl" style="font-size:11.5px; line-height:16px; color:#667085; letter-spacing:0.3px; padding-top:2px;">{{ label }}</div>
+                <td valign="middle" align="right" class="bannerdate" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; color:#94a3b8; white-space:nowrap;">
+                  {{ run_date }}
                 </td>
-                {%- endfor %}
               </tr>
             </table>
           </td>
         </tr>
 
         {%- if alert_groups %}
-        <!-- ── Findings, grouped by tenant ────────────────────────────── -->
-        {%- for group in alert_groups %}
-        <tr>
-          <td class="gutter" style="padding:26px 32px 0 32px;">
 
-            <!-- Tenant header -->
+        <!-- ═══ 2. Two-column summary ═══════════════════════════════════ -->
+        <tr>
+          <td class="gutter" style="padding:22px 26px 6px 26px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td valign="middle" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                  <div style="font-size:17px; line-height:24px; font-weight:600; color:#101828;">{{ group.display_name }}</div>
-                  {%- if group.city %}
-                  <div style="font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;">{{ group.city }}</div>
-                  {%- endif %}
-                </td>
-                <td class="co-count" valign="middle" align="right" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;">
-                  {{ group.alerts | length }} {{ 'item' if group.alerts | length == 1 else 'items' }}
-                </td>
-              </tr>
-            </table>
 
-            <!-- Alert cards -->
-            {%- for a in group.alerts %}
-            {%- set cat = CATEGORY.get(a.category, {'label': a.category, 'bg': '#f2f4f7', 'fg': '#344054'}) %}
-            {%- set pri = PRIORITY.get(a.priority, PRIORITY['low']) %}
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
-              <tr>
-                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <!-- ── Left column (~58%): Top Intel + index ──────────── -->
+                <td class="col col-left" width="58%" valign="top" style="padding-right:14px;">
 
-                  <!-- Category pill + priority chip -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e4e7ec; border-radius:10px;">
+                    <tr>
+                      <td style="padding:14px 16px 4px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        <div style="font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#0f1f33;">
+                          Top Intel
+                        </div>
+                      </td>
+                    </tr>
+                    {%- for row in top_intel %}
+                    {%- set cat = CATEGORY.get(row.category, {'label': row.category, 'bg': '#f2f4f7', 'fg': '#344054'}) %}
+                    {%- set sv = SEV.get(row.priority, SEV['low']) %}
+                    <tr>
+                      <td style="padding:9px 16px 10px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;{{ ' border-top:1px solid #f2f4f7;' if not loop.first }}">
+                        <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:{{ sv.bg }}; color:{{ sv.fg }}; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">{{ sv.label }}</span>
+                        <div style="padding-top:6px;">
+                          <a href="{{ row.source_url }}" style="font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;">{{ row.headline }}</a>
+                        </div>
+                        <div style="font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;">
+                          <span style="color:{{ cat.fg }};">{{ cat.label }}</span> &middot; {{ row.company }}
+                        </div>
+                      </td>
+                    </tr>
+                    {%- endfor %}
+                  </table>
+
+                  <!-- Index pills. Anchor links work in Apple Mail and most webmail;
+                       Gmail strips ids, where these degrade to inert labels. -->
+                  <div id="aat-index" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:#667085; padding:18px 2px 9px 2px;">
+                    Who&rsquo;s in the News &mdash; Jump to Full Briefing
+                  </div>
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td style="padding-right:10px;">
-                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:{{ cat.bg }}; color:{{ cat.fg }}; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">{{ cat.label }}</span>
-                      </td>
-                      <td>
-                        <span style="display:inline-block; font-size:11px; font-weight:600; color:{{ pri.fg }}; letter-spacing:0.3px; white-space:nowrap;">
-                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:{{ pri.dot }}; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;{{ pri.label }}</span>
-                        </span>
-                      </td>
-                    </tr>
-                  </table>
-
-                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
-                    {{ a.headline }}
-                  </div>
-
-                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
-                    {{ a.client_summary }}
-                  </div>
-
-                  <!-- Source line -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
-                    <tr>
-                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        {{ a.source_name }}{% if a.published_date %} &middot; {{ a.published_date }}{% endif %}
-                      </td>
-                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                        <a href="{{ a.source_url }}" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
+                      <td style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:0; line-height:0;">
+                        {%- for group in alert_groups %}
+                        <a href="#{{ group.slug }}" style="display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;">{{ group.display_name }}</a>
+                        {%- endfor %}
                       </td>
                     </tr>
                   </table>
 
                 </td>
+
+                <!-- ── Right column (~38%): Trending Now ─────────────── -->
+                <td class="col" width="38%" valign="top">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f3ff; border:1px solid #e0d9fe; border-radius:10px;">
+                    <tr>
+                      <td style="padding:14px 15px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        <div style="font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#5925dc;">
+                          Trending Now
+                        </div>
+
+                        <!-- Fixed window; the reel is the list twice over so the
+                             translateY loop meets itself seamlessly. -->
+                        <div class="ticker-window" style="height:{{ ticker_window_px }}px; overflow:hidden; margin-top:10px;">
+                          <div class="ticker-reel">
+                            {%- for pass in [1, 2] %}
+                            {%- for group in alert_groups %}
+                            <div style="height:{{ ticker_row_px }}px; line-height:{{ ticker_row_px }}px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                              {{ group.display_name }}
+                            </div>
+                            {%- endfor %}
+                            {%- endfor %}
+                          </div>
+                        </div>
+
+                        <div style="font-size:11px; line-height:16px; color:#7f56d9; padding-top:9px; border-top:1px solid #e0d9fe; margin-top:8px;">
+                          {{ total_companies }} {{ 'company' if total_companies == 1 else 'companies' }} in today&rsquo;s briefing
+                          &middot; {{ portfolio_size }} {{ monitored_label }}
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+
               </tr>
             </table>
-            {%- endfor %}
+          </td>
+        </tr>
 
+        <!-- ═══ 3. Divider ══════════════════════════════════════════════ -->
+        <tr>
+          <td class="gutter" style="padding:18px 26px 0 26px;">
+            <div style="height:1px; background-color:#e4e7ec; line-height:1px; font-size:0;">&nbsp;</div>
+          </td>
+        </tr>
+
+        <!-- ═══ 4. Full Briefing ════════════════════════════════════════ -->
+        <tr>
+          <td class="gutter" style="padding:18px 26px 0 26px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            <div style="font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#0f1f33;">
+              Full Briefing
+            </div>
+            <div style="font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:4px;">
+              {{ period_label }} &middot; {{ total_alerts }} {{ 'development' if total_alerts == 1 else 'developments' }} &middot; {{ priority_label }}
+            </div>
+          </td>
+        </tr>
+
+        {%- for group in alert_groups %}
+        <tr>
+          <td class="gutter" style="padding:14px 26px 0 26px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
+              <tr>
+                <td class="card" style="padding:16px 18px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+                  <!-- Entity header + back link -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td valign="middle" id="{{ group.slug }}">
+                        <div style="font-size:16px; line-height:22px; font-weight:600; color:#101828;">{{ group.display_name }}</div>
+                        {%- if group.city %}
+                        <div style="font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;">{{ group.city }}</div>
+                        {%- endif %}
+                      </td>
+                      <td valign="middle" align="right" style="white-space:nowrap;">
+                        <a href="#aat-index" style="font-size:11px; color:#98a2b3; text-decoration:none;">&uarr;&nbsp;Back to index</a>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Events for this entity -->
+                  {%- for a in group.alerts %}
+                  {%- set cat = CATEGORY.get(a.category, {'label': a.category, 'bg': '#f2f4f7', 'fg': '#344054'}) %}
+                  {%- set sv = SEV.get(a.priority, SEV['low']) %}
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      {#- Visible divider between events for one entity. Margins do not
+                          apply to a <td>, so the breathing room is padding on both sides. -#}
+                      <td style="padding-top:14px; padding-bottom:5px;{{ ' border-top:1px solid #e4e7ec;' if not loop.first }} font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="padding-right:8px;">
+                              <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:{{ sv.bg }}; color:{{ sv.fg }}; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">{{ sv.label }}</span>
+                            </td>
+                            <td>
+                              <span style="display:inline-block; padding:2px 8px; border-radius:9px; background-color:{{ cat.bg }}; color:{{ cat.fg }}; font-size:10.5px; font-weight:600; white-space:nowrap;">{{ cat.label }}</span>
+                            </td>
+                          </tr>
+                        </table>
+
+                        <div class="headline" style="font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;">
+                          {{ a.headline }}
+                        </div>
+
+                        <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;">
+                          {{ a.client_summary }}
+                        </div>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:11px;">
+                          <tr>
+                            <td class="src-cell" valign="middle" style="font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              {{ a.source_name }}{% if a.published_date %} &middot; {{ a.published_date }}{% endif %}
+                            </td>
+                            <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                              {%- if a.source_url %}
+                              <a href="{{ a.source_url }}" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
+                              {%- endif %}
+                            </td>
+                          </tr>
+                        </table>
+
+                      </td>
+                    </tr>
+                  </table>
+                  {%- endfor %}
+
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
         {%- endfor %}
 
-        <tr><td style="height:28px; line-height:28px; font-size:0;">&nbsp;</td></tr>
+        <tr><td style="height:24px; line-height:24px; font-size:0;">&nbsp;</td></tr>
 
         {%- else %}
-        <!-- ── Empty state (kept in the template; the pipeline normally
-             sends nothing at all when there are no findings) ──────────── -->
+        <!-- Empty state. The pipeline normally sends nothing at all when there
+             are no findings; this exists so the state is previewable. -->
         <tr>
-          <td class="gutter" style="padding:44px 32px; text-align:center; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          <td class="gutter" style="padding:44px 26px; text-align:center; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
             <div style="font-size:16px; font-weight:600; color:#101828;">No significant developments this period</div>
             <div style="font-size:14px; line-height:22px; color:#667085; padding-top:8px;">
               {{ portfolio_size }} {{ entity_noun_plural }} were screened and nothing met the {{ priority_label }} threshold.
             </div>
+            <div style="font-size:12px; line-height:18px; color:#98a2b3; padding-top:10px;">{{ period_label }}</div>
           </td>
         </tr>
         {%- endif %}
 
-        <!-- ── Footer ─────────────────────────────────────────────────── -->
+        <!-- ═══ 5. Footer ═══════════════════════════════════════════════ -->
         <tr>
-          <td class="gutter" style="padding:22px 32px 26px 32px; background-color:#f9fafb; border-top:1px solid #e4e7ec; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          <td class="gutter" style="padding:18px 26px 22px 26px; background-color:#f9fafb; border-top:1px solid #e4e7ec; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
             <div style="font-size:12px; line-height:19px; color:#667085;">
               <strong style="color:#475467;">Privacy:</strong> {{ privacy_note }}
             </div>
-            <div style="font-size:11.5px; line-height:18px; color:#98a2b3; padding-top:10px;">
-              Automated digest &middot; generated {{ run_date }} &middot; filtered to {{ priority_label }}
+            <div style="font-size:11px; line-height:17px; color:#98a2b3; padding-top:9px;">
+              {{ briefing_name }} &middot; Generated automatically &middot; {{ generated_at }}
               <br>
               <a href="#" style="color:#98a2b3; text-decoration:underline;">Adjust categories &amp; thresholds</a>
               &nbsp;&middot;&nbsp;
@@ -233,8 +337,8 @@
 
       </table>
 
-      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; line-height:17px; color:#98a2b3; padding-top:16px; max-width:600px;">
-        Tenant Intelligence Pipeline &mdash; internal use only.
+      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; line-height:17px; color:#98a2b3; padding-top:14px; max-width:660px;">
+        {{ briefing_name }} &mdash; internal use only.
       </div>
 
     </td>

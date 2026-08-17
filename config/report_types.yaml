@@ -9,11 +9,16 @@
 #      firms you compete with for tenants. If your competitors are instead your
 #      tenants' competitors, or brokerages, rewrite that block; nothing else changes.
 
-# Priority styling is shared by both report types.
+# Name shown in the banner and footer of every briefing.
+briefing_name: AAT Intel Briefing
+
+# Severity styling, shared by both report types. The KEYS stay high/medium/low
+# because that is what the judge model returns and what --priorities filters on;
+# only the displayed labels are the Urgent / Watch / Informational wording.
 priorities:
-  high:   {label: High,   dot: '#d92d20', fg: '#b42318'}
-  medium: {label: Medium, dot: '#f79009', fg: '#b54708'}
-  low:    {label: Low,    dot: '#98a2b3', fg: '#475467'}
+  high:   {label: Urgent,        dot: '#d92d20', fg: '#b42318', bg: '#fef3f2'}
+  medium: {label: Watch,         dot: '#f79009', fg: '#b54708', bg: '#fffaeb'}
+  low:    {label: Informational, dot: '#2e90fa', fg: '#175cd3', bg: '#eff8ff'}
 
 # Lookback windows offered by the live runner (days).
 lookback_presets: [7, 30, 90]

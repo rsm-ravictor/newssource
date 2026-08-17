@@ -38,6 +38,41 @@ Pipeline: `search.py` → `judge.py` → `render.py` → `templates/digest.html`
 and the static build go through the same three modules, so a live run and a published snapshot
 can't diverge.
 
+## Email format — AAT Intel Briefing
+
+`templates/digest.html` follows the layout described in [`Email Template.md`](Email%20Template.md):
+
+1. **Banner** — dark bar, `AAT Intel Briefing` + report type on the left, date on the right.
+2. **Two-column summary** (58% / 38%, stacking below 680px):
+   - **Top Intel** — up to 5 events, at most 2 per company, most severe first, each a clickable
+     headline over its category and company.
+   - **Who's in the News** — one pill per company, anchored to its detail card (`id="aat-index"`).
+   - **Trending Now** — purple box, vertical ticker; company names in 33px rows, a 132px window
+     (4 visible), list duplicated so the 12s `translateY` loop is seamless. Company count below.
+3. **Divider.**
+4. **Full Briefing** — one card per company in index order, each with a `↑ Back to index` link and
+   one block per event: severity badge, category, headline, summary, `Read source →`.
+5. **Footer** — privacy line, then briefing name · generated automatically · timestamp.
+
+Severity labels are now **Urgent / Watch / Informational** (red / amber / blue). The underlying
+keys stay `high` / `medium` / `low`, because that's what the judge returns and what
+`--priorities` filters on — only the display wording changed. Rename in `config/report_types.yaml`.
+
+### Where this deviates from the description, and why
+
+- **Footer says "Generated automatically", not "by n8n".** This pipeline is Python, not n8n;
+  claiming otherwise would be false provenance. Change the string in the template if you're
+  sending from the n8n workflow.
+- **Top Intel links the headline, not the category.** The description uses the category as the
+  clickable title because its event objects have no headline field; ours do, and a headline is
+  strictly more informative. The category still shows, as a colored label beneath.
+- **Anchor links degrade in Gmail.** Gmail strips `id` attributes, so the index pills and
+  `Back to index` links are inert there. They work in Apple Mail and most webmail. Same caveat the
+  description already notes for the ticker animation, which Gmail and Outlook also strip — the
+  ticker then reads as a static stacked list.
+- **Banner keeps the report type** under the briefing name, since two digests share the template
+  and would otherwise be indistinguishable at a glance.
+
 ## The two report types
 
 |  | Tenants | Competitors |

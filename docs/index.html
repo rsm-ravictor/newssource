@@ -327,450 +327,559 @@
 &lt;meta name=&#34;supported-color-schemes&#34; content=&#34;light only&#34;&gt;
 &lt;title&gt;Tenant intel: 7 developments across 5 tenants&lt;/title&gt;
 &lt;style&gt;
-  /* Mobile breakpoint. Fires inside the 390px phone preview and in real mail
-     apps; Outlook desktop drops it and keeps the inline styles. */
-  @media only screen and (max-width: 620px) {
-    .sheet      { width: 100% !important; }
-    .gutter     { padding-left: 20px !important; padding-right: 20px !important; }
-    .band       { padding: 24px 20px !important; }
-    .brandmark  { font-size: 11px !important; letter-spacing: 1.4px !important; }
-    .title      { font-size: 21px !important; line-height: 28px !important; }
-    .headline   { font-size: 16px !important; line-height: 23px !important; }
-    .summary    { font-size: 14px !important; line-height: 22px !important; }
-    .card       { padding: 16px !important; }
-    /* Metric strip: three columns become full-width stacked rows. */
-    .metric     { display: block !important; width: 100% !important;
-                  border-right: 0 !important; border-bottom: 1px solid #e4e7ec !important;
-                  padding: 12px 0 !important; text-align: left !important; }
-    .metric-last{ border-bottom: 0 !important; }
-    .metric-num { display: inline-block !important; font-size: 20px !important;
-                  margin-right: 8px !important; }
-    .metric-lbl { display: inline-block !important; }
-    /* Source line: outlet and link stop sharing a row. */
+  /* Vertical ticker. Only clients that honour keyframes animate (Apple Mail);
+     Gmail and Outlook strip it and the list simply sits static, still readable. */
+  @keyframes aat-ticker {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-165px); }
+  }
+    .ticker-reel { animation: aat-ticker 12s linear infinite; }
+  
+  /* Mobile: the two summary columns stack, everything else reflows. */
+  @media only screen and (max-width: 680px) {
+    .sheet     { width: 100% !important; }
+    .gutter    { padding-left: 18px !important; padding-right: 18px !important; }
+    .band      { padding: 20px 18px !important; }
+    .col       { display: block !important; width: 100% !important;
+                 padding: 0 !important; }
+    .col-left  { padding-bottom: 16px !important; }
+    .bannerttl { font-size: 18px !important; }
+    .bannerdate{ font-size: 11.5px !important; }
+    .headline  { font-size: 15.5px !important; line-height: 22px !important; }
+    .summary   { font-size: 14px !important; line-height: 22px !important; }
+    .card      { padding: 15px !important; }
+    .ticker-window { height: 132px !important; }
     .src-cell, .src-link { display: block !important; width: 100% !important;
                            text-align: left !important; }
-    .src-link   { padding-top: 8px !important; }
-    .co-count   { display: none !important; }
+    .src-link  { padding-top: 7px !important; }
   }
   a { text-decoration: none; }
 &lt;/style&gt;
 &lt;/head&gt;
 &lt;body style=&#34;margin:0; padding:0; background-color:#eef1f5; -webkit-font-smoothing:antialiased;&#34;&gt;
 
-&lt;!-- Inbox preview text, then whitespace to stop the client pulling in body copy. --&gt;
+&lt;!-- Inbox preview text, then whitespace so the client stops pulling in body copy. --&gt;
 &lt;div style=&#34;display:none; font-size:1px; color:#eef1f5; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;&#34;&gt;
   Meridian Health Partners — Meridian Health Partners breaches leverage covenant, hires restructuring advisor&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;
 &lt;/div&gt;
 
 &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;background-color:#eef1f5;&#34;&gt;
   &lt;tr&gt;
-    &lt;td align=&#34;center&#34; style=&#34;padding:32px 12px;&#34;&gt;
+    &lt;td align=&#34;center&#34; style=&#34;padding:28px 12px;&#34;&gt;
 
-      &lt;table role=&#34;presentation&#34; class=&#34;sheet&#34; width=&#34;600&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;width:600px; max-width:600px; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(16,24,40,0.10);&#34;&gt;
+      &lt;table role=&#34;presentation&#34; class=&#34;sheet&#34; width=&#34;660&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;width:660px; max-width:660px; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(16,24,40,0.10);&#34;&gt;
 
-        &lt;!-- ── Header band ────────────────────────────────────────────── --&gt;
+        &lt;!-- ═══ 1. Banner ═══════════════════════════════════════════════ --&gt;
         &lt;tr&gt;
-          &lt;td class=&#34;band&#34; style=&#34;background-color:#0f1f33; padding:28px 32px;&#34;&gt;
+          &lt;td class=&#34;band&#34; style=&#34;background-color:#0f1f33; padding:20px 26px;&#34;&gt;
             &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
               &lt;tr&gt;
-                &lt;td style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                  &lt;div class=&#34;brandmark&#34; style=&#34;font-size:11.5px; font-weight:700; letter-spacing:1.8px; text-transform:uppercase; color:#7dd3fc;&#34;&gt;
+                &lt;td valign=&#34;middle&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                  &lt;div class=&#34;bannerttl&#34; style=&#34;font-size:20px; line-height:26px; font-weight:600; color:#ffffff;&#34;&gt;
+                    AAT Intel Briefing
+                  &lt;/div&gt;
+                  &lt;div style=&#34;font-size:11px; line-height:16px; letter-spacing:1.2px; text-transform:uppercase; color:#7dd3fc; padding-top:4px;&#34;&gt;
                     Tenant Intelligence
                   &lt;/div&gt;
-                  &lt;div class=&#34;title&#34; style=&#34;font-size:24px; line-height:32px; font-weight:600; color:#ffffff; padding-top:8px;&#34;&gt;
-                    Portfolio developments
-                  &lt;/div&gt;
-                  &lt;div style=&#34;font-size:13.5px; line-height:20px; color:#94a3b8; padding-top:6px;&#34;&gt;
-                    Week of Aug 11 – Aug 17, 2026
-                  &lt;/div&gt;
+                &lt;/td&gt;
+                &lt;td valign=&#34;middle&#34; align=&#34;right&#34; class=&#34;bannerdate&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:13px; color:#94a3b8; white-space:nowrap;&#34;&gt;
+                  August 17, 2026
                 &lt;/td&gt;
               &lt;/tr&gt;
             &lt;/table&gt;
           &lt;/td&gt;
         &lt;/tr&gt;
-
-        &lt;!-- ── Metric strip ───────────────────────────────────────────── --&gt;
+        &lt;!-- ═══ 2. Two-column summary ═══════════════════════════════════ --&gt;
         &lt;tr&gt;
-          &lt;td class=&#34;gutter&#34; style=&#34;padding:0 32px;&#34;&gt;
-            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;border-bottom:1px solid #e4e7ec;&#34;&gt;
-              &lt;tr&gt;                &lt;td class=&#34;metric&#34; width=&#34;33.33%&#34; valign=&#34;top&#34;
-                    style=&#34;padding:20px 0; text-align:center; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; border-right:1px solid #e4e7ec;&#34;&gt;
-                  &lt;div class=&#34;metric-num&#34; style=&#34;font-size:26px; line-height:32px; font-weight:600; color:#0f1f33;&#34;&gt;7&lt;/div&gt;
-                  &lt;div class=&#34;metric-lbl&#34; style=&#34;font-size:11.5px; line-height:16px; color:#667085; letter-spacing:0.3px; padding-top:2px;&#34;&gt;developments to review&lt;/div&gt;
-                &lt;/td&gt;                &lt;td class=&#34;metric&#34; width=&#34;33.33%&#34; valign=&#34;top&#34;
-                    style=&#34;padding:20px 0; text-align:center; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; border-right:1px solid #e4e7ec;&#34;&gt;
-                  &lt;div class=&#34;metric-num&#34; style=&#34;font-size:26px; line-height:32px; font-weight:600; color:#0f1f33;&#34;&gt;5&lt;/div&gt;
-                  &lt;div class=&#34;metric-lbl&#34; style=&#34;font-size:11.5px; line-height:16px; color:#667085; letter-spacing:0.3px; padding-top:2px;&#34;&gt;tenants affected&lt;/div&gt;
-                &lt;/td&gt;                &lt;td class=&#34;metric metric-last&#34; width=&#34;33.33%&#34; valign=&#34;top&#34;
-                    style=&#34;padding:20px 0; text-align:center; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                  &lt;div class=&#34;metric-num&#34; style=&#34;font-size:26px; line-height:32px; font-weight:600; color:#0f1f33;&#34;&gt;52&lt;/div&gt;
-                  &lt;div class=&#34;metric-lbl&#34; style=&#34;font-size:11.5px; line-height:16px; color:#667085; letter-spacing:0.3px; padding-top:2px;&#34;&gt;tenants monitored&lt;/div&gt;
-                &lt;/td&gt;              &lt;/tr&gt;
-            &lt;/table&gt;
-          &lt;/td&gt;
-        &lt;/tr&gt;        &lt;!-- ── Findings, grouped by tenant ────────────────────────────── --&gt;        &lt;tr&gt;
-          &lt;td class=&#34;gutter&#34; style=&#34;padding:26px 32px 0 32px;&#34;&gt;
-
-            &lt;!-- Tenant header --&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:22px 26px 6px 26px;&#34;&gt;
             &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
               &lt;tr&gt;
-                &lt;td valign=&#34;middle&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                  &lt;div style=&#34;font-size:17px; line-height:24px; font-weight:600; color:#101828;&#34;&gt;Meridian Health Partners&lt;/div&gt;                  &lt;div style=&#34;font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;&#34;&gt;San Diego&lt;/div&gt;                &lt;/td&gt;
-                &lt;td class=&#34;co-count&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;&#34;&gt;
-                  2 items
+
+                &lt;!-- ── Left column (~58%): Top Intel + index ──────────── --&gt;
+                &lt;td class=&#34;col col-left&#34; width=&#34;58%&#34; valign=&#34;top&#34; style=&#34;padding-right:14px;&#34;&gt;
+
+                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;border:1px solid #e4e7ec; border-radius:10px;&#34;&gt;
+                    &lt;tr&gt;
+                      &lt;td style=&#34;padding:14px 16px 4px 16px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                        &lt;div style=&#34;font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#0f1f33;&#34;&gt;
+                          Top Intel
+                        &lt;/div&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;                    &lt;tr&gt;
+                      &lt;td style=&#34;padding:9px 16px 10px 16px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                        &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                        &lt;div style=&#34;padding-top:6px;&#34;&gt;
+                          &lt;a href=&#34;https://example.com/coastal-chronicle/meridian-covenant-breach&#34; style=&#34;font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;&#34;&gt;Meridian Health Partners breaches leverage covenant, hires restructuring advisor&lt;/a&gt;
+                        &lt;/div&gt;
+                        &lt;div style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;&#34;&gt;
+                          &lt;span style=&#34;color:#b42318;&#34;&gt;Financial distress&lt;/span&gt; &amp;middot; Meridian Health Partners
+                        &lt;/div&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;                    &lt;tr&gt;
+                      &lt;td style=&#34;padding:9px 16px 10px 16px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;&#34;&gt;
+                        &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                        &lt;div style=&#34;padding-top:6px;&#34;&gt;
+                          &lt;a href=&#34;https://example.com/hcfw/meridian-cfo-exit&#34; style=&#34;font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;&#34;&gt;Meridian CFO Dana Whitfield resigns amid covenant breach and lender talks&lt;/a&gt;
+                        &lt;/div&gt;
+                        &lt;div style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;&#34;&gt;
+                          &lt;span style=&#34;color:#5925dc;&#34;&gt;Leadership change&lt;/span&gt; &amp;middot; Meridian Health Partners
+                        &lt;/div&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;                    &lt;tr&gt;
+                      &lt;td style=&#34;padding:9px 16px 10px 16px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;&#34;&gt;
+                        &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                        &lt;div style=&#34;padding-top:6px;&#34;&gt;
+                          &lt;a href=&#34;https://example.com/nccr/pacific-sun-space-search&#34; style=&#34;font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;&#34;&gt;Pacific Sun Robotics touring 25K–40K SF industrial-flex space in Carlsbad&lt;/a&gt;
+                        &lt;/div&gt;
+                        &lt;div style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;&#34;&gt;
+                          &lt;span style=&#34;color:#175cd3;&#34;&gt;Office move&lt;/span&gt; &amp;middot; Pacific Sun Robotics
+                        &lt;/div&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;                    &lt;tr&gt;
+                      &lt;td style=&#34;padding:9px 16px 10px 16px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;&#34;&gt;
+                        &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                        &lt;div style=&#34;padding-top:6px;&#34;&gt;
+                          &lt;a href=&#34;https://example.com/lsd/calyx-series-c&#34; style=&#34;font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;&#34;&gt;Calyx Biosciences raises $140M Series C, targets 120K SF in San Diego corridor&lt;/a&gt;
+                        &lt;/div&gt;
+                        &lt;div style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;&#34;&gt;
+                          &lt;span style=&#34;color:#027a48;&#34;&gt;Expansion&lt;/span&gt; &amp;middot; Calyx Biosciences
+                        &lt;/div&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;                    &lt;tr&gt;
+                      &lt;td style=&#34;padding:9px 16px 10px 16px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;&#34;&gt;
+                        &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                        &lt;div style=&#34;padding-top:6px;&#34;&gt;
+                          &lt;a href=&#34;https://example.com/scr/harborline-consolidation&#34; style=&#34;font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;&#34;&gt;Harborline Logistics to consolidate 3 SoCal offices into one hub by mid-2027&lt;/a&gt;
+                        &lt;/div&gt;
+                        &lt;div style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;&#34;&gt;
+                          &lt;span style=&#34;color:#175cd3;&#34;&gt;Office move&lt;/span&gt; &amp;middot; Harborline Logistics
+                        &lt;/div&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;                  &lt;/table&gt;
+
+                  &lt;!-- Index pills. Anchor links work in Apple Mail and most webmail;
+                       Gmail strips ids, where these degrade to inert labels. --&gt;
+                  &lt;div id=&#34;aat-index&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:#667085; padding:18px 2px 9px 2px;&#34;&gt;
+                    Who&amp;rsquo;s in the News &amp;mdash; Jump to Full Briefing
+                  &lt;/div&gt;
+                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;
+                      &lt;td style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:0; line-height:0;&#34;&gt;                        &lt;a href=&#34;#meridian-health-partners&#34; style=&#34;display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;&#34;&gt;Meridian Health Partners&lt;/a&gt;                        &lt;a href=&#34;#pacific-sun-robotics&#34; style=&#34;display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;&#34;&gt;Pacific Sun Robotics&lt;/a&gt;                        &lt;a href=&#34;#calyx-biosciences&#34; style=&#34;display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;&#34;&gt;Calyx Biosciences&lt;/a&gt;                        &lt;a href=&#34;#harborline-logistics&#34; style=&#34;display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;&#34;&gt;Harborline Logistics&lt;/a&gt;                        &lt;a href=&#34;#kestrel-legal-llp&#34; style=&#34;display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;&#34;&gt;Kestrel Legal LLP&lt;/a&gt;                      &lt;/td&gt;
+                    &lt;/tr&gt;
+                  &lt;/table&gt;
+
                 &lt;/td&gt;
+
+                &lt;!-- ── Right column (~38%): Trending Now ─────────────── --&gt;
+                &lt;td class=&#34;col&#34; width=&#34;38%&#34; valign=&#34;top&#34;&gt;
+                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;background-color:#f4f3ff; border:1px solid #e0d9fe; border-radius:10px;&#34;&gt;
+                    &lt;tr&gt;
+                      &lt;td style=&#34;padding:14px 15px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                        &lt;div style=&#34;font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#5925dc;&#34;&gt;
+                          Trending Now
+                        &lt;/div&gt;
+
+                        &lt;!-- Fixed window; the reel is the list twice over so the
+                             translateY loop meets itself seamlessly. --&gt;
+                        &lt;div class=&#34;ticker-window&#34; style=&#34;height:132px; overflow:hidden; margin-top:10px;&#34;&gt;
+                          &lt;div class=&#34;ticker-reel&#34;&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Meridian Health Partners
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Pacific Sun Robotics
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Calyx Biosciences
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Harborline Logistics
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Kestrel Legal LLP
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Meridian Health Partners
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Pacific Sun Robotics
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Calyx Biosciences
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Harborline Logistics
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Kestrel Legal LLP
+                            &lt;/div&gt;                          &lt;/div&gt;
+                        &lt;/div&gt;
+
+                        &lt;div style=&#34;font-size:11px; line-height:16px; color:#7f56d9; padding-top:9px; border-top:1px solid #e0d9fe; margin-top:8px;&#34;&gt;
+                          5 companies in today&amp;rsquo;s briefing
+                          &amp;middot; 52 tenants monitored
+                        &lt;/div&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;
+                  &lt;/table&gt;
+                &lt;/td&gt;
+
               &lt;/tr&gt;
             &lt;/table&gt;
+          &lt;/td&gt;
+        &lt;/tr&gt;
 
-            &lt;!-- Alert cards --&gt;            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
+        &lt;!-- ═══ 3. Divider ══════════════════════════════════════════════ --&gt;
+        &lt;tr&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:18px 26px 0 26px;&#34;&gt;
+            &lt;div style=&#34;height:1px; background-color:#e4e7ec; line-height:1px; font-size:0;&#34;&gt;&amp;nbsp;&lt;/div&gt;
+          &lt;/td&gt;
+        &lt;/tr&gt;
+
+        &lt;!-- ═══ 4. Full Briefing ════════════════════════════════════════ --&gt;
+        &lt;tr&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:18px 26px 0 26px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+            &lt;div style=&#34;font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#0f1f33;&#34;&gt;
+              Full Briefing
+            &lt;/div&gt;
+            &lt;div style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:4px;&#34;&gt;
+              Week of Aug 11 – Aug 17, 2026 &amp;middot; 7 developments &amp;middot; high and medium priority
+            &lt;/div&gt;
+          &lt;/td&gt;
+        &lt;/tr&gt;        &lt;tr&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:14px 26px 0 26px;&#34;&gt;
+            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
               &lt;tr&gt;
-                &lt;td class=&#34;card&#34; style=&#34;padding:18px 20px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                &lt;td class=&#34;card&#34; style=&#34;padding:16px 18px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-                  &lt;!-- Category pill + priority chip --&gt;
-                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                  &lt;!-- Entity header + back link --&gt;
+                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
                     &lt;tr&gt;
-                      &lt;td style=&#34;padding-right:10px;&#34;&gt;
-                        &lt;span style=&#34;display:inline-block; padding:3px 9px; border-radius:11px; background-color:#fef3f2; color:#b42318; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;&#34;&gt;Financial distress&lt;/span&gt;
-                      &lt;/td&gt;
-                      &lt;td&gt;
-                        &lt;span style=&#34;display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;&#34;&gt;
-                          &lt;span style=&#34;display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;&#34;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&#34;vertical-align:middle;&#34;&gt;&amp;nbsp;High&lt;/span&gt;
-                        &lt;/span&gt;
+                      &lt;td valign=&#34;middle&#34; id=&#34;meridian-health-partners&#34;&gt;
+                        &lt;div style=&#34;font-size:16px; line-height:22px; font-weight:600; color:#101828;&#34;&gt;Meridian Health Partners&lt;/div&gt;                        &lt;div style=&#34;font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;&#34;&gt;San Diego&lt;/div&gt;                      &lt;/td&gt;
+                      &lt;td valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;white-space:nowrap;&#34;&gt;
+                        &lt;a href=&#34;#aat-index&#34; style=&#34;font-size:11px; color:#98a2b3; text-decoration:none;&#34;&gt;&amp;uarr;&amp;nbsp;Back to index&lt;/a&gt;
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
 
-                  &lt;div class=&#34;headline&#34; style=&#34;font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;&#34;&gt;
-                    Meridian Health Partners breaches leverage covenant, hires restructuring advisor
-                  &lt;/div&gt;
+                  &lt;!-- Events for this entity --&gt;                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;&lt;td style=&#34;padding-top:14px; padding-bottom:5px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-                  &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;&#34;&gt;
-                    Meridian Health Partners disclosed a leverage covenant breach for Q2 2026 and has engaged a restructuring advisor while operating under a forbearance agreement through late October. Management&amp;#39;s cost-reduction plan targeting $18 million in annualized savings explicitly includes a review of its clinic footprint, signaling potential space reductions. The combination of lender negotiations, forbearance, and a footprint review represents an immediate credit and occupancy risk.
-                  &lt;/div&gt;
+                        &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td style=&#34;padding-right:8px;&#34;&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 8px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:10.5px; font-weight:600; white-space:nowrap;&#34;&gt;Financial distress&lt;/span&gt;
+                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
 
-                  &lt;!-- Source line --&gt;
-                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:14px; border-top:1px solid #f2f4f7;&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        Coastal Business Chronicle &amp;middot; Aug 14, 2026                      &lt;/td&gt;
-                      &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        &lt;a href=&#34;https://example.com/coastal-chronicle/meridian-covenant-breach&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;
+                        &lt;div class=&#34;headline&#34; style=&#34;font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;&#34;&gt;
+                          Meridian Health Partners breaches leverage covenant, hires restructuring advisor
+                        &lt;/div&gt;
+
+                        &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;&#34;&gt;
+                          Meridian Health Partners disclosed a leverage covenant breach for Q2 2026 and has engaged a restructuring advisor while operating under a forbearance agreement through late October. Management&amp;#39;s cost-reduction plan targeting $18 million in annualized savings explicitly includes a review of its clinic footprint, signaling potential space reductions. The combination of lender negotiations, forbearance, and a footprint review represents an immediate credit and occupancy risk.
+                        &lt;/div&gt;
+
+                        &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:11px;&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                              Coastal Business Chronicle &amp;middot; Aug 14, 2026                            &lt;/td&gt;
+                            &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;                              &lt;a href=&#34;https://example.com/coastal-chronicle/meridian-covenant-breach&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
+                      &lt;/td&gt;
+                    &lt;/tr&gt;
+                  &lt;/table&gt;                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;&lt;td style=&#34;padding-top:14px; padding-bottom:5px; border-top:1px solid #e4e7ec; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+
+                        &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td style=&#34;padding-right:8px;&#34;&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 8px; border-radius:9px; background-color:#f4f3ff; color:#5925dc; font-size:10.5px; font-weight:600; white-space:nowrap;&#34;&gt;Leadership change&lt;/span&gt;
+                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
+                        &lt;div class=&#34;headline&#34; style=&#34;font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;&#34;&gt;
+                          Meridian CFO Dana Whitfield resigns amid covenant breach and lender talks
+                        &lt;/div&gt;
+
+                        &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;&#34;&gt;
+                          Meridian Health Partners CFO Dana Whitfield resigned effective August 12, two days after the company&amp;#39;s public covenant breach disclosure and during active lender negotiations. The company has named its corporate controller as interim CFO with no formal successor search underway, adding leadership instability to an already stressed financial situation. This departure compounds the financial distress signals and may affect the pace and outcome of restructuring discussions.
+                        &lt;/div&gt;
+
+                        &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:11px;&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                              Healthcare Finance Wire &amp;middot; Aug 15, 2026                            &lt;/td&gt;
+                            &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;                              &lt;a href=&#34;https://example.com/hcfw/meridian-cfo-exit&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
-
-                &lt;/td&gt;
-              &lt;/tr&gt;
-            &lt;/table&gt;            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
-              &lt;tr&gt;
-                &lt;td class=&#34;card&#34; style=&#34;padding:18px 20px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-
-                  &lt;!-- Category pill + priority chip --&gt;
-                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td style=&#34;padding-right:10px;&#34;&gt;
-                        &lt;span style=&#34;display:inline-block; padding:3px 9px; border-radius:11px; background-color:#f4f3ff; color:#5925dc; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;&#34;&gt;Leadership change&lt;/span&gt;
-                      &lt;/td&gt;
-                      &lt;td&gt;
-                        &lt;span style=&#34;display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;&#34;&gt;
-                          &lt;span style=&#34;display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;&#34;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&#34;vertical-align:middle;&#34;&gt;&amp;nbsp;High&lt;/span&gt;
-                        &lt;/span&gt;
-                      &lt;/td&gt;
-                    &lt;/tr&gt;
-                  &lt;/table&gt;
-
-                  &lt;div class=&#34;headline&#34; style=&#34;font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;&#34;&gt;
-                    Meridian CFO Dana Whitfield resigns amid covenant breach and lender talks
-                  &lt;/div&gt;
-
-                  &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;&#34;&gt;
-                    Meridian Health Partners CFO Dana Whitfield resigned effective August 12, two days after the company&amp;#39;s public covenant breach disclosure and during active lender negotiations. The company has named its corporate controller as interim CFO with no formal successor search underway, adding leadership instability to an already stressed financial situation. This departure compounds the financial distress signals and may affect the pace and outcome of restructuring discussions.
-                  &lt;/div&gt;
-
-                  &lt;!-- Source line --&gt;
-                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:14px; border-top:1px solid #f2f4f7;&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        Healthcare Finance Wire &amp;middot; Aug 15, 2026                      &lt;/td&gt;
-                      &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        &lt;a href=&#34;https://example.com/hcfw/meridian-cfo-exit&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;
-                      &lt;/td&gt;
-                    &lt;/tr&gt;
-                  &lt;/table&gt;
-
                 &lt;/td&gt;
               &lt;/tr&gt;
             &lt;/table&gt;
           &lt;/td&gt;
         &lt;/tr&gt;        &lt;tr&gt;
-          &lt;td class=&#34;gutter&#34; style=&#34;padding:26px 32px 0 32px;&#34;&gt;
-
-            &lt;!-- Tenant header --&gt;
-            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:14px 26px 0 26px;&#34;&gt;
+            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
               &lt;tr&gt;
-                &lt;td valign=&#34;middle&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                  &lt;div style=&#34;font-size:17px; line-height:24px; font-weight:600; color:#101828;&#34;&gt;Pacific Sun Robotics&lt;/div&gt;                  &lt;div style=&#34;font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;&#34;&gt;Carlsbad&lt;/div&gt;                &lt;/td&gt;
-                &lt;td class=&#34;co-count&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;&#34;&gt;
-                  2 items
-                &lt;/td&gt;
-              &lt;/tr&gt;
-            &lt;/table&gt;
+                &lt;td class=&#34;card&#34; style=&#34;padding:16px 18px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-            &lt;!-- Alert cards --&gt;            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
-              &lt;tr&gt;
-                &lt;td class=&#34;card&#34; style=&#34;padding:18px 20px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-
-                  &lt;!-- Category pill + priority chip --&gt;
-                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                  &lt;!-- Entity header + back link --&gt;
+                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
                     &lt;tr&gt;
-                      &lt;td style=&#34;padding-right:10px;&#34;&gt;
-                        &lt;span style=&#34;display:inline-block; padding:3px 9px; border-radius:11px; background-color:#eff8ff; color:#175cd3; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;&#34;&gt;Office move&lt;/span&gt;
-                      &lt;/td&gt;
-                      &lt;td&gt;
-                        &lt;span style=&#34;display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;&#34;&gt;
-                          &lt;span style=&#34;display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;&#34;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&#34;vertical-align:middle;&#34;&gt;&amp;nbsp;High&lt;/span&gt;
-                        &lt;/span&gt;
+                      &lt;td valign=&#34;middle&#34; id=&#34;pacific-sun-robotics&#34;&gt;
+                        &lt;div style=&#34;font-size:16px; line-height:22px; font-weight:600; color:#101828;&#34;&gt;Pacific Sun Robotics&lt;/div&gt;                        &lt;div style=&#34;font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;&#34;&gt;Carlsbad&lt;/div&gt;                      &lt;/td&gt;
+                      &lt;td valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;white-space:nowrap;&#34;&gt;
+                        &lt;a href=&#34;#aat-index&#34; style=&#34;font-size:11px; color:#98a2b3; text-decoration:none;&#34;&gt;&amp;uarr;&amp;nbsp;Back to index&lt;/a&gt;
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
 
-                  &lt;div class=&#34;headline&#34; style=&#34;font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;&#34;&gt;
-                    Pacific Sun Robotics touring 25K–40K SF industrial-flex space in Carlsbad
-                  &lt;/div&gt;
+                  &lt;!-- Events for this entity --&gt;                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;&lt;td style=&#34;padding-top:14px; padding-bottom:5px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-                  &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;&#34;&gt;
-                    Local brokers report that Pacific Sun Robotics is actively touring industrial-flex buildings within five miles of its existing Carlsbad facility, seeking 25,000 to 40,000 square feet of additional space. A leasing decision is expected before year-end. The active tour activity and defined size requirement indicate a concrete, near-term space decision is underway.
-                  &lt;/div&gt;
+                        &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td style=&#34;padding-right:8px;&#34;&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 8px; border-radius:9px; background-color:#eff8ff; color:#175cd3; font-size:10.5px; font-weight:600; white-space:nowrap;&#34;&gt;Office move&lt;/span&gt;
+                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
 
-                  &lt;!-- Source line --&gt;
-                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:14px; border-top:1px solid #f2f4f7;&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        North County Commercial Report &amp;middot; Aug 16, 2026                      &lt;/td&gt;
-                      &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        &lt;a href=&#34;https://example.com/nccr/pacific-sun-space-search&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;
+                        &lt;div class=&#34;headline&#34; style=&#34;font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;&#34;&gt;
+                          Pacific Sun Robotics touring 25K–40K SF industrial-flex space in Carlsbad
+                        &lt;/div&gt;
+
+                        &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;&#34;&gt;
+                          Local brokers report that Pacific Sun Robotics is actively touring industrial-flex buildings within five miles of its existing Carlsbad facility, seeking 25,000 to 40,000 square feet of additional space. A leasing decision is expected before year-end. The active tour activity and defined size requirement indicate a concrete, near-term space decision is underway.
+                        &lt;/div&gt;
+
+                        &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:11px;&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                              North County Commercial Report &amp;middot; Aug 16, 2026                            &lt;/td&gt;
+                            &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;                              &lt;a href=&#34;https://example.com/nccr/pacific-sun-space-search&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
+                      &lt;/td&gt;
+                    &lt;/tr&gt;
+                  &lt;/table&gt;                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;&lt;td style=&#34;padding-top:14px; padding-bottom:5px; border-top:1px solid #e4e7ec; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+
+                        &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td style=&#34;padding-right:8px;&#34;&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fffaeb; color:#b54708; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Watch&lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 8px; border-radius:9px; background-color:#ecfdf3; color:#027a48; font-size:10.5px; font-weight:600; white-space:nowrap;&#34;&gt;Expansion&lt;/span&gt;
+                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
+                        &lt;div class=&#34;headline&#34; style=&#34;font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;&#34;&gt;
+                          Pacific Sun Robotics wins naval subcontract, plans ~60 hires in North County SD
+                        &lt;/div&gt;
+
+                        &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;&#34;&gt;
+                          Pacific Sun Robotics has been awarded a multi-year naval autonomy subcontract and intends to add approximately 60 engineering and production roles in North County San Diego. Leadership acknowledged current facilities are near capacity, though no formal commitment to additional space has been made. This signals growing headcount pressure that could translate into a near-term space requirement.
+                        &lt;/div&gt;
+
+                        &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:11px;&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                              Defense Tech Brief &amp;middot; Aug 12, 2026                            &lt;/td&gt;
+                            &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;                              &lt;a href=&#34;https://example.com/dtb/pacific-sun-contract&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
-
-                &lt;/td&gt;
-              &lt;/tr&gt;
-            &lt;/table&gt;            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
-              &lt;tr&gt;
-                &lt;td class=&#34;card&#34; style=&#34;padding:18px 20px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-
-                  &lt;!-- Category pill + priority chip --&gt;
-                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td style=&#34;padding-right:10px;&#34;&gt;
-                        &lt;span style=&#34;display:inline-block; padding:3px 9px; border-radius:11px; background-color:#ecfdf3; color:#027a48; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;&#34;&gt;Expansion&lt;/span&gt;
-                      &lt;/td&gt;
-                      &lt;td&gt;
-                        &lt;span style=&#34;display:inline-block; font-size:11px; font-weight:600; color:#b54708; letter-spacing:0.3px; white-space:nowrap;&#34;&gt;
-                          &lt;span style=&#34;display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#f79009; vertical-align:middle; font-size:0; line-height:6px;&#34;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&#34;vertical-align:middle;&#34;&gt;&amp;nbsp;Medium&lt;/span&gt;
-                        &lt;/span&gt;
-                      &lt;/td&gt;
-                    &lt;/tr&gt;
-                  &lt;/table&gt;
-
-                  &lt;div class=&#34;headline&#34; style=&#34;font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;&#34;&gt;
-                    Pacific Sun Robotics wins naval subcontract, plans ~60 hires in North County SD
-                  &lt;/div&gt;
-
-                  &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;&#34;&gt;
-                    Pacific Sun Robotics has been awarded a multi-year naval autonomy subcontract and intends to add approximately 60 engineering and production roles in North County San Diego. Leadership acknowledged current facilities are near capacity, though no formal commitment to additional space has been made. This signals growing headcount pressure that could translate into a near-term space requirement.
-                  &lt;/div&gt;
-
-                  &lt;!-- Source line --&gt;
-                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:14px; border-top:1px solid #f2f4f7;&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        Defense Tech Brief &amp;middot; Aug 12, 2026                      &lt;/td&gt;
-                      &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        &lt;a href=&#34;https://example.com/dtb/pacific-sun-contract&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;
-                      &lt;/td&gt;
-                    &lt;/tr&gt;
-                  &lt;/table&gt;
-
                 &lt;/td&gt;
               &lt;/tr&gt;
             &lt;/table&gt;
           &lt;/td&gt;
         &lt;/tr&gt;        &lt;tr&gt;
-          &lt;td class=&#34;gutter&#34; style=&#34;padding:26px 32px 0 32px;&#34;&gt;
-
-            &lt;!-- Tenant header --&gt;
-            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:14px 26px 0 26px;&#34;&gt;
+            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
               &lt;tr&gt;
-                &lt;td valign=&#34;middle&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                  &lt;div style=&#34;font-size:17px; line-height:24px; font-weight:600; color:#101828;&#34;&gt;Calyx Biosciences&lt;/div&gt;                  &lt;div style=&#34;font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;&#34;&gt;La Jolla&lt;/div&gt;                &lt;/td&gt;
-                &lt;td class=&#34;co-count&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;&#34;&gt;
-                  1 item
-                &lt;/td&gt;
-              &lt;/tr&gt;
-            &lt;/table&gt;
+                &lt;td class=&#34;card&#34; style=&#34;padding:16px 18px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-            &lt;!-- Alert cards --&gt;            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
-              &lt;tr&gt;
-                &lt;td class=&#34;card&#34; style=&#34;padding:18px 20px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-
-                  &lt;!-- Category pill + priority chip --&gt;
-                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                  &lt;!-- Entity header + back link --&gt;
+                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
                     &lt;tr&gt;
-                      &lt;td style=&#34;padding-right:10px;&#34;&gt;
-                        &lt;span style=&#34;display:inline-block; padding:3px 9px; border-radius:11px; background-color:#ecfdf3; color:#027a48; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;&#34;&gt;Expansion&lt;/span&gt;
-                      &lt;/td&gt;
-                      &lt;td&gt;
-                        &lt;span style=&#34;display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;&#34;&gt;
-                          &lt;span style=&#34;display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;&#34;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&#34;vertical-align:middle;&#34;&gt;&amp;nbsp;High&lt;/span&gt;
-                        &lt;/span&gt;
+                      &lt;td valign=&#34;middle&#34; id=&#34;calyx-biosciences&#34;&gt;
+                        &lt;div style=&#34;font-size:16px; line-height:22px; font-weight:600; color:#101828;&#34;&gt;Calyx Biosciences&lt;/div&gt;                        &lt;div style=&#34;font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;&#34;&gt;La Jolla&lt;/div&gt;                      &lt;/td&gt;
+                      &lt;td valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;white-space:nowrap;&#34;&gt;
+                        &lt;a href=&#34;#aat-index&#34; style=&#34;font-size:11px; color:#98a2b3; text-decoration:none;&#34;&gt;&amp;uarr;&amp;nbsp;Back to index&lt;/a&gt;
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
 
-                  &lt;div class=&#34;headline&#34; style=&#34;font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;&#34;&gt;
-                    Calyx Biosciences raises $140M Series C, targets 120K SF in San Diego corridor
-                  &lt;/div&gt;
+                  &lt;!-- Events for this entity --&gt;                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;&lt;td style=&#34;padding-top:14px; padding-bottom:5px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-                  &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;&#34;&gt;
-                    Calyx Biosciences closed a $140M Series C and has publicly stated plans to grow from approximately 40,000 square feet to more than 120,000 square feet over the next 24 months. The company identified the San Diego biotech corridor as its preferred market and expects to begin touring space in Q4 2026. This represents a roughly 3x increase in footprint, funded and actively in motion.
-                  &lt;/div&gt;
+                        &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td style=&#34;padding-right:8px;&#34;&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 8px; border-radius:9px; background-color:#ecfdf3; color:#027a48; font-size:10.5px; font-weight:600; white-space:nowrap;&#34;&gt;Expansion&lt;/span&gt;
+                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
 
-                  &lt;!-- Source line --&gt;
-                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:14px; border-top:1px solid #f2f4f7;&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        Life Sciences Daily &amp;middot; Aug 12, 2026                      &lt;/td&gt;
-                      &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        &lt;a href=&#34;https://example.com/lsd/calyx-series-c&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;
+                        &lt;div class=&#34;headline&#34; style=&#34;font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;&#34;&gt;
+                          Calyx Biosciences raises $140M Series C, targets 120K SF in San Diego corridor
+                        &lt;/div&gt;
+
+                        &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;&#34;&gt;
+                          Calyx Biosciences closed a $140M Series C and has publicly stated plans to grow from approximately 40,000 square feet to more than 120,000 square feet over the next 24 months. The company identified the San Diego biotech corridor as its preferred market and expects to begin touring space in Q4 2026. This represents a roughly 3x increase in footprint, funded and actively in motion.
+                        &lt;/div&gt;
+
+                        &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:11px;&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                              Life Sciences Daily &amp;middot; Aug 12, 2026                            &lt;/td&gt;
+                            &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;                              &lt;a href=&#34;https://example.com/lsd/calyx-series-c&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
-
-                &lt;/td&gt;
-              &lt;/tr&gt;
-            &lt;/table&gt;
-          &lt;/td&gt;
-        &lt;/tr&gt;        &lt;tr&gt;
-          &lt;td class=&#34;gutter&#34; style=&#34;padding:26px 32px 0 32px;&#34;&gt;
-
-            &lt;!-- Tenant header --&gt;
-            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
-              &lt;tr&gt;
-                &lt;td valign=&#34;middle&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                  &lt;div style=&#34;font-size:17px; line-height:24px; font-weight:600; color:#101828;&#34;&gt;Harborline Logistics&lt;/div&gt;                  &lt;div style=&#34;font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;&#34;&gt;Chula Vista&lt;/div&gt;                &lt;/td&gt;
-                &lt;td class=&#34;co-count&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;&#34;&gt;
-                  1 item
-                &lt;/td&gt;
-              &lt;/tr&gt;
-            &lt;/table&gt;
-
-            &lt;!-- Alert cards --&gt;            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
-              &lt;tr&gt;
-                &lt;td class=&#34;card&#34; style=&#34;padding:18px 20px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-
-                  &lt;!-- Category pill + priority chip --&gt;
-                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td style=&#34;padding-right:10px;&#34;&gt;
-                        &lt;span style=&#34;display:inline-block; padding:3px 9px; border-radius:11px; background-color:#eff8ff; color:#175cd3; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;&#34;&gt;Office move&lt;/span&gt;
-                      &lt;/td&gt;
-                      &lt;td&gt;
-                        &lt;span style=&#34;display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;&#34;&gt;
-                          &lt;span style=&#34;display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;&#34;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&#34;vertical-align:middle;&#34;&gt;&amp;nbsp;High&lt;/span&gt;
-                        &lt;/span&gt;
-                      &lt;/td&gt;
-                    &lt;/tr&gt;
-                  &lt;/table&gt;
-
-                  &lt;div class=&#34;headline&#34; style=&#34;font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;&#34;&gt;
-                    Harborline Logistics to consolidate 3 SoCal offices into one hub by mid-2027
-                  &lt;/div&gt;
-
-                  &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;&#34;&gt;
-                    Harborline Logistics has confirmed plans to merge its three Southern California administrative offices into a single regional hub by mid-2027, driven by a permanent shift to hybrid work for back-office staff. The company has already begun marketing surplus space for sublease, though it has not disclosed which locations will close. This consolidation signals a meaningful reduction in the company&amp;#39;s Southern California office footprint in the near term.
-                  &lt;/div&gt;
-
-                  &lt;!-- Source line --&gt;
-                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:14px; border-top:1px solid #f2f4f7;&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        Supply Chain Register &amp;middot; Aug 13, 2026                      &lt;/td&gt;
-                      &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        &lt;a href=&#34;https://example.com/scr/harborline-consolidation&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;
-                      &lt;/td&gt;
-                    &lt;/tr&gt;
-                  &lt;/table&gt;
-
                 &lt;/td&gt;
               &lt;/tr&gt;
             &lt;/table&gt;
           &lt;/td&gt;
         &lt;/tr&gt;        &lt;tr&gt;
-          &lt;td class=&#34;gutter&#34; style=&#34;padding:26px 32px 0 32px;&#34;&gt;
-
-            &lt;!-- Tenant header --&gt;
-            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:14px 26px 0 26px;&#34;&gt;
+            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
               &lt;tr&gt;
-                &lt;td valign=&#34;middle&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                  &lt;div style=&#34;font-size:17px; line-height:24px; font-weight:600; color:#101828;&#34;&gt;Kestrel Legal LLP&lt;/div&gt;                  &lt;div style=&#34;font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;&#34;&gt;San Diego&lt;/div&gt;                &lt;/td&gt;
-                &lt;td class=&#34;co-count&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;&#34;&gt;
-                  1 item
+                &lt;td class=&#34;card&#34; style=&#34;padding:16px 18px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+
+                  &lt;!-- Entity header + back link --&gt;
+                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;
+                      &lt;td valign=&#34;middle&#34; id=&#34;harborline-logistics&#34;&gt;
+                        &lt;div style=&#34;font-size:16px; line-height:22px; font-weight:600; color:#101828;&#34;&gt;Harborline Logistics&lt;/div&gt;                        &lt;div style=&#34;font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;&#34;&gt;Chula Vista&lt;/div&gt;                      &lt;/td&gt;
+                      &lt;td valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;white-space:nowrap;&#34;&gt;
+                        &lt;a href=&#34;#aat-index&#34; style=&#34;font-size:11px; color:#98a2b3; text-decoration:none;&#34;&gt;&amp;uarr;&amp;nbsp;Back to index&lt;/a&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;
+                  &lt;/table&gt;
+
+                  &lt;!-- Events for this entity --&gt;                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;&lt;td style=&#34;padding-top:14px; padding-bottom:5px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+
+                        &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td style=&#34;padding-right:8px;&#34;&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 8px; border-radius:9px; background-color:#eff8ff; color:#175cd3; font-size:10.5px; font-weight:600; white-space:nowrap;&#34;&gt;Office move&lt;/span&gt;
+                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
+                        &lt;div class=&#34;headline&#34; style=&#34;font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;&#34;&gt;
+                          Harborline Logistics to consolidate 3 SoCal offices into one hub by mid-2027
+                        &lt;/div&gt;
+
+                        &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;&#34;&gt;
+                          Harborline Logistics has confirmed plans to merge its three Southern California administrative offices into a single regional hub by mid-2027, driven by a permanent shift to hybrid work for back-office staff. The company has already begun marketing surplus space for sublease, though it has not disclosed which locations will close. This consolidation signals a meaningful reduction in the company&amp;#39;s Southern California office footprint in the near term.
+                        &lt;/div&gt;
+
+                        &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:11px;&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                              Supply Chain Register &amp;middot; Aug 13, 2026                            &lt;/td&gt;
+                            &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;                              &lt;a href=&#34;https://example.com/scr/harborline-consolidation&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
+                      &lt;/td&gt;
+                    &lt;/tr&gt;
+                  &lt;/table&gt;
                 &lt;/td&gt;
               &lt;/tr&gt;
             &lt;/table&gt;
-
-            &lt;!-- Alert cards --&gt;            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
+          &lt;/td&gt;
+        &lt;/tr&gt;        &lt;tr&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:14px 26px 0 26px;&#34;&gt;
+            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
               &lt;tr&gt;
-                &lt;td class=&#34;card&#34; style=&#34;padding:18px 20px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                &lt;td class=&#34;card&#34; style=&#34;padding:16px 18px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-                  &lt;!-- Category pill + priority chip --&gt;
-                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                  &lt;!-- Entity header + back link --&gt;
+                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
                     &lt;tr&gt;
-                      &lt;td style=&#34;padding-right:10px;&#34;&gt;
-                        &lt;span style=&#34;display:inline-block; padding:3px 9px; border-radius:11px; background-color:#f4f3ff; color:#5925dc; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;&#34;&gt;Leadership change&lt;/span&gt;
-                      &lt;/td&gt;
-                      &lt;td&gt;
-                        &lt;span style=&#34;display:inline-block; font-size:11px; font-weight:600; color:#b54708; letter-spacing:0.3px; white-space:nowrap;&#34;&gt;
-                          &lt;span style=&#34;display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#f79009; vertical-align:middle; font-size:0; line-height:6px;&#34;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&#34;vertical-align:middle;&#34;&gt;&amp;nbsp;Medium&lt;/span&gt;
-                        &lt;/span&gt;
+                      &lt;td valign=&#34;middle&#34; id=&#34;kestrel-legal-llp&#34;&gt;
+                        &lt;div style=&#34;font-size:16px; line-height:22px; font-weight:600; color:#101828;&#34;&gt;Kestrel Legal LLP&lt;/div&gt;                        &lt;div style=&#34;font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;&#34;&gt;San Diego&lt;/div&gt;                      &lt;/td&gt;
+                      &lt;td valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;white-space:nowrap;&#34;&gt;
+                        &lt;a href=&#34;#aat-index&#34; style=&#34;font-size:11px; color:#98a2b3; text-decoration:none;&#34;&gt;&amp;uarr;&amp;nbsp;Back to index&lt;/a&gt;
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
 
-                  &lt;div class=&#34;headline&#34; style=&#34;font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;&#34;&gt;
-                    Kestrel Legal elects new managing partner; firmwide real-estate review ordered
-                  &lt;/div&gt;
+                  &lt;!-- Events for this entity --&gt;                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;&lt;td style=&#34;padding-top:14px; padding-bottom:5px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-                  &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;&#34;&gt;
-                    Kestrel Legal LLP has elected Priya Raghunathan as managing partner effective September 1, 2026. An internal memo has directed a firmwide review of real-estate commitments ahead of the firm&amp;#39;s next lease cycle. No specific space decisions have been announced yet, but the review signals a potential change in the firm&amp;#39;s footprint strategy.
-                  &lt;/div&gt;
+                        &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td style=&#34;padding-right:8px;&#34;&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fffaeb; color:#b54708; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Watch&lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 8px; border-radius:9px; background-color:#f4f3ff; color:#5925dc; font-size:10.5px; font-weight:600; white-space:nowrap;&#34;&gt;Leadership change&lt;/span&gt;
+                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
 
-                  &lt;!-- Source line --&gt;
-                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:14px; border-top:1px solid #f2f4f7;&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        Legal Practice Monitor &amp;middot; Aug 11, 2026                      &lt;/td&gt;
-                      &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        &lt;a href=&#34;https://example.com/lpm/kestrel-managing-partner&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;
+                        &lt;div class=&#34;headline&#34; style=&#34;font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;&#34;&gt;
+                          Kestrel Legal elects new managing partner; firmwide real-estate review ordered
+                        &lt;/div&gt;
+
+                        &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;&#34;&gt;
+                          Kestrel Legal LLP has elected Priya Raghunathan as managing partner effective September 1, 2026. An internal memo has directed a firmwide review of real-estate commitments ahead of the firm&amp;#39;s next lease cycle. No specific space decisions have been announced yet, but the review signals a potential change in the firm&amp;#39;s footprint strategy.
+                        &lt;/div&gt;
+
+                        &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:11px;&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                              Legal Practice Monitor &amp;middot; Aug 11, 2026                            &lt;/td&gt;
+                            &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;                              &lt;a href=&#34;https://example.com/lpm/kestrel-managing-partner&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
-
                 &lt;/td&gt;
               &lt;/tr&gt;
             &lt;/table&gt;
           &lt;/td&gt;
         &lt;/tr&gt;
-        &lt;tr&gt;&lt;td style=&#34;height:28px; line-height:28px; font-size:0;&#34;&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
-        &lt;!-- ── Footer ─────────────────────────────────────────────────── --&gt;
+        &lt;tr&gt;&lt;td style=&#34;height:24px; line-height:24px; font-size:0;&#34;&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+        &lt;!-- ═══ 5. Footer ═══════════════════════════════════════════════ --&gt;
         &lt;tr&gt;
-          &lt;td class=&#34;gutter&#34; style=&#34;padding:22px 32px 26px 32px; background-color:#f9fafb; border-top:1px solid #e4e7ec; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:18px 26px 22px 26px; background-color:#f9fafb; border-top:1px solid #e4e7ec; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
             &lt;div style=&#34;font-size:12px; line-height:19px; color:#667085;&#34;&gt;
               &lt;strong style=&#34;color:#475467;&#34;&gt;Privacy:&lt;/strong&gt; only tenant names were sent to the search provider. Rent, lease terms, addresses, and the portfolio list never left the local database.
             &lt;/div&gt;
-            &lt;div style=&#34;font-size:11.5px; line-height:18px; color:#98a2b3; padding-top:10px;&#34;&gt;
-              Automated digest &amp;middot; generated August 17, 2026 &amp;middot; filtered to high and medium priority
+            &lt;div style=&#34;font-size:11px; line-height:17px; color:#98a2b3; padding-top:9px;&#34;&gt;
+              AAT Intel Briefing &amp;middot; Generated automatically &amp;middot; Aug 17, 2026 at 4:45 PM
               &lt;br&gt;
               &lt;a href=&#34;#&#34; style=&#34;color:#98a2b3; text-decoration:underline;&#34;&gt;Adjust categories &amp;amp; thresholds&lt;/a&gt;
               &amp;nbsp;&amp;middot;&amp;nbsp;
@@ -781,8 +890,8 @@
 
       &lt;/table&gt;
 
-      &lt;div style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11px; line-height:17px; color:#98a2b3; padding-top:16px; max-width:600px;&#34;&gt;
-        Tenant Intelligence Pipeline &amp;mdash; internal use only.
+      &lt;div style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11px; line-height:17px; color:#98a2b3; padding-top:14px; max-width:660px;&#34;&gt;
+        AAT Intel Briefing &amp;mdash; internal use only.
       &lt;/div&gt;
 
     &lt;/td&gt;
@@ -801,450 +910,559 @@
 &lt;meta name=&#34;supported-color-schemes&#34; content=&#34;light only&#34;&gt;
 &lt;title&gt;Competitor intel: 7 developments across 5 competitors&lt;/title&gt;
 &lt;style&gt;
-  /* Mobile breakpoint. Fires inside the 390px phone preview and in real mail
-     apps; Outlook desktop drops it and keeps the inline styles. */
-  @media only screen and (max-width: 620px) {
-    .sheet      { width: 100% !important; }
-    .gutter     { padding-left: 20px !important; padding-right: 20px !important; }
-    .band       { padding: 24px 20px !important; }
-    .brandmark  { font-size: 11px !important; letter-spacing: 1.4px !important; }
-    .title      { font-size: 21px !important; line-height: 28px !important; }
-    .headline   { font-size: 16px !important; line-height: 23px !important; }
-    .summary    { font-size: 14px !important; line-height: 22px !important; }
-    .card       { padding: 16px !important; }
-    /* Metric strip: three columns become full-width stacked rows. */
-    .metric     { display: block !important; width: 100% !important;
-                  border-right: 0 !important; border-bottom: 1px solid #e4e7ec !important;
-                  padding: 12px 0 !important; text-align: left !important; }
-    .metric-last{ border-bottom: 0 !important; }
-    .metric-num { display: inline-block !important; font-size: 20px !important;
-                  margin-right: 8px !important; }
-    .metric-lbl { display: inline-block !important; }
-    /* Source line: outlet and link stop sharing a row. */
+  /* Vertical ticker. Only clients that honour keyframes animate (Apple Mail);
+     Gmail and Outlook strip it and the list simply sits static, still readable. */
+  @keyframes aat-ticker {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-165px); }
+  }
+    .ticker-reel { animation: aat-ticker 12s linear infinite; }
+  
+  /* Mobile: the two summary columns stack, everything else reflows. */
+  @media only screen and (max-width: 680px) {
+    .sheet     { width: 100% !important; }
+    .gutter    { padding-left: 18px !important; padding-right: 18px !important; }
+    .band      { padding: 20px 18px !important; }
+    .col       { display: block !important; width: 100% !important;
+                 padding: 0 !important; }
+    .col-left  { padding-bottom: 16px !important; }
+    .bannerttl { font-size: 18px !important; }
+    .bannerdate{ font-size: 11.5px !important; }
+    .headline  { font-size: 15.5px !important; line-height: 22px !important; }
+    .summary   { font-size: 14px !important; line-height: 22px !important; }
+    .card      { padding: 15px !important; }
+    .ticker-window { height: 132px !important; }
     .src-cell, .src-link { display: block !important; width: 100% !important;
                            text-align: left !important; }
-    .src-link   { padding-top: 8px !important; }
-    .co-count   { display: none !important; }
+    .src-link  { padding-top: 7px !important; }
   }
   a { text-decoration: none; }
 &lt;/style&gt;
 &lt;/head&gt;
 &lt;body style=&#34;margin:0; padding:0; background-color:#eef1f5; -webkit-font-smoothing:antialiased;&#34;&gt;
 
-&lt;!-- Inbox preview text, then whitespace to stop the client pulling in body copy. --&gt;
+&lt;!-- Inbox preview text, then whitespace so the client stops pulling in body copy. --&gt;
 &lt;div style=&#34;display:none; font-size:1px; color:#eef1f5; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;&#34;&gt;
   Aventine Realty Trust — Aventine breaks ground on 310,000 SF spec industrial in Otay Mesa&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;&amp;nbsp;&amp;zwnj;
 &lt;/div&gt;
 
 &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;background-color:#eef1f5;&#34;&gt;
   &lt;tr&gt;
-    &lt;td align=&#34;center&#34; style=&#34;padding:32px 12px;&#34;&gt;
+    &lt;td align=&#34;center&#34; style=&#34;padding:28px 12px;&#34;&gt;
 
-      &lt;table role=&#34;presentation&#34; class=&#34;sheet&#34; width=&#34;600&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;width:600px; max-width:600px; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(16,24,40,0.10);&#34;&gt;
+      &lt;table role=&#34;presentation&#34; class=&#34;sheet&#34; width=&#34;660&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;width:660px; max-width:660px; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(16,24,40,0.10);&#34;&gt;
 
-        &lt;!-- ── Header band ────────────────────────────────────────────── --&gt;
+        &lt;!-- ═══ 1. Banner ═══════════════════════════════════════════════ --&gt;
         &lt;tr&gt;
-          &lt;td class=&#34;band&#34; style=&#34;background-color:#0f1f33; padding:28px 32px;&#34;&gt;
+          &lt;td class=&#34;band&#34; style=&#34;background-color:#0f1f33; padding:20px 26px;&#34;&gt;
             &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
               &lt;tr&gt;
-                &lt;td style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                  &lt;div class=&#34;brandmark&#34; style=&#34;font-size:11.5px; font-weight:700; letter-spacing:1.8px; text-transform:uppercase; color:#7dd3fc;&#34;&gt;
+                &lt;td valign=&#34;middle&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                  &lt;div class=&#34;bannerttl&#34; style=&#34;font-size:20px; line-height:26px; font-weight:600; color:#ffffff;&#34;&gt;
+                    AAT Intel Briefing
+                  &lt;/div&gt;
+                  &lt;div style=&#34;font-size:11px; line-height:16px; letter-spacing:1.2px; text-transform:uppercase; color:#7dd3fc; padding-top:4px;&#34;&gt;
                     Competitor Intelligence
                   &lt;/div&gt;
-                  &lt;div class=&#34;title&#34; style=&#34;font-size:24px; line-height:32px; font-weight:600; color:#ffffff; padding-top:8px;&#34;&gt;
-                    Competitive activity
-                  &lt;/div&gt;
-                  &lt;div style=&#34;font-size:13.5px; line-height:20px; color:#94a3b8; padding-top:6px;&#34;&gt;
-                    Week of Aug 11 – Aug 17, 2026
-                  &lt;/div&gt;
+                &lt;/td&gt;
+                &lt;td valign=&#34;middle&#34; align=&#34;right&#34; class=&#34;bannerdate&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:13px; color:#94a3b8; white-space:nowrap;&#34;&gt;
+                  August 17, 2026
                 &lt;/td&gt;
               &lt;/tr&gt;
             &lt;/table&gt;
           &lt;/td&gt;
         &lt;/tr&gt;
-
-        &lt;!-- ── Metric strip ───────────────────────────────────────────── --&gt;
+        &lt;!-- ═══ 2. Two-column summary ═══════════════════════════════════ --&gt;
         &lt;tr&gt;
-          &lt;td class=&#34;gutter&#34; style=&#34;padding:0 32px;&#34;&gt;
-            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;border-bottom:1px solid #e4e7ec;&#34;&gt;
-              &lt;tr&gt;                &lt;td class=&#34;metric&#34; width=&#34;33.33%&#34; valign=&#34;top&#34;
-                    style=&#34;padding:20px 0; text-align:center; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; border-right:1px solid #e4e7ec;&#34;&gt;
-                  &lt;div class=&#34;metric-num&#34; style=&#34;font-size:26px; line-height:32px; font-weight:600; color:#0f1f33;&#34;&gt;7&lt;/div&gt;
-                  &lt;div class=&#34;metric-lbl&#34; style=&#34;font-size:11.5px; line-height:16px; color:#667085; letter-spacing:0.3px; padding-top:2px;&#34;&gt;developments to review&lt;/div&gt;
-                &lt;/td&gt;                &lt;td class=&#34;metric&#34; width=&#34;33.33%&#34; valign=&#34;top&#34;
-                    style=&#34;padding:20px 0; text-align:center; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; border-right:1px solid #e4e7ec;&#34;&gt;
-                  &lt;div class=&#34;metric-num&#34; style=&#34;font-size:26px; line-height:32px; font-weight:600; color:#0f1f33;&#34;&gt;5&lt;/div&gt;
-                  &lt;div class=&#34;metric-lbl&#34; style=&#34;font-size:11.5px; line-height:16px; color:#667085; letter-spacing:0.3px; padding-top:2px;&#34;&gt;competitors active&lt;/div&gt;
-                &lt;/td&gt;                &lt;td class=&#34;metric metric-last&#34; width=&#34;33.33%&#34; valign=&#34;top&#34;
-                    style=&#34;padding:20px 0; text-align:center; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                  &lt;div class=&#34;metric-num&#34; style=&#34;font-size:26px; line-height:32px; font-weight:600; color:#0f1f33;&#34;&gt;5&lt;/div&gt;
-                  &lt;div class=&#34;metric-lbl&#34; style=&#34;font-size:11.5px; line-height:16px; color:#667085; letter-spacing:0.3px; padding-top:2px;&#34;&gt;competitors monitored&lt;/div&gt;
-                &lt;/td&gt;              &lt;/tr&gt;
-            &lt;/table&gt;
-          &lt;/td&gt;
-        &lt;/tr&gt;        &lt;!-- ── Findings, grouped by tenant ────────────────────────────── --&gt;        &lt;tr&gt;
-          &lt;td class=&#34;gutter&#34; style=&#34;padding:26px 32px 0 32px;&#34;&gt;
-
-            &lt;!-- Tenant header --&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:22px 26px 6px 26px;&#34;&gt;
             &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
               &lt;tr&gt;
-                &lt;td valign=&#34;middle&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                  &lt;div style=&#34;font-size:17px; line-height:24px; font-weight:600; color:#101828;&#34;&gt;Aventine Realty Trust&lt;/div&gt;                  &lt;div style=&#34;font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;&#34;&gt;Irvine&lt;/div&gt;                &lt;/td&gt;
-                &lt;td class=&#34;co-count&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;&#34;&gt;
-                  2 items
+
+                &lt;!-- ── Left column (~58%): Top Intel + index ──────────── --&gt;
+                &lt;td class=&#34;col col-left&#34; width=&#34;58%&#34; valign=&#34;top&#34; style=&#34;padding-right:14px;&#34;&gt;
+
+                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;border:1px solid #e4e7ec; border-radius:10px;&#34;&gt;
+                    &lt;tr&gt;
+                      &lt;td style=&#34;padding:14px 16px 4px 16px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                        &lt;div style=&#34;font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#0f1f33;&#34;&gt;
+                          Top Intel
+                        &lt;/div&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;                    &lt;tr&gt;
+                      &lt;td style=&#34;padding:9px 16px 10px 16px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                        &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                        &lt;div style=&#34;padding-top:6px;&#34;&gt;
+                          &lt;a href=&#34;https://example.com/nccr/aventine-otay-groundbreaking&#34; style=&#34;font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;&#34;&gt;Aventine breaks ground on 310,000 SF spec industrial in Otay Mesa&lt;/a&gt;
+                        &lt;/div&gt;
+                        &lt;div style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;&#34;&gt;
+                          &lt;span style=&#34;color:#027a48;&#34;&gt;Development&lt;/span&gt; &amp;middot; Aventine Realty Trust
+                        &lt;/div&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;                    &lt;tr&gt;
+                      &lt;td style=&#34;padding:9px 16px 10px 16px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;&#34;&gt;
+                        &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                        &lt;div style=&#34;padding-top:6px;&#34;&gt;
+                          &lt;a href=&#34;https://example.com/recd/aventine-fund-close&#34; style=&#34;font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;&#34;&gt;Aventine closes $600M value-add fund targeting SoCal industrial, life science&lt;/a&gt;
+                        &lt;/div&gt;
+                        &lt;div style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;&#34;&gt;
+                          &lt;span style=&#34;color:#b42318;&#34;&gt;Capital&lt;/span&gt; &amp;middot; Aventine Realty Trust
+                        &lt;/div&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;                    &lt;tr&gt;
+                      &lt;td style=&#34;padding:9px 16px 10px 16px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;&#34;&gt;
+                        &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                        &lt;div style=&#34;padding-top:6px;&#34;&gt;
+                          &lt;a href=&#34;https://example.com/coastal-chronicle/sandpiper-sorrento-portfolio&#34; style=&#34;font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;&#34;&gt;Sandpiper buys 480K SF Sorrento Mesa flex portfolio for $212M, plans $30M reno&lt;/a&gt;
+                        &lt;/div&gt;
+                        &lt;div style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;&#34;&gt;
+                          &lt;span style=&#34;color:#175cd3;&#34;&gt;Acquisition&lt;/span&gt; &amp;middot; Sandpiper Property Group
+                        &lt;/div&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;                    &lt;tr&gt;
+                      &lt;td style=&#34;padding:9px 16px 10px 16px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;&#34;&gt;
+                        &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                        &lt;div style=&#34;padding-top:6px;&#34;&gt;
+                          &lt;a href=&#34;https://example.com/coastal-chronicle/bayfront-tower-sale&#34; style=&#34;font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;&#34;&gt;Bayfront sells 340K-SF downtown SD office tower at 38% discount, exits CBD&lt;/a&gt;
+                        &lt;/div&gt;
+                        &lt;div style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;&#34;&gt;
+                          &lt;span style=&#34;color:#b54708;&#34;&gt;Disposition&lt;/span&gt; &amp;middot; Bayfront Asset Partners
+                        &lt;/div&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;                    &lt;tr&gt;
+                      &lt;td style=&#34;padding:9px 16px 10px 16px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; border-top:1px solid #f2f4f7;&#34;&gt;
+                        &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                        &lt;div style=&#34;padding-top:6px;&#34;&gt;
+                          &lt;a href=&#34;https://example.com/recd/copperline-facility-extension&#34; style=&#34;font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;&#34;&gt;Copperline extends $480M credit facility at +90bps; to slow acquisitions amid 2027 refi wall&lt;/a&gt;
+                        &lt;/div&gt;
+                        &lt;div style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;&#34;&gt;
+                          &lt;span style=&#34;color:#b42318;&#34;&gt;Capital&lt;/span&gt; &amp;middot; Copperline REIT
+                        &lt;/div&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;                  &lt;/table&gt;
+
+                  &lt;!-- Index pills. Anchor links work in Apple Mail and most webmail;
+                       Gmail strips ids, where these degrade to inert labels. --&gt;
+                  &lt;div id=&#34;aat-index&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:#667085; padding:18px 2px 9px 2px;&#34;&gt;
+                    Who&amp;rsquo;s in the News &amp;mdash; Jump to Full Briefing
+                  &lt;/div&gt;
+                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;
+                      &lt;td style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:0; line-height:0;&#34;&gt;                        &lt;a href=&#34;#aventine-realty-trust&#34; style=&#34;display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;&#34;&gt;Aventine Realty Trust&lt;/a&gt;                        &lt;a href=&#34;#sandpiper-property-group&#34; style=&#34;display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;&#34;&gt;Sandpiper Property Group&lt;/a&gt;                        &lt;a href=&#34;#bayfront-asset-partners&#34; style=&#34;display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;&#34;&gt;Bayfront Asset Partners&lt;/a&gt;                        &lt;a href=&#34;#copperline-reit&#34; style=&#34;display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;&#34;&gt;Copperline REIT&lt;/a&gt;                        &lt;a href=&#34;#two-palms-industrial&#34; style=&#34;display:inline-block; margin:0 5px 6px 0; padding:5px 11px; border:1px solid #d0d5dd; border-radius:14px; background-color:#f9fafb; font-size:11.5px; line-height:16px; color:#344054; text-decoration:none; white-space:nowrap;&#34;&gt;Two Palms Industrial&lt;/a&gt;                      &lt;/td&gt;
+                    &lt;/tr&gt;
+                  &lt;/table&gt;
+
                 &lt;/td&gt;
+
+                &lt;!-- ── Right column (~38%): Trending Now ─────────────── --&gt;
+                &lt;td class=&#34;col&#34; width=&#34;38%&#34; valign=&#34;top&#34;&gt;
+                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;background-color:#f4f3ff; border:1px solid #e0d9fe; border-radius:10px;&#34;&gt;
+                    &lt;tr&gt;
+                      &lt;td style=&#34;padding:14px 15px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                        &lt;div style=&#34;font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#5925dc;&#34;&gt;
+                          Trending Now
+                        &lt;/div&gt;
+
+                        &lt;!-- Fixed window; the reel is the list twice over so the
+                             translateY loop meets itself seamlessly. --&gt;
+                        &lt;div class=&#34;ticker-window&#34; style=&#34;height:132px; overflow:hidden; margin-top:10px;&#34;&gt;
+                          &lt;div class=&#34;ticker-reel&#34;&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Aventine Realty Trust
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Sandpiper Property Group
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Bayfront Asset Partners
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Copperline REIT
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Two Palms Industrial
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Aventine Realty Trust
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Sandpiper Property Group
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Bayfront Asset Partners
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Copperline REIT
+                            &lt;/div&gt;                            &lt;div style=&#34;height:33px; line-height:33px; font-size:13px; color:#42307d; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;&#34;&gt;
+                              Two Palms Industrial
+                            &lt;/div&gt;                          &lt;/div&gt;
+                        &lt;/div&gt;
+
+                        &lt;div style=&#34;font-size:11px; line-height:16px; color:#7f56d9; padding-top:9px; border-top:1px solid #e0d9fe; margin-top:8px;&#34;&gt;
+                          5 companies in today&amp;rsquo;s briefing
+                          &amp;middot; 5 competitors monitored
+                        &lt;/div&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;
+                  &lt;/table&gt;
+                &lt;/td&gt;
+
               &lt;/tr&gt;
             &lt;/table&gt;
+          &lt;/td&gt;
+        &lt;/tr&gt;
 
-            &lt;!-- Alert cards --&gt;            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
+        &lt;!-- ═══ 3. Divider ══════════════════════════════════════════════ --&gt;
+        &lt;tr&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:18px 26px 0 26px;&#34;&gt;
+            &lt;div style=&#34;height:1px; background-color:#e4e7ec; line-height:1px; font-size:0;&#34;&gt;&amp;nbsp;&lt;/div&gt;
+          &lt;/td&gt;
+        &lt;/tr&gt;
+
+        &lt;!-- ═══ 4. Full Briefing ════════════════════════════════════════ --&gt;
+        &lt;tr&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:18px 26px 0 26px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+            &lt;div style=&#34;font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#0f1f33;&#34;&gt;
+              Full Briefing
+            &lt;/div&gt;
+            &lt;div style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:4px;&#34;&gt;
+              Week of Aug 11 – Aug 17, 2026 &amp;middot; 7 developments &amp;middot; high and medium priority
+            &lt;/div&gt;
+          &lt;/td&gt;
+        &lt;/tr&gt;        &lt;tr&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:14px 26px 0 26px;&#34;&gt;
+            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
               &lt;tr&gt;
-                &lt;td class=&#34;card&#34; style=&#34;padding:18px 20px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                &lt;td class=&#34;card&#34; style=&#34;padding:16px 18px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-                  &lt;!-- Category pill + priority chip --&gt;
-                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                  &lt;!-- Entity header + back link --&gt;
+                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
                     &lt;tr&gt;
-                      &lt;td style=&#34;padding-right:10px;&#34;&gt;
-                        &lt;span style=&#34;display:inline-block; padding:3px 9px; border-radius:11px; background-color:#ecfdf3; color:#027a48; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;&#34;&gt;Development&lt;/span&gt;
-                      &lt;/td&gt;
-                      &lt;td&gt;
-                        &lt;span style=&#34;display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;&#34;&gt;
-                          &lt;span style=&#34;display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;&#34;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&#34;vertical-align:middle;&#34;&gt;&amp;nbsp;High&lt;/span&gt;
-                        &lt;/span&gt;
+                      &lt;td valign=&#34;middle&#34; id=&#34;aventine-realty-trust&#34;&gt;
+                        &lt;div style=&#34;font-size:16px; line-height:22px; font-weight:600; color:#101828;&#34;&gt;Aventine Realty Trust&lt;/div&gt;                        &lt;div style=&#34;font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;&#34;&gt;Irvine&lt;/div&gt;                      &lt;/td&gt;
+                      &lt;td valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;white-space:nowrap;&#34;&gt;
+                        &lt;a href=&#34;#aat-index&#34; style=&#34;font-size:11px; color:#98a2b3; text-decoration:none;&#34;&gt;&amp;uarr;&amp;nbsp;Back to index&lt;/a&gt;
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
 
-                  &lt;div class=&#34;headline&#34; style=&#34;font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;&#34;&gt;
-                    Aventine breaks ground on 310,000 SF spec industrial in Otay Mesa
-                  &lt;/div&gt;
+                  &lt;!-- Events for this entity --&gt;                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;&lt;td style=&#34;padding-top:14px; padding-bottom:5px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-                  &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;&#34;&gt;
-                    Aventine Realty Trust has broken ground on a 310,000-square-foot speculative industrial building in Otay Mesa, targeting a late 2027 delivery with no preleasing in place. The project enters a submarket where vacancy is currently near 4 percent, adding meaningful new supply. Asset management teams with Otay Mesa exposure should monitor leasing activity closely as delivery approaches.
-                  &lt;/div&gt;
+                        &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td style=&#34;padding-right:8px;&#34;&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 8px; border-radius:9px; background-color:#ecfdf3; color:#027a48; font-size:10.5px; font-weight:600; white-space:nowrap;&#34;&gt;Development&lt;/span&gt;
+                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
 
-                  &lt;!-- Source line --&gt;
-                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:14px; border-top:1px solid #f2f4f7;&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        North County Commercial Report &amp;middot; Aug 13, 2026                      &lt;/td&gt;
-                      &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        &lt;a href=&#34;https://example.com/nccr/aventine-otay-groundbreaking&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;
+                        &lt;div class=&#34;headline&#34; style=&#34;font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;&#34;&gt;
+                          Aventine breaks ground on 310,000 SF spec industrial in Otay Mesa
+                        &lt;/div&gt;
+
+                        &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;&#34;&gt;
+                          Aventine Realty Trust has broken ground on a 310,000-square-foot speculative industrial building in Otay Mesa, targeting a late 2027 delivery with no preleasing in place. The project enters a submarket where vacancy is currently near 4 percent, adding meaningful new supply. Asset management teams with Otay Mesa exposure should monitor leasing activity closely as delivery approaches.
+                        &lt;/div&gt;
+
+                        &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:11px;&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                              North County Commercial Report &amp;middot; Aug 13, 2026                            &lt;/td&gt;
+                            &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;                              &lt;a href=&#34;https://example.com/nccr/aventine-otay-groundbreaking&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
+                      &lt;/td&gt;
+                    &lt;/tr&gt;
+                  &lt;/table&gt;                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;&lt;td style=&#34;padding-top:14px; padding-bottom:5px; border-top:1px solid #e4e7ec; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+
+                        &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td style=&#34;padding-right:8px;&#34;&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 8px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:10.5px; font-weight:600; white-space:nowrap;&#34;&gt;Capital&lt;/span&gt;
+                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
+                        &lt;div class=&#34;headline&#34; style=&#34;font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;&#34;&gt;
+                          Aventine closes $600M value-add fund targeting SoCal industrial, life science
+                        &lt;/div&gt;
+
+                        &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;&#34;&gt;
+                          Aventine Realty Trust has closed a $600 million value-add fund, oversubscribed against its $500 million target, with Southern California industrial and life-science assets identified as the primary investment focus. Including leverage, the firm commands approximately $1.5 billion in buying power, signaling an aggressive near-term acquisition campaign in the region. Acquisitions teams should anticipate heightened competition from Aventine on Southern California deals in both sectors.
+                        &lt;/div&gt;
+
+                        &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:11px;&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                              Real Estate Capital Daily &amp;middot; Aug 15, 2026                            &lt;/td&gt;
+                            &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;                              &lt;a href=&#34;https://example.com/recd/aventine-fund-close&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
-
-                &lt;/td&gt;
-              &lt;/tr&gt;
-            &lt;/table&gt;            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
-              &lt;tr&gt;
-                &lt;td class=&#34;card&#34; style=&#34;padding:18px 20px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-
-                  &lt;!-- Category pill + priority chip --&gt;
-                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td style=&#34;padding-right:10px;&#34;&gt;
-                        &lt;span style=&#34;display:inline-block; padding:3px 9px; border-radius:11px; background-color:#fef3f2; color:#b42318; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;&#34;&gt;Capital&lt;/span&gt;
-                      &lt;/td&gt;
-                      &lt;td&gt;
-                        &lt;span style=&#34;display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;&#34;&gt;
-                          &lt;span style=&#34;display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;&#34;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&#34;vertical-align:middle;&#34;&gt;&amp;nbsp;High&lt;/span&gt;
-                        &lt;/span&gt;
-                      &lt;/td&gt;
-                    &lt;/tr&gt;
-                  &lt;/table&gt;
-
-                  &lt;div class=&#34;headline&#34; style=&#34;font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;&#34;&gt;
-                    Aventine closes $600M value-add fund targeting SoCal industrial, life science
-                  &lt;/div&gt;
-
-                  &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;&#34;&gt;
-                    Aventine Realty Trust has closed a $600 million value-add fund, oversubscribed against its $500 million target, with Southern California industrial and life-science assets identified as the primary investment focus. Including leverage, the firm commands approximately $1.5 billion in buying power, signaling an aggressive near-term acquisition campaign in the region. Acquisitions teams should anticipate heightened competition from Aventine on Southern California deals in both sectors.
-                  &lt;/div&gt;
-
-                  &lt;!-- Source line --&gt;
-                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:14px; border-top:1px solid #f2f4f7;&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        Real Estate Capital Daily &amp;middot; Aug 15, 2026                      &lt;/td&gt;
-                      &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        &lt;a href=&#34;https://example.com/recd/aventine-fund-close&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;
-                      &lt;/td&gt;
-                    &lt;/tr&gt;
-                  &lt;/table&gt;
-
                 &lt;/td&gt;
               &lt;/tr&gt;
             &lt;/table&gt;
           &lt;/td&gt;
         &lt;/tr&gt;        &lt;tr&gt;
-          &lt;td class=&#34;gutter&#34; style=&#34;padding:26px 32px 0 32px;&#34;&gt;
-
-            &lt;!-- Tenant header --&gt;
-            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:14px 26px 0 26px;&#34;&gt;
+            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
               &lt;tr&gt;
-                &lt;td valign=&#34;middle&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                  &lt;div style=&#34;font-size:17px; line-height:24px; font-weight:600; color:#101828;&#34;&gt;Sandpiper Property Group&lt;/div&gt;                  &lt;div style=&#34;font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;&#34;&gt;San Diego&lt;/div&gt;                &lt;/td&gt;
-                &lt;td class=&#34;co-count&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;&#34;&gt;
-                  2 items
-                &lt;/td&gt;
-              &lt;/tr&gt;
-            &lt;/table&gt;
+                &lt;td class=&#34;card&#34; style=&#34;padding:16px 18px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-            &lt;!-- Alert cards --&gt;            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
-              &lt;tr&gt;
-                &lt;td class=&#34;card&#34; style=&#34;padding:18px 20px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-
-                  &lt;!-- Category pill + priority chip --&gt;
-                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                  &lt;!-- Entity header + back link --&gt;
+                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
                     &lt;tr&gt;
-                      &lt;td style=&#34;padding-right:10px;&#34;&gt;
-                        &lt;span style=&#34;display:inline-block; padding:3px 9px; border-radius:11px; background-color:#eff8ff; color:#175cd3; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;&#34;&gt;Acquisition&lt;/span&gt;
-                      &lt;/td&gt;
-                      &lt;td&gt;
-                        &lt;span style=&#34;display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;&#34;&gt;
-                          &lt;span style=&#34;display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;&#34;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&#34;vertical-align:middle;&#34;&gt;&amp;nbsp;High&lt;/span&gt;
-                        &lt;/span&gt;
+                      &lt;td valign=&#34;middle&#34; id=&#34;sandpiper-property-group&#34;&gt;
+                        &lt;div style=&#34;font-size:16px; line-height:22px; font-weight:600; color:#101828;&#34;&gt;Sandpiper Property Group&lt;/div&gt;                        &lt;div style=&#34;font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;&#34;&gt;San Diego&lt;/div&gt;                      &lt;/td&gt;
+                      &lt;td valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;white-space:nowrap;&#34;&gt;
+                        &lt;a href=&#34;#aat-index&#34; style=&#34;font-size:11px; color:#98a2b3; text-decoration:none;&#34;&gt;&amp;uarr;&amp;nbsp;Back to index&lt;/a&gt;
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
 
-                  &lt;div class=&#34;headline&#34; style=&#34;font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;&#34;&gt;
-                    Sandpiper buys 480K SF Sorrento Mesa flex portfolio for $212M, plans $30M reno
-                  &lt;/div&gt;
+                  &lt;!-- Events for this entity --&gt;                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;&lt;td style=&#34;padding-top:14px; padding-bottom:5px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-                  &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;&#34;&gt;
-                    Sandpiper Property Group has closed on a four-building, 480,000-square-foot flex and R&amp;amp;D portfolio in Sorrento Mesa for $212 million, its largest San Diego acquisition to date. The firm has announced a $30 million repositioning program and intends to push asking rents approximately 12 percent above current in-place levels upon lease rollover. This adds significant competing supply to the Sorrento Mesa flex/R&amp;amp;D submarket and signals an aggressive near-term leasing posture.
-                  &lt;/div&gt;
+                        &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td style=&#34;padding-right:8px;&#34;&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 8px; border-radius:9px; background-color:#eff8ff; color:#175cd3; font-size:10.5px; font-weight:600; white-space:nowrap;&#34;&gt;Acquisition&lt;/span&gt;
+                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
 
-                  &lt;!-- Source line --&gt;
-                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:14px; border-top:1px solid #f2f4f7;&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        Coastal Business Chronicle &amp;middot; Aug 12, 2026                      &lt;/td&gt;
-                      &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        &lt;a href=&#34;https://example.com/coastal-chronicle/sandpiper-sorrento-portfolio&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;
+                        &lt;div class=&#34;headline&#34; style=&#34;font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;&#34;&gt;
+                          Sandpiper buys 480K SF Sorrento Mesa flex portfolio for $212M, plans $30M reno
+                        &lt;/div&gt;
+
+                        &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;&#34;&gt;
+                          Sandpiper Property Group has closed on a four-building, 480,000-square-foot flex and R&amp;amp;D portfolio in Sorrento Mesa for $212 million, its largest San Diego acquisition to date. The firm has announced a $30 million repositioning program and intends to push asking rents approximately 12 percent above current in-place levels upon lease rollover. This adds significant competing supply to the Sorrento Mesa flex/R&amp;amp;D submarket and signals an aggressive near-term leasing posture.
+                        &lt;/div&gt;
+
+                        &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:11px;&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                              Coastal Business Chronicle &amp;middot; Aug 12, 2026                            &lt;/td&gt;
+                            &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;                              &lt;a href=&#34;https://example.com/coastal-chronicle/sandpiper-sorrento-portfolio&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
+                      &lt;/td&gt;
+                    &lt;/tr&gt;
+                  &lt;/table&gt;                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;&lt;td style=&#34;padding-top:14px; padding-bottom:5px; border-top:1px solid #e4e7ec; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+
+                        &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td style=&#34;padding-right:8px;&#34;&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fffaeb; color:#b54708; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Watch&lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 8px; border-radius:9px; background-color:#f4f3ff; color:#5925dc; font-size:10.5px; font-weight:600; white-space:nowrap;&#34;&gt;Leadership&lt;/span&gt;
+                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
+                        &lt;div class=&#34;headline&#34; style=&#34;font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;&#34;&gt;
+                          Sandpiper hires Marcus Del Rio as head of West Coast leasing to cut vacancy downtime
+                        &lt;/div&gt;
+
+                        &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;&#34;&gt;
+                          Sandpiper Property Group has appointed Marcus Del Rio, a veteran brokerage leasing executive, to the newly created role of head of West Coast leasing. His stated mandate is to reduce vacancy downtime across Sandpiper&amp;#39;s California portfolio, signaling a more aggressive leasing strategy. This hire, combined with Sandpiper&amp;#39;s recent Sorrento Mesa acquisition, suggests the firm is building operational capacity to compete more actively for tenants in San Diego.
+                        &lt;/div&gt;
+
+                        &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:11px;&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                              Commercial Property Wire &amp;middot; Aug 14, 2026                            &lt;/td&gt;
+                            &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;                              &lt;a href=&#34;https://example.com/cpw/sandpiper-leasing-head&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
-
-                &lt;/td&gt;
-              &lt;/tr&gt;
-            &lt;/table&gt;            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
-              &lt;tr&gt;
-                &lt;td class=&#34;card&#34; style=&#34;padding:18px 20px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-
-                  &lt;!-- Category pill + priority chip --&gt;
-                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td style=&#34;padding-right:10px;&#34;&gt;
-                        &lt;span style=&#34;display:inline-block; padding:3px 9px; border-radius:11px; background-color:#f4f3ff; color:#5925dc; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;&#34;&gt;Leadership&lt;/span&gt;
-                      &lt;/td&gt;
-                      &lt;td&gt;
-                        &lt;span style=&#34;display:inline-block; font-size:11px; font-weight:600; color:#b54708; letter-spacing:0.3px; white-space:nowrap;&#34;&gt;
-                          &lt;span style=&#34;display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#f79009; vertical-align:middle; font-size:0; line-height:6px;&#34;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&#34;vertical-align:middle;&#34;&gt;&amp;nbsp;Medium&lt;/span&gt;
-                        &lt;/span&gt;
-                      &lt;/td&gt;
-                    &lt;/tr&gt;
-                  &lt;/table&gt;
-
-                  &lt;div class=&#34;headline&#34; style=&#34;font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;&#34;&gt;
-                    Sandpiper hires Marcus Del Rio as head of West Coast leasing to cut vacancy downtime
-                  &lt;/div&gt;
-
-                  &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;&#34;&gt;
-                    Sandpiper Property Group has appointed Marcus Del Rio, a veteran brokerage leasing executive, to the newly created role of head of West Coast leasing. His stated mandate is to reduce vacancy downtime across Sandpiper&amp;#39;s California portfolio, signaling a more aggressive leasing strategy. This hire, combined with Sandpiper&amp;#39;s recent Sorrento Mesa acquisition, suggests the firm is building operational capacity to compete more actively for tenants in San Diego.
-                  &lt;/div&gt;
-
-                  &lt;!-- Source line --&gt;
-                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:14px; border-top:1px solid #f2f4f7;&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        Commercial Property Wire &amp;middot; Aug 14, 2026                      &lt;/td&gt;
-                      &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        &lt;a href=&#34;https://example.com/cpw/sandpiper-leasing-head&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;
-                      &lt;/td&gt;
-                    &lt;/tr&gt;
-                  &lt;/table&gt;
-
                 &lt;/td&gt;
               &lt;/tr&gt;
             &lt;/table&gt;
           &lt;/td&gt;
         &lt;/tr&gt;        &lt;tr&gt;
-          &lt;td class=&#34;gutter&#34; style=&#34;padding:26px 32px 0 32px;&#34;&gt;
-
-            &lt;!-- Tenant header --&gt;
-            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:14px 26px 0 26px;&#34;&gt;
+            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
               &lt;tr&gt;
-                &lt;td valign=&#34;middle&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                  &lt;div style=&#34;font-size:17px; line-height:24px; font-weight:600; color:#101828;&#34;&gt;Bayfront Asset Partners&lt;/div&gt;                  &lt;div style=&#34;font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;&#34;&gt;San Diego&lt;/div&gt;                &lt;/td&gt;
-                &lt;td class=&#34;co-count&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;&#34;&gt;
-                  1 item
-                &lt;/td&gt;
-              &lt;/tr&gt;
-            &lt;/table&gt;
+                &lt;td class=&#34;card&#34; style=&#34;padding:16px 18px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-            &lt;!-- Alert cards --&gt;            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
-              &lt;tr&gt;
-                &lt;td class=&#34;card&#34; style=&#34;padding:18px 20px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-
-                  &lt;!-- Category pill + priority chip --&gt;
-                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                  &lt;!-- Entity header + back link --&gt;
+                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
                     &lt;tr&gt;
-                      &lt;td style=&#34;padding-right:10px;&#34;&gt;
-                        &lt;span style=&#34;display:inline-block; padding:3px 9px; border-radius:11px; background-color:#fffaeb; color:#b54708; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;&#34;&gt;Disposition&lt;/span&gt;
-                      &lt;/td&gt;
-                      &lt;td&gt;
-                        &lt;span style=&#34;display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;&#34;&gt;
-                          &lt;span style=&#34;display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;&#34;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&#34;vertical-align:middle;&#34;&gt;&amp;nbsp;High&lt;/span&gt;
-                        &lt;/span&gt;
+                      &lt;td valign=&#34;middle&#34; id=&#34;bayfront-asset-partners&#34;&gt;
+                        &lt;div style=&#34;font-size:16px; line-height:22px; font-weight:600; color:#101828;&#34;&gt;Bayfront Asset Partners&lt;/div&gt;                        &lt;div style=&#34;font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;&#34;&gt;San Diego&lt;/div&gt;                      &lt;/td&gt;
+                      &lt;td valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;white-space:nowrap;&#34;&gt;
+                        &lt;a href=&#34;#aat-index&#34; style=&#34;font-size:11px; color:#98a2b3; text-decoration:none;&#34;&gt;&amp;uarr;&amp;nbsp;Back to index&lt;/a&gt;
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
 
-                  &lt;div class=&#34;headline&#34; style=&#34;font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;&#34;&gt;
-                    Bayfront sells 340K-SF downtown SD office tower at 38% discount, exits CBD
-                  &lt;/div&gt;
+                  &lt;!-- Events for this entity --&gt;                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;&lt;td style=&#34;padding-top:14px; padding-bottom:5px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-                  &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;&#34;&gt;
-                    Bayfront Asset Partners has divested a 340,000-square-foot downtown San Diego office tower for $96 million, representing a 38% discount to its 2019 acquisition price. The buyer is a private group anticipated to pursue residential conversion of the asset. Bayfront confirmed this sale completes its planned withdrawal from the central business district office market.
-                  &lt;/div&gt;
+                        &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td style=&#34;padding-right:8px;&#34;&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 8px; border-radius:9px; background-color:#fffaeb; color:#b54708; font-size:10.5px; font-weight:600; white-space:nowrap;&#34;&gt;Disposition&lt;/span&gt;
+                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
 
-                  &lt;!-- Source line --&gt;
-                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:14px; border-top:1px solid #f2f4f7;&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        Coastal Business Chronicle &amp;middot; Aug 15, 2026                      &lt;/td&gt;
-                      &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        &lt;a href=&#34;https://example.com/coastal-chronicle/bayfront-tower-sale&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;
+                        &lt;div class=&#34;headline&#34; style=&#34;font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;&#34;&gt;
+                          Bayfront sells 340K-SF downtown SD office tower at 38% discount, exits CBD
+                        &lt;/div&gt;
+
+                        &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;&#34;&gt;
+                          Bayfront Asset Partners has divested a 340,000-square-foot downtown San Diego office tower for $96 million, representing a 38% discount to its 2019 acquisition price. The buyer is a private group anticipated to pursue residential conversion of the asset. Bayfront confirmed this sale completes its planned withdrawal from the central business district office market.
+                        &lt;/div&gt;
+
+                        &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:11px;&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                              Coastal Business Chronicle &amp;middot; Aug 15, 2026                            &lt;/td&gt;
+                            &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;                              &lt;a href=&#34;https://example.com/coastal-chronicle/bayfront-tower-sale&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
-
-                &lt;/td&gt;
-              &lt;/tr&gt;
-            &lt;/table&gt;
-          &lt;/td&gt;
-        &lt;/tr&gt;        &lt;tr&gt;
-          &lt;td class=&#34;gutter&#34; style=&#34;padding:26px 32px 0 32px;&#34;&gt;
-
-            &lt;!-- Tenant header --&gt;
-            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
-              &lt;tr&gt;
-                &lt;td valign=&#34;middle&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                  &lt;div style=&#34;font-size:17px; line-height:24px; font-weight:600; color:#101828;&#34;&gt;Copperline REIT&lt;/div&gt;                  &lt;div style=&#34;font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;&#34;&gt;Phoenix&lt;/div&gt;                &lt;/td&gt;
-                &lt;td class=&#34;co-count&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;&#34;&gt;
-                  1 item
-                &lt;/td&gt;
-              &lt;/tr&gt;
-            &lt;/table&gt;
-
-            &lt;!-- Alert cards --&gt;            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
-              &lt;tr&gt;
-                &lt;td class=&#34;card&#34; style=&#34;padding:18px 20px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-
-                  &lt;!-- Category pill + priority chip --&gt;
-                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td style=&#34;padding-right:10px;&#34;&gt;
-                        &lt;span style=&#34;display:inline-block; padding:3px 9px; border-radius:11px; background-color:#fef3f2; color:#b42318; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;&#34;&gt;Capital&lt;/span&gt;
-                      &lt;/td&gt;
-                      &lt;td&gt;
-                        &lt;span style=&#34;display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;&#34;&gt;
-                          &lt;span style=&#34;display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;&#34;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&#34;vertical-align:middle;&#34;&gt;&amp;nbsp;High&lt;/span&gt;
-                        &lt;/span&gt;
-                      &lt;/td&gt;
-                    &lt;/tr&gt;
-                  &lt;/table&gt;
-
-                  &lt;div class=&#34;headline&#34; style=&#34;font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;&#34;&gt;
-                    Copperline extends $480M credit facility at +90bps; to slow acquisitions amid 2027 refi wall
-                  &lt;/div&gt;
-
-                  &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;&#34;&gt;
-                    Copperline REIT has extended its $480 million revolving credit facility by three years at a spread approximately 90 basis points wider than prior terms, signaling tighter balance-sheet conditions. Management cited a 2027 refinancing wall across its office portfolio and stated it will slow acquisitions until pricing stabilizes. This indicates Copperline is likely to be less aggressive in Phoenix acquisition activity in the near term, potentially opening opportunities for competing bidders.
-                  &lt;/div&gt;
-
-                  &lt;!-- Source line --&gt;
-                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:14px; border-top:1px solid #f2f4f7;&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        Real Estate Capital Daily &amp;middot; Aug 16, 2026                      &lt;/td&gt;
-                      &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        &lt;a href=&#34;https://example.com/recd/copperline-facility-extension&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;
-                      &lt;/td&gt;
-                    &lt;/tr&gt;
-                  &lt;/table&gt;
-
                 &lt;/td&gt;
               &lt;/tr&gt;
             &lt;/table&gt;
           &lt;/td&gt;
         &lt;/tr&gt;        &lt;tr&gt;
-          &lt;td class=&#34;gutter&#34; style=&#34;padding:26px 32px 0 32px;&#34;&gt;
-
-            &lt;!-- Tenant header --&gt;
-            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:14px 26px 0 26px;&#34;&gt;
+            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
               &lt;tr&gt;
-                &lt;td valign=&#34;middle&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                  &lt;div style=&#34;font-size:17px; line-height:24px; font-weight:600; color:#101828;&#34;&gt;Two Palms Industrial&lt;/div&gt;                  &lt;div style=&#34;font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;&#34;&gt;Otay Mesa&lt;/div&gt;                &lt;/td&gt;
-                &lt;td class=&#34;co-count&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;&#34;&gt;
-                  1 item
+                &lt;td class=&#34;card&#34; style=&#34;padding:16px 18px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+
+                  &lt;!-- Entity header + back link --&gt;
+                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;
+                      &lt;td valign=&#34;middle&#34; id=&#34;copperline-reit&#34;&gt;
+                        &lt;div style=&#34;font-size:16px; line-height:22px; font-weight:600; color:#101828;&#34;&gt;Copperline REIT&lt;/div&gt;                        &lt;div style=&#34;font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;&#34;&gt;Phoenix&lt;/div&gt;                      &lt;/td&gt;
+                      &lt;td valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;white-space:nowrap;&#34;&gt;
+                        &lt;a href=&#34;#aat-index&#34; style=&#34;font-size:11px; color:#98a2b3; text-decoration:none;&#34;&gt;&amp;uarr;&amp;nbsp;Back to index&lt;/a&gt;
+                      &lt;/td&gt;
+                    &lt;/tr&gt;
+                  &lt;/table&gt;
+
+                  &lt;!-- Events for this entity --&gt;                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;&lt;td style=&#34;padding-top:14px; padding-bottom:5px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+
+                        &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td style=&#34;padding-right:8px;&#34;&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 8px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:10.5px; font-weight:600; white-space:nowrap;&#34;&gt;Capital&lt;/span&gt;
+                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
+                        &lt;div class=&#34;headline&#34; style=&#34;font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;&#34;&gt;
+                          Copperline extends $480M credit facility at +90bps; to slow acquisitions amid 2027 refi wall
+                        &lt;/div&gt;
+
+                        &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;&#34;&gt;
+                          Copperline REIT has extended its $480 million revolving credit facility by three years at a spread approximately 90 basis points wider than prior terms, signaling tighter balance-sheet conditions. Management cited a 2027 refinancing wall across its office portfolio and stated it will slow acquisitions until pricing stabilizes. This indicates Copperline is likely to be less aggressive in Phoenix acquisition activity in the near term, potentially opening opportunities for competing bidders.
+                        &lt;/div&gt;
+
+                        &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:11px;&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                              Real Estate Capital Daily &amp;middot; Aug 16, 2026                            &lt;/td&gt;
+                            &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;                              &lt;a href=&#34;https://example.com/recd/copperline-facility-extension&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
+                      &lt;/td&gt;
+                    &lt;/tr&gt;
+                  &lt;/table&gt;
                 &lt;/td&gt;
               &lt;/tr&gt;
             &lt;/table&gt;
-
-            &lt;!-- Alert cards --&gt;            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
+          &lt;/td&gt;
+        &lt;/tr&gt;        &lt;tr&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:14px 26px 0 26px;&#34;&gt;
+            &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;&#34;&gt;
               &lt;tr&gt;
-                &lt;td class=&#34;card&#34; style=&#34;padding:18px 20px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                &lt;td class=&#34;card&#34; style=&#34;padding:16px 18px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-                  &lt;!-- Category pill + priority chip --&gt;
-                  &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                  &lt;!-- Entity header + back link --&gt;
+                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
                     &lt;tr&gt;
-                      &lt;td style=&#34;padding-right:10px;&#34;&gt;
-                        &lt;span style=&#34;display:inline-block; padding:3px 9px; border-radius:11px; background-color:#f0f9ff; color:#026aa2; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;&#34;&gt;Leasing&lt;/span&gt;
-                      &lt;/td&gt;
-                      &lt;td&gt;
-                        &lt;span style=&#34;display:inline-block; font-size:11px; font-weight:600; color:#b42318; letter-spacing:0.3px; white-space:nowrap;&#34;&gt;
-                          &lt;span style=&#34;display:inline-block; width:6px; height:6px; border-radius:3px; background-color:#d92d20; vertical-align:middle; font-size:0; line-height:6px;&#34;&gt;&amp;nbsp;&lt;/span&gt;&lt;span style=&#34;vertical-align:middle;&#34;&gt;&amp;nbsp;High&lt;/span&gt;
-                        &lt;/span&gt;
+                      &lt;td valign=&#34;middle&#34; id=&#34;two-palms-industrial&#34;&gt;
+                        &lt;div style=&#34;font-size:16px; line-height:22px; font-weight:600; color:#101828;&#34;&gt;Two Palms Industrial&lt;/div&gt;                        &lt;div style=&#34;font-size:12px; line-height:17px; color:#98a2b3; padding-top:2px;&#34;&gt;Otay Mesa&lt;/div&gt;                      &lt;/td&gt;
+                      &lt;td valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;white-space:nowrap;&#34;&gt;
+                        &lt;a href=&#34;#aat-index&#34; style=&#34;font-size:11px; color:#98a2b3; text-decoration:none;&#34;&gt;&amp;uarr;&amp;nbsp;Back to index&lt;/a&gt;
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
 
-                  &lt;div class=&#34;headline&#34; style=&#34;font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;&#34;&gt;
-                    Two Palms signs 140K SF 3PL lease at Otay Mesa, reaches 96% occupancy
-                  &lt;/div&gt;
+                  &lt;!-- Events for this entity --&gt;                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                    &lt;tr&gt;&lt;td style=&#34;padding-top:14px; padding-bottom:5px; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
 
-                  &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;&#34;&gt;
-                    Two Palms Industrial has leased 140,000 square feet to a national third-party logistics provider at its Otay Mesa campus, bringing the property to 96 percent leased. The deal reportedly included approximately eight months of free rent and an above-market tenant improvement allowance. Brokers indicate these concession terms may reset baseline expectations for competing landlords in the Otay Mesa submarket.
-                  &lt;/div&gt;
+                        &lt;table role=&#34;presentation&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td style=&#34;padding-right:8px;&#34;&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 7px; border-radius:9px; background-color:#fef3f2; color:#b42318; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;&#34;&gt;Urgent&lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                              &lt;span style=&#34;display:inline-block; padding:2px 8px; border-radius:9px; background-color:#f0f9ff; color:#026aa2; font-size:10.5px; font-weight:600; white-space:nowrap;&#34;&gt;Leasing&lt;/span&gt;
+                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
 
-                  &lt;!-- Source line --&gt;
-                  &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:14px; border-top:1px solid #f2f4f7;&#34;&gt;
-                    &lt;tr&gt;
-                      &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        Supply Chain Register &amp;middot; Aug 14, 2026                      &lt;/td&gt;
-                      &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
-                        &lt;a href=&#34;https://example.com/scr/two-palms-3pl-lease&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;
+                        &lt;div class=&#34;headline&#34; style=&#34;font-size:16px; line-height:23px; font-weight:600; color:#101828; padding-top:9px;&#34;&gt;
+                          Two Palms signs 140K SF 3PL lease at Otay Mesa, reaches 96% occupancy
+                        &lt;/div&gt;
+
+                        &lt;div class=&#34;summary&#34; style=&#34;font-size:14.5px; line-height:23px; color:#475467; padding-top:7px;&#34;&gt;
+                          Two Palms Industrial has leased 140,000 square feet to a national third-party logistics provider at its Otay Mesa campus, bringing the property to 96 percent leased. The deal reportedly included approximately eight months of free rent and an above-market tenant improvement allowance. Brokers indicate these concession terms may reset baseline expectations for competing landlords in the Otay Mesa submarket.
+                        &lt;/div&gt;
+
+                        &lt;table role=&#34;presentation&#34; width=&#34;100%&#34; cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; border=&#34;0&#34; style=&#34;margin-top:11px;&#34;&gt;
+                          &lt;tr&gt;
+                            &lt;td class=&#34;src-cell&#34; valign=&#34;middle&#34; style=&#34;font-size:11.5px; line-height:17px; color:#98a2b3; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+                              Supply Chain Register &amp;middot; Aug 14, 2026                            &lt;/td&gt;
+                            &lt;td class=&#34;src-link&#34; valign=&#34;middle&#34; align=&#34;right&#34; style=&#34;font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;                              &lt;a href=&#34;https://example.com/scr/two-palms-3pl-lease&#34; style=&#34;color:#1f5fbf; font-weight:600; text-decoration:none;&#34;&gt;Read source&amp;nbsp;&amp;rarr;&lt;/a&gt;                            &lt;/td&gt;
+                          &lt;/tr&gt;
+                        &lt;/table&gt;
+
                       &lt;/td&gt;
                     &lt;/tr&gt;
                   &lt;/table&gt;
-
                 &lt;/td&gt;
               &lt;/tr&gt;
             &lt;/table&gt;
           &lt;/td&gt;
         &lt;/tr&gt;
-        &lt;tr&gt;&lt;td style=&#34;height:28px; line-height:28px; font-size:0;&#34;&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
-        &lt;!-- ── Footer ─────────────────────────────────────────────────── --&gt;
+        &lt;tr&gt;&lt;td style=&#34;height:24px; line-height:24px; font-size:0;&#34;&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+        &lt;!-- ═══ 5. Footer ═══════════════════════════════════════════════ --&gt;
         &lt;tr&gt;
-          &lt;td class=&#34;gutter&#34; style=&#34;padding:22px 32px 26px 32px; background-color:#f9fafb; border-top:1px solid #e4e7ec; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
+          &lt;td class=&#34;gutter&#34; style=&#34;padding:18px 26px 22px 26px; background-color:#f9fafb; border-top:1px solid #e4e7ec; font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;&#34;&gt;
             &lt;div style=&#34;font-size:12px; line-height:19px; color:#667085;&#34;&gt;
               &lt;strong style=&#34;color:#475467;&#34;&gt;Privacy:&lt;/strong&gt; only competitor names were sent to the search provider. Your own portfolio, rents, and pipeline never left the local database.
             &lt;/div&gt;
-            &lt;div style=&#34;font-size:11.5px; line-height:18px; color:#98a2b3; padding-top:10px;&#34;&gt;
-              Automated digest &amp;middot; generated August 17, 2026 &amp;middot; filtered to high and medium priority
+            &lt;div style=&#34;font-size:11px; line-height:17px; color:#98a2b3; padding-top:9px;&#34;&gt;
+              AAT Intel Briefing &amp;middot; Generated automatically &amp;middot; Aug 17, 2026 at 4:45 PM
               &lt;br&gt;
               &lt;a href=&#34;#&#34; style=&#34;color:#98a2b3; text-decoration:underline;&#34;&gt;Adjust categories &amp;amp; thresholds&lt;/a&gt;
               &amp;nbsp;&amp;middot;&amp;nbsp;
@@ -1255,8 +1473,8 @@
 
       &lt;/table&gt;
 
-      &lt;div style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11px; line-height:17px; color:#98a2b3; padding-top:16px; max-width:600px;&#34;&gt;
-        Tenant Intelligence Pipeline &amp;mdash; internal use only.
+      &lt;div style=&#34;font-family:-apple-system,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif; font-size:11px; line-height:17px; color:#98a2b3; padding-top:14px; max-width:660px;&#34;&gt;
+        AAT Intel Briefing &amp;mdash; internal use only.
       &lt;/div&gt;
 
     &lt;/td&gt;
@@ -1274,7 +1492,7 @@
       Placeholder template at <code>templates/digest.html</code>, one file for both reports &mdash;
       categories and criteria live in <code>config/report_types.yaml</code>.
       Rebuild with <code>python build_preview.py</code>. Summaries generated via
-      <code>utils/connect.py</code> (default model claude-sonnet-4-6). Built 2026-08-17 23:27 UTC.
+      <code>utils/connect.py</code> (default model claude-sonnet-4-6). Built 2026-08-17 23:45 UTC.
     </p>
   </div>
 </div>
