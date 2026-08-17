@@ -1,0 +1,244 @@
+{#-
+  Tenant Intelligence — digest email template (PLACEHOLDER).
+
+  This is a stand-in for the client's real template. It is deliberately built as
+  email-safe HTML: presentational tables, inline styles, no flexbox/grid, no
+  external assets. The only non-inline CSS is the <style> block below, which
+  holds the mobile breakpoint (Outlook desktop ignores it and falls back to the
+  inline desktop styles — that is the intended behaviour).
+
+  Context variables — the full contract with build_preview.py / the future
+  digest.py. Nothing here touches rent, lease terms, or addresses by design.
+
+    run_date        str   e.g. "August 17, 2026"
+    period_label    str   e.g. "Week of Aug 11 - Aug 17, 2026"
+    subject         str   subject line (also rendered in the preview chrome)
+    preheader       str   hidden inbox preview text
+    total_alerts    int
+    total_companies int
+    portfolio_size  int   count of tenants monitored (from local DB, not sent out)
+    priority_label  str   e.g. "high priority only"
+    alert_groups    list  [{ display_name, city, alerts: [{
+                              category, priority, headline, client_summary,
+                              confidence, source_name, source_url, published_date }] }]
+-#}
+{%- set CATEGORY = {
+  'financial_distress': {'label': 'Financial distress', 'bg': '#fef3f2', 'fg': '#b42318'},
+  'expansion':          {'label': 'Expansion',          'bg': '#ecfdf3', 'fg': '#027a48'},
+  'office_move':        {'label': 'Office move',        'bg': '#eff8ff', 'fg': '#175cd3'},
+  'leadership_change':  {'label': 'Leadership change',  'bg': '#f4f3ff', 'fg': '#5925dc'}
+} -%}
+{%- set PRIORITY = {
+  'high':   {'label': 'High',   'dot': '#d92d20', 'fg': '#b42318'},
+  'medium': {'label': 'Medium', 'dot': '#f79009', 'fg': '#b54708'},
+  'low':    {'label': 'Low',    'dot': '#98a2b3', 'fg': '#475467'}
+} -%}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light only">
+<title>{{ subject }}</title>
+<style>
+  /* Mobile breakpoint. Fires inside the 390px phone preview and in real mail
+     apps; Outlook desktop drops it and keeps the inline styles. */
+  @media only screen and (max-width: 620px) {
+    .sheet      { width: 100% !important; }
+    .gutter     { padding-left: 20px !important; padding-right: 20px !important; }
+    .band       { padding: 24px 20px !important; }
+    .brandmark  { font-size: 11px !important; letter-spacing: 1.4px !important; }
+    .title      { font-size: 21px !important; line-height: 28px !important; }
+    .headline   { font-size: 16px !important; line-height: 23px !important; }
+    .summary    { font-size: 14px !important; line-height: 22px !important; }
+    .card       { padding: 16px !important; }
+    /* Metric strip: three columns become full-width stacked rows. */
+    .metric     { display: block !important; width: 100% !important;
+                  border-right: 0 !important; border-bottom: 1px solid #e4e7ec !important;
+                  padding: 12px 0 !important; text-align: left !important; }
+    .metric-last{ border-bottom: 0 !important; }
+    .metric-num { display: inline-block !important; font-size: 20px !important;
+                  margin-right: 8px !important; }
+    .metric-lbl { display: inline-block !important; }
+    /* Source line: outlet and link stop sharing a row. */
+    .src-cell, .src-link { display: block !important; width: 100% !important;
+                           text-align: left !important; }
+    .src-link   { padding-top: 8px !important; }
+    .co-count   { display: none !important; }
+  }
+  a { text-decoration: none; }
+</style>
+</head>
+<body style="margin:0; padding:0; background-color:#eef1f5; -webkit-font-smoothing:antialiased;">
+
+<!-- Inbox preview text, then whitespace to stop the client pulling in body copy. -->
+<div style="display:none; font-size:1px; color:#eef1f5; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;">
+  {{ preheader }}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#eef1f5;">
+  <tr>
+    <td align="center" style="padding:32px 12px;">
+
+      <table role="presentation" class="sheet" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(16,24,40,0.10);">
+
+        <!-- ── Header band ────────────────────────────────────────────── -->
+        <tr>
+          <td class="band" style="background-color:#0f1f33; padding:28px 32px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                  <div class="brandmark" style="font-size:11.5px; font-weight:700; letter-spacing:1.8px; text-transform:uppercase; color:#7dd3fc;">
+                    Tenant Intelligence
+                  </div>
+                  <div class="title" style="font-size:24px; line-height:32px; font-weight:600; color:#ffffff; padding-top:8px;">
+                    Portfolio developments
+                  </div>
+                  <div style="font-size:13.5px; line-height:20px; color:#94a3b8; padding-top:6px;">
+                    {{ period_label }}
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- ── Metric strip ───────────────────────────────────────────── -->
+        <tr>
+          <td class="gutter" style="padding:0 32px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid #e4e7ec;">
+              <tr>
+                {%- set metrics = [
+                  (total_alerts,    'development' ~ ('' if total_alerts == 1 else 's') ~ ' to review'),
+                  (total_companies, 'tenant' ~ ('' if total_companies == 1 else 's') ~ ' affected'),
+                  (portfolio_size,  'tenants monitored')
+                ] %}
+                {%- for num, label in metrics %}
+                <td class="metric{{ ' metric-last' if loop.last }}" width="33.33%" valign="top"
+                    style="padding:20px 0; text-align:center; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;{{ ' border-right:1px solid #e4e7ec;' if not loop.last }}">
+                  <div class="metric-num" style="font-size:26px; line-height:32px; font-weight:600; color:#0f1f33;">{{ num }}</div>
+                  <div class="metric-lbl" style="font-size:11.5px; line-height:16px; color:#667085; letter-spacing:0.3px; padding-top:2px;">{{ label }}</div>
+                </td>
+                {%- endfor %}
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        {%- if alert_groups %}
+        <!-- ── Findings, grouped by tenant ────────────────────────────── -->
+        {%- for group in alert_groups %}
+        <tr>
+          <td class="gutter" style="padding:26px 32px 0 32px;">
+
+            <!-- Tenant header -->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td valign="middle" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                  <div style="font-size:17px; line-height:24px; font-weight:600; color:#101828;">{{ group.display_name }}</div>
+                  {%- if group.city %}
+                  <div style="font-size:12.5px; line-height:18px; color:#98a2b3; padding-top:2px;">{{ group.city }}</div>
+                  {%- endif %}
+                </td>
+                <td class="co-count" valign="middle" align="right" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11.5px; color:#667085; white-space:nowrap;">
+                  {{ group.alerts | length }} {{ 'item' if group.alerts | length == 1 else 'items' }}
+                </td>
+              </tr>
+            </table>
+
+            <!-- Alert cards -->
+            {%- for a in group.alerts %}
+            {%- set cat = CATEGORY.get(a.category, {'label': a.category, 'bg': '#f2f4f7', 'fg': '#344054'}) %}
+            {%- set pri = PRIORITY.get(a.priority, PRIORITY['low']) %}
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px; border:1px solid #e4e7ec; border-radius:10px; background-color:#ffffff;">
+              <tr>
+                <td class="card" style="padding:18px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+                  <!-- Category pill + priority chip -->
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td style="padding-right:10px;">
+                        <span style="display:inline-block; padding:3px 9px; border-radius:11px; background-color:{{ cat.bg }}; color:{{ cat.fg }}; font-size:11px; font-weight:600; letter-spacing:0.2px; white-space:nowrap;">{{ cat.label }}</span>
+                      </td>
+                      <td>
+                        <span style="display:inline-block; font-size:11px; font-weight:600; color:{{ pri.fg }}; letter-spacing:0.3px; white-space:nowrap;">
+                          <span style="display:inline-block; width:6px; height:6px; border-radius:3px; background-color:{{ pri.dot }}; vertical-align:middle; font-size:0; line-height:6px;">&nbsp;</span><span style="vertical-align:middle;">&nbsp;{{ pri.label }}</span>
+                        </span>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <div class="headline" style="font-size:16.5px; line-height:24px; font-weight:600; color:#101828; padding-top:10px;">
+                    {{ a.headline }}
+                  </div>
+
+                  <div class="summary" style="font-size:14.5px; line-height:23px; color:#475467; padding-top:8px;">
+                    {{ a.client_summary }}
+                  </div>
+
+                  <!-- Source line -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px; border-top:1px solid #f2f4f7;">
+                    <tr>
+                      <td class="src-cell" valign="middle" style="padding-top:11px; font-size:12px; line-height:18px; color:#98a2b3; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        {{ a.source_name }}{% if a.published_date %} &middot; {{ a.published_date }}{% endif %}
+                      </td>
+                      <td class="src-link" valign="middle" align="right" style="padding-top:11px; font-size:12.5px; line-height:18px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        <a href="{{ a.source_url }}" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
+                      </td>
+                    </tr>
+                  </table>
+
+                </td>
+              </tr>
+            </table>
+            {%- endfor %}
+
+          </td>
+        </tr>
+        {%- endfor %}
+
+        <tr><td style="height:28px; line-height:28px; font-size:0;">&nbsp;</td></tr>
+
+        {%- else %}
+        <!-- ── Empty state (kept in the template; the pipeline normally
+             sends nothing at all when there are no findings) ──────────── -->
+        <tr>
+          <td class="gutter" style="padding:44px 32px; text-align:center; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            <div style="font-size:16px; font-weight:600; color:#101828;">No significant developments this period</div>
+            <div style="font-size:14px; line-height:22px; color:#667085; padding-top:8px;">
+              {{ portfolio_size }} tenants were screened and nothing met the {{ priority_label }} threshold.
+            </div>
+          </td>
+        </tr>
+        {%- endif %}
+
+        <!-- ── Footer ─────────────────────────────────────────────────── -->
+        <tr>
+          <td class="gutter" style="padding:22px 32px 26px 32px; background-color:#f9fafb; border-top:1px solid #e4e7ec; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            <div style="font-size:12px; line-height:19px; color:#667085;">
+              <strong style="color:#475467;">Privacy:</strong> only tenant names were sent to the search provider.
+              Rent, lease terms, addresses, and the portfolio list never left the local database.
+            </div>
+            <div style="font-size:11.5px; line-height:18px; color:#98a2b3; padding-top:10px;">
+              Automated digest &middot; generated {{ run_date }} &middot; filtered to {{ priority_label }}
+              <br>
+              <a href="#" style="color:#98a2b3; text-decoration:underline;">Adjust categories &amp; thresholds</a>
+              &nbsp;&middot;&nbsp;
+              <a href="#" style="color:#98a2b3; text-decoration:underline;">Manage recipients</a>
+            </div>
+          </td>
+        </tr>
+
+      </table>
+
+      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; line-height:17px; color:#98a2b3; padding-top:16px; max-width:600px;">
+        Tenant Intelligence Pipeline &mdash; internal use only.
+      </div>
+
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

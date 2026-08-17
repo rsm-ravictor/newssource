@@ -1,0 +1,108 @@
+{
+  "_note": "SAMPLE DATA. Every tenant, outlet, and story below is fictional and exists only to exercise the digest layout. Regenerate the summaries with a real LLM call via `python generate_summaries.py`.",
+  "run_date": "2026-08-17",
+  "period_label": "Week of Aug 11 – Aug 17, 2026",
+  "portfolio_size": 52,
+  "companies": [
+    {
+      "display_name": "Meridian Health Partners",
+      "city": "San Diego",
+      "alerts": [
+        {
+          "category": "financial_distress",
+          "priority": "high",
+          "headline": "Meridian retains restructuring advisor after missing Q2 debt covenant",
+          "client_summary": "Meridian Health Partners disclosed it breached a leverage covenant on its senior credit facility for the quarter ended June 30 and has engaged an outside restructuring advisor to negotiate with lenders. Management said it is reviewing its clinic footprint as part of a cost-reduction plan targeting $18M in annualized savings. A forbearance agreement is reported to run through late October.",
+          "confidence": 0.91,
+          "source_name": "Coastal Business Chronicle",
+          "source_url": "https://example.com/coastal-chronicle/meridian-covenant-breach",
+          "published_date": "Aug 14, 2026"
+        },
+        {
+          "category": "leadership_change",
+          "priority": "high",
+          "headline": "CFO departs three weeks into lender negotiations",
+          "client_summary": "Chief Financial Officer Dana Whitfield resigned effective August 12, with the company naming its controller as interim CFO. The departure lands mid-negotiation with lenders and follows the covenant disclosure by two days. No successor search has been announced publicly.",
+          "confidence": 0.84,
+          "source_name": "Healthcare Finance Wire",
+          "source_url": "https://example.com/hcfw/meridian-cfo-exit",
+          "published_date": "Aug 15, 2026"
+        }
+      ]
+    },
+    {
+      "display_name": "Calyx Biosciences",
+      "city": "La Jolla",
+      "alerts": [
+        {
+          "category": "expansion",
+          "priority": "high",
+          "headline": "Calyx closes $140M Series C, plans to triple lab footprint by 2028",
+          "client_summary": "Calyx Biosciences raised a $140M Series C led by an unnamed growth fund and told investors it intends to expand from roughly 40,000 to more than 120,000 square feet of lab and office space over the next 24 months. Executives specifically named the San Diego biotech corridor as the preferred market for the expansion. The company said it expects to begin touring space in the fourth quarter.",
+          "confidence": 0.88,
+          "source_name": "Life Sciences Daily",
+          "source_url": "https://example.com/lsd/calyx-series-c",
+          "published_date": "Aug 12, 2026"
+        }
+      ]
+    },
+    {
+      "display_name": "Harborline Logistics",
+      "city": "Chula Vista",
+      "alerts": [
+        {
+          "category": "office_move",
+          "priority": "high",
+          "headline": "Harborline consolidating three regional offices into a single hub",
+          "client_summary": "Harborline Logistics confirmed it will consolidate its three Southern California administrative offices into one regional hub by mid-2027, citing a permanent shift to hybrid scheduling for back-office staff. The company said it has begun marketing surplus space for sublease. It did not identify which locations will close.",
+          "confidence": 0.79,
+          "source_name": "Supply Chain Register",
+          "source_url": "https://example.com/scr/harborline-consolidation",
+          "published_date": "Aug 13, 2026"
+        }
+      ]
+    },
+    {
+      "display_name": "Kestrel Legal LLP",
+      "city": "San Diego",
+      "alerts": [
+        {
+          "category": "leadership_change",
+          "priority": "medium",
+          "headline": "New managing partner orders firmwide review of office footprint",
+          "client_summary": "Kestrel Legal LLP elected Priya Raghunathan as managing partner effective September 1. In an internal memo reported by trade press, Raghunathan directed a review of the firm's real-estate commitments ahead of its next lease cycle. No decisions have been announced.",
+          "confidence": 0.72,
+          "source_name": "Legal Practice Monitor",
+          "source_url": "https://example.com/lpm/kestrel-managing-partner",
+          "published_date": "Aug 11, 2026"
+        }
+      ]
+    },
+    {
+      "display_name": "Pacific Sun Robotics",
+      "city": "Carlsbad",
+      "alerts": [
+        {
+          "category": "expansion",
+          "priority": "medium",
+          "headline": "Defense contract win drives plan to hire 60 in North County",
+          "client_summary": "Pacific Sun Robotics was awarded a multi-year subcontract on a naval autonomy program and said it will add roughly 60 engineering and production roles in North County San Diego. Leadership noted current facilities are near capacity but stopped short of committing to new space.",
+          "confidence": 0.68,
+          "source_name": "Defense Tech Brief",
+          "source_url": "https://example.com/dtb/pacific-sun-contract",
+          "published_date": "Aug 12, 2026"
+        },
+        {
+          "category": "office_move",
+          "priority": "medium",
+          "headline": "Company scouting additional production space near current site",
+          "client_summary": "Local brokers report Pacific Sun Robotics has toured two industrial-flex buildings within five miles of its existing Carlsbad facility, seeking 25,000 to 40,000 square feet. The company declined to comment. A decision is expected before year-end.",
+          "confidence": 0.61,
+          "source_name": "North County Commercial Report",
+          "source_url": "https://example.com/nccr/pacific-sun-space-search",
+          "published_date": "Aug 16, 2026"
+        }
+      ]
+    }
+  ]
+}

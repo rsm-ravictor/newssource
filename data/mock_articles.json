@@ -1,0 +1,108 @@
+{
+  "_note": "Stand-in for Tavily search output. Fictional tenants, outlets, and stories. Feeds generate_summaries.py, which is the demo of the judge stage. Includes deliberate decoys (product launch, award, routine hire) that the criteria should reject.",
+  "run_date": "2026-08-17",
+  "period_label": "Week of Aug 11 – Aug 17, 2026",
+  "portfolio_size": 52,
+  "companies": [
+    {
+      "display_name": "Meridian Health Partners",
+      "city": "San Diego",
+      "articles": [
+        {
+          "title": "Meridian Health Partners discloses covenant breach, hires restructuring advisor",
+          "snippet": "Meridian Health Partners said in a regulatory filing that it failed to meet the leverage covenant on its senior credit facility for the quarter ended June 30. The company has engaged an outside restructuring advisor to negotiate with its lending group and entered a forbearance agreement reported to run through late October. Management said a cost-reduction plan targeting $18 million in annualized savings includes a review of its clinic footprint.",
+          "source_name": "Coastal Business Chronicle",
+          "source_url": "https://example.com/coastal-chronicle/meridian-covenant-breach",
+          "published_date": "Aug 14, 2026"
+        },
+        {
+          "title": "Meridian CFO Dana Whitfield resigns effective immediately",
+          "snippet": "Chief Financial Officer Dana Whitfield has resigned effective August 12, Meridian Health Partners confirmed. The company named its corporate controller as interim CFO and said it has not begun a formal successor search. The exit comes two days after the company's covenant disclosure and in the middle of lender negotiations.",
+          "source_name": "Healthcare Finance Wire",
+          "source_url": "https://example.com/hcfw/meridian-cfo-exit",
+          "published_date": "Aug 15, 2026"
+        },
+        {
+          "title": "Meridian Health Partners named a Top Workplace for third straight year",
+          "snippet": "Meridian Health Partners was again recognized as a regional Top Workplace based on an employee engagement survey. The company highlighted its wellness benefits and mentorship program in a statement.",
+          "source_name": "Coastal Business Chronicle",
+          "source_url": "https://example.com/coastal-chronicle/meridian-top-workplace",
+          "published_date": "Aug 11, 2026"
+        }
+      ]
+    },
+    {
+      "display_name": "Calyx Biosciences",
+      "city": "La Jolla",
+      "articles": [
+        {
+          "title": "Calyx Biosciences raises $140M Series C to scale manufacturing",
+          "snippet": "Calyx Biosciences has closed a $140 million Series C led by a growth fund the company declined to name. In an investor call, executives said the raise funds an expansion from roughly 40,000 square feet of lab and office space to more than 120,000 square feet over the next 24 months, with the San Diego biotech corridor named as the preferred market. The company expects to begin touring space in the fourth quarter.",
+          "source_name": "Life Sciences Daily",
+          "source_url": "https://example.com/lsd/calyx-series-c",
+          "published_date": "Aug 12, 2026"
+        },
+        {
+          "title": "Calyx launches second-generation assay platform",
+          "snippet": "Calyx Biosciences announced general availability of its second-generation assay platform, which the company says cuts sample preparation time by 40 percent. Pricing was not disclosed.",
+          "source_name": "Life Sciences Daily",
+          "source_url": "https://example.com/lsd/calyx-assay-launch",
+          "published_date": "Aug 13, 2026"
+        }
+      ]
+    },
+    {
+      "display_name": "Harborline Logistics",
+      "city": "Chula Vista",
+      "articles": [
+        {
+          "title": "Harborline to consolidate three Southern California offices into one hub",
+          "snippet": "Harborline Logistics confirmed plans to consolidate its three Southern California administrative offices into a single regional hub by mid-2027, citing a permanent shift to hybrid scheduling for back-office staff. The company said it has begun marketing surplus space for sublease but declined to identify which locations will close.",
+          "source_name": "Supply Chain Register",
+          "source_url": "https://example.com/scr/harborline-consolidation",
+          "published_date": "Aug 13, 2026"
+        }
+      ]
+    },
+    {
+      "display_name": "Kestrel Legal LLP",
+      "city": "San Diego",
+      "articles": [
+        {
+          "title": "Kestrel Legal elects Priya Raghunathan managing partner",
+          "snippet": "Kestrel Legal LLP has elected litigation partner Priya Raghunathan as managing partner effective September 1. An internal memo reported by trade press directs a firmwide review of real-estate commitments ahead of the firm's next lease cycle. No decisions have been announced.",
+          "source_name": "Legal Practice Monitor",
+          "source_url": "https://example.com/lpm/kestrel-managing-partner",
+          "published_date": "Aug 11, 2026"
+        },
+        {
+          "title": "Kestrel Legal adds two associates to its employment practice",
+          "snippet": "Kestrel Legal LLP announced the hiring of two associates in its employment practice group, both joining from regional firms.",
+          "source_name": "Legal Practice Monitor",
+          "source_url": "https://example.com/lpm/kestrel-associate-hires",
+          "published_date": "Aug 14, 2026"
+        }
+      ]
+    },
+    {
+      "display_name": "Pacific Sun Robotics",
+      "city": "Carlsbad",
+      "articles": [
+        {
+          "title": "Pacific Sun Robotics wins naval autonomy subcontract, plans 60 hires",
+          "snippet": "Pacific Sun Robotics was awarded a multi-year subcontract on a naval autonomy program and said it will add roughly 60 engineering and production roles in North County San Diego. Leadership noted current facilities are near capacity but stopped short of committing to new space.",
+          "source_name": "Defense Tech Brief",
+          "source_url": "https://example.com/dtb/pacific-sun-contract",
+          "published_date": "Aug 12, 2026"
+        },
+        {
+          "title": "Brokers: Pacific Sun touring industrial-flex space in Carlsbad",
+          "snippet": "Local brokers report Pacific Sun Robotics has toured two industrial-flex buildings within five miles of its existing Carlsbad facility, seeking 25,000 to 40,000 square feet. The company declined to comment. A decision is expected before year-end.",
+          "source_name": "North County Commercial Report",
+          "source_url": "https://example.com/nccr/pacific-sun-space-search",
+          "published_date": "Aug 16, 2026"
+        }
+      ]
+    }
+  ]
+}

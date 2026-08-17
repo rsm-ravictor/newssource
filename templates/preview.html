@@ -1,0 +1,347 @@
+{#-
+  Preview harness for the digest email.
+
+  Renders a static, dependency-free page: a dark "canvas" holding one iframe
+  with the email inside it, wrapped in either desktop-mail-client chrome or a
+  phone shell. The iframe never moves in the DOM when you toggle — only the
+  surrounding chrome and the frame dimensions change — so the email is not
+  reloaded and its scroll position survives the switch.
+
+  The email is embedded via srcdoc so this page works from file:// with no
+  server and no fetch (which file:// would block).
+
+  Context: subject, preheader, from_name, from_address, to_address, sent_label,
+           email_html, built_at, model_note, total_alerts, total_companies
+-#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digest Preview — Tenant Intelligence</title>
+<style>
+  :root {
+    --canvas:   #0b0e14;
+    --canvas-2: #12161f;
+    --bar:      #151a24;
+    --line:     #262d3b;
+    --line-2:   #333c4e;
+    --text:     #e6e9ef;
+    --muted:    #8b95a7;
+    --faint:    #5d6779;
+    --accent:   #7dd3fc;
+    --pill:     #1c2532;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--canvas);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Toolbar ──────────────────────────────────────────────────────── */
+  .toolbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 14px 22px;
+    background: rgba(21,26,36,0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; }
+  .brand-name { font-size: 14px; font-weight: 600; letter-spacing: 0.2px; }
+  .brand-sub { font-size: 12px; color: var(--faint); }
+  .tag {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
+    color: #fbbf24; background: rgba(251,191,36,0.12);
+    border: 1px solid rgba(251,191,36,0.25);
+    padding: 3px 8px; border-radius: 20px; white-space: nowrap;
+  }
+
+  /* Segmented device switch */
+  .segmented {
+    display: inline-flex; padding: 3px; gap: 3px;
+    background: var(--pill); border: 1px solid var(--line); border-radius: 9px;
+  }
+  .segmented button {
+    display: inline-flex; align-items: center; gap: 7px;
+    font: inherit; font-size: 13px; font-weight: 500;
+    color: var(--muted); background: transparent;
+    border: 0; border-radius: 6px; padding: 7px 14px; cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .segmented button:hover { color: var(--text); }
+  .segmented button[aria-selected="true"] {
+    background: #2b3547; color: #ffffff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .segmented svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  .kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10px; color: var(--faint);
+    border: 1px solid var(--line-2); border-radius: 4px; padding: 1px 4px;
+  }
+
+  .btn {
+    font: inherit; font-size: 13px; color: var(--muted);
+    background: var(--pill); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 13px; cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 7px;
+    transition: color 120ms ease, border-color 120ms ease;
+  }
+  .btn:hover { color: var(--text); border-color: var(--line-2); }
+
+  /* ── Stage ────────────────────────────────────────────────────────── */
+  .stage {
+    display: flex; justify-content: center;
+    padding: 40px 20px 72px;
+    background:
+      radial-gradient(1100px 520px at 50% -80px, #1a2231 0%, transparent 70%),
+      var(--canvas);
+    min-height: calc(100vh - 60px);
+  }
+
+  /* The shell needs an EXPLICIT width per mode. Left to shrink-to-fit it
+     collapses to the caption's width (~620px), which is under the email's own
+     620px breakpoint — the desktop preview would silently render the mobile
+     layout. Set the width here and the frame just fills it. */
+  .shell { transition: width 260ms cubic-bezier(0.4,0,0.2,1); }
+  body.desktop .shell { width: 760px; max-width: 100%; }
+  body.mobile  .shell { width: 392px; max-width: 100%; }
+
+  .frame { width: 100%; display: flex; flex-direction: column; }
+  /* Desktop: a mail-client window. Mobile: a handset. */
+  body.desktop .frame {
+    background: #1a202c; border: 1px solid var(--line-2); border-radius: 12px;
+    overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+  }
+  body.mobile .frame {
+    background: #0a0d13; border: 1px solid #2c3546;
+    border-radius: 42px; padding: 11px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6), inset 0 0 0 2px #1b2130;
+  }
+  @media (max-width: 460px) {
+    body.mobile .frame { border-radius: 28px; padding: 6px; }
+  }
+
+  /* Chrome visibility is the whole toggle. */
+  body.desktop .only-mobile,  body.mobile .only-desktop { display: none !important; }
+
+  /* Desktop window chrome */
+  .titlebar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 14px; background: #232b3a; border-bottom: 1px solid var(--line);
+  }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .titlebar .label {
+    margin-left: 8px; font-size: 11.5px; color: var(--faint);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .msg-head { padding: 18px 22px 16px; background: #1a202c; border-bottom: 1px solid var(--line); }
+  .msg-subject { font-size: 16.5px; font-weight: 600; color: #f3f5f8; line-height: 1.35; }
+  .msg-meta { display: flex; align-items: center; gap: 11px; margin-top: 13px; }
+  .avatar {
+    width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%;
+    background: linear-gradient(140deg, #1e4a7a, #0f1f33);
+    color: #7dd3fc; font-size: 11.5px; font-weight: 700; letter-spacing: 0.4px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .msg-from { flex: 1 1 auto; min-width: 0; line-height: 1.45; }
+  .msg-from .who { font-size: 13px; font-weight: 600; color: var(--text); }
+  .msg-from .addr,
+  .msg-from .to { font-size: 11.5px; color: var(--faint); }
+  .msg-time { font-size: 11.5px; color: var(--faint); white-space: nowrap; align-self: flex-start; }
+  .msg-preheader {
+    margin-top: 12px; padding-top: 11px; border-top: 1px dashed var(--line);
+    font-size: 11.5px; color: var(--faint); line-height: 1.5;
+  }
+  .msg-preheader b { color: var(--muted); font-weight: 600; }
+
+  /* Phone chrome */
+  .statusbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 20px 7px; font-size: 11.5px; font-weight: 600; color: #cfd6e2;
+  }
+  .statusbar .glyphs { display: flex; gap: 5px; align-items: center; font-size: 10px; letter-spacing: 1px; }
+  .appbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 16px 12px; border-bottom: 1px solid #1e2534;
+  }
+  .appbar .back { color: var(--accent); font-size: 13px; white-space: nowrap; }
+  .appbar .who-m { min-width: 0; line-height: 1.4; }
+  .appbar .who-m .n { font-size: 12.5px; font-weight: 600; color: var(--text);
+                      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .appbar .who-m .s { font-size: 11px; color: var(--faint);
+                      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .homebar { display: flex; justify-content: center; padding: 9px 0 4px; }
+  .homebar span { width: 118px; height: 4px; border-radius: 2px; background: #39445a; }
+
+  /* ── The email itself ─────────────────────────────────────────────── */
+  .screen { background: #eef1f5; overflow: hidden; }
+  /* Bottom corners only, so the email meets the app bar flush. */
+  body.mobile .screen { border-radius: 0 0 30px 30px; }
+  @media (max-width: 460px) { body.mobile .screen { border-radius: 0 0 22px 22px; } }
+  .screen iframe { display: block; width: 100%; border: 0; background: #eef1f5; }
+  body.desktop .screen iframe { height: 940px; }
+  body.mobile  .screen iframe { height: 740px; }
+
+  .caption {
+    text-align: center; font-size: 11.5px; color: var(--faint);
+    padding: 18px 12px 0; line-height: 1.7; margin: 0 auto;
+  }
+  .caption code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px; color: var(--muted);
+  }
+  .toast {
+    position: fixed; left: 50%; bottom: 30px; transform: translate(-50%, 14px);
+    background: #232b3a; color: var(--text); border: 1px solid var(--line-2);
+    border-radius: 8px; padding: 9px 16px; font-size: 12.5px;
+    opacity: 0; pointer-events: none; transition: opacity 180ms ease, transform 180ms ease;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body class="desktop">
+
+<div class="toolbar">
+  <div class="brand">
+    <span class="brand-name">Digest Preview</span>
+    <span class="brand-sub">{{ total_alerts }} findings &middot; {{ total_companies }} tenants</span>
+  </div>
+
+  <span class="tag">Sample data &middot; fictional tenants</span>
+
+  <div class="segmented" role="tablist" aria-label="Preview device">
+    <button id="btn-desktop" role="tab" aria-selected="true" aria-controls="screen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      Desktop <span class="kbd">D</span>
+    </button>
+    <button id="btn-mobile" role="tab" aria-selected="false" aria-controls="screen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18.5h2"/></svg>
+      Mobile <span class="kbd">M</span>
+    </button>
+  </div>
+
+  <button class="btn" id="copy-html" type="button">Copy email HTML</button>
+  <a class="btn" href="digest.html" target="_blank" rel="noopener">Open raw&nbsp;&#8599;</a>
+</div>
+
+<div class="stage">
+  <div class="shell">
+    <div class="frame">
+
+      <!-- Desktop mail-client chrome -->
+      <div class="only-desktop">
+        <div class="titlebar">
+          <span class="dot" style="background:#ff5f57"></span>
+          <span class="dot" style="background:#febc2e"></span>
+          <span class="dot" style="background:#28c840"></span>
+          <span class="label">Inbox &mdash; {{ to_address }}</span>
+        </div>
+        <div class="msg-head">
+          <div class="msg-subject">{{ subject }}</div>
+          <div class="msg-meta">
+            <div class="avatar">TI</div>
+            <div class="msg-from">
+              <div class="who">{{ from_name }}</div>
+              <div class="addr">{{ from_address }}</div>
+              <div class="to">to {{ to_address }}</div>
+            </div>
+            <div class="msg-time">{{ sent_label }}</div>
+          </div>
+          <div class="msg-preheader"><b>Preview text:</b> {{ preheader }}</div>
+        </div>
+      </div>
+
+      <!-- Phone chrome -->
+      <div class="only-mobile">
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="glyphs"><span>&#9679;&#9679;&#9679;</span><span>&#9679;</span><span>100%</span></span>
+        </div>
+        <div class="appbar">
+          <span class="back">&#8249; Inbox</span>
+          <div class="who-m">
+            <div class="n">{{ from_name }}</div>
+            <div class="s">{{ subject }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- One iframe, shared by both modes. -->
+      <div class="screen" id="screen">
+        <iframe title="Digest email preview" srcdoc="{{ email_html|e }}"></iframe>
+      </div>
+
+      <div class="only-mobile homebar"><span></span></div>
+    </div>
+
+    <p class="caption">
+      Placeholder template at <code>templates/digest.html</code> &mdash; drop the real one in and rebuild
+      with <code>python build_preview.py</code>. Summaries generated via <code>utils/connect.py</code> ({{ model_note }}).
+      Built {{ built_at }}.
+    </p>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copied</div>
+
+<script>
+  (function () {
+    var body = document.body;
+    var btnD = document.getElementById('btn-desktop');
+    var btnM = document.getElementById('btn-mobile');
+    var toast = document.getElementById('toast');
+    var toastTimer;
+
+    function setMode(mode) {
+      var mobile = mode === 'mobile';
+      body.classList.toggle('mobile', mobile);
+      body.classList.toggle('desktop', !mobile);
+      btnM.setAttribute('aria-selected', String(mobile));
+      btnD.setAttribute('aria-selected', String(!mobile));
+      try { localStorage.setItem('digestPreviewMode', mode); } catch (e) {}
+    }
+
+    btnD.addEventListener('click', function () { setMode('desktop'); });
+    btnM.addEventListener('click', function () { setMode('mobile'); });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      var k = e.key.toLowerCase();
+      if (k === 'd') setMode('desktop');
+      if (k === 'm') setMode('mobile');
+    });
+
+    try {
+      var saved = localStorage.getItem('digestPreviewMode');
+      if (saved === 'mobile' || saved === 'desktop') setMode(saved);
+    } catch (e) {}
+
+    function flash(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 1600);
+    }
+
+    document.getElementById('copy-html').addEventListener('click', function () {
+      var html = document.querySelector('#screen iframe').getAttribute('srcdoc');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(html).then(
+          function () { flash('Email HTML copied'); },
+          function () { flash('Copy blocked — use "Open raw"'); }
+        );
+      } else {
+        flash('Clipboard unavailable — use "Open raw"');
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>
