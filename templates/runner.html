@@ -1,0 +1,449 @@
+{#-
+  LIVE runner UI - served by serve.py on localhost only.
+
+  Pick a lookback window, click Run, and it really calls Tavily and TritonAI on the
+  server side, streaming per-entity progress back while it works. The rendered
+  digests then drop into the same device-framed chrome the static preview uses.
+
+  This template is deliberately NOT published to docs/: it needs a backend holding
+  API keys, which static hosting cannot provide. preview.html is the public one.
+
+  Context: reports[] (placeholder metadata for chrome/labels), default_type,
+           presets[], entity_counts{}, credit_cost{}, model_note, has_tavily,
+           has_tritonai, watchlist_paths{}
+-#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Runner — Tenant &amp; Competitor Intelligence</title>
+<style>
+{% include '_canvas_css.html' %}
+
+/* ── Runner-specific chrome ─────────────────────────────────────────────── */
+.runbar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 13px 22px;
+  background: #11161f; border-bottom: 1px solid var(--line);
+}
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #f87171;
+  box-shadow: 0 0 0 3px rgba(248,113,113,0.16); flex: 0 0 7px;
+}
+.runbar.running .live-dot { background: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,0.18);
+  animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.35; } }
+
+.run-btn {
+  font: inherit; font-size: 13px; font-weight: 600; color: #06251b;
+  background: #4ade80; border: 0; border-radius: 8px;
+  padding: 9px 18px; cursor: pointer; white-space: nowrap;
+}
+.run-btn:hover { background: #6ee7a0; }
+.run-btn:disabled { background: #2b3547; color: var(--faint); cursor: not-allowed; }
+
+.cost { font-size: 11.5px; color: var(--faint); white-space: nowrap; }
+.cost b { color: var(--muted); font-weight: 600; }
+
+.warn {
+  width: 100%; font-size: 12px; line-height: 1.6;
+  color: #fca5a5; background: rgba(248,113,113,0.09);
+  border: 1px solid rgba(248,113,113,0.25); border-radius: 8px;
+  padding: 9px 13px;
+}
+.warn code { color: #fecaca; }
+
+/* Progress log */
+.progress {
+  max-width: 760px; margin: 0 auto 26px; padding: 0 4px;
+}
+.progress-head {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 9px;
+}
+.progress-head .h { font-size: 12px; font-weight: 600; letter-spacing: 0.3px; }
+.progress-head .n { font-size: 11.5px; color: var(--faint); margin-left: auto; }
+.track { height: 4px; border-radius: 2px; background: #1e2534; overflow: hidden; }
+.track i { display: block; height: 100%; width: 0; background: #4ade80; transition: width 260ms ease; }
+.log {
+  margin-top: 11px; max-height: 210px; overflow-y: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px; line-height: 1.85; color: var(--muted);
+  background: #10151e; border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 13px;
+}
+.log div { white-space: pre-wrap; word-break: break-word; }
+.log .ok   { color: #86efac; }
+.log .bad  { color: #fca5a5; }
+.log .dim  { color: var(--faint); }
+.hidden { display: none !important; }
+
+.placeholder {
+  text-align: center; color: var(--faint); font-size: 13px; line-height: 1.8;
+  padding: 90px 24px;
+}
+.placeholder .big { font-size: 15px; color: var(--muted); margin-bottom: 8px; }
+</style>
+</head>
+<body class="desktop type-{{ default_type }}">
+
+<div class="toolbar">
+  <div class="brand">
+    <span class="brand-name">Live Runner</span>
+    <span class="brand-sub">localhost &middot; keys stay on this machine</span>
+  </div>
+
+  <span class="switch-label">Report</span>
+  <div class="segmented" role="tablist" aria-label="Report type">
+    {% for r in reports %}
+    <button class="type-btn" data-type="{{ r.key }}" role="tab"
+            aria-selected="{{ 'true' if r.key == default_type else 'false' }}">
+      {{ r.label }} <span class="kbd">{{ loop.index }}</span>
+    </button>
+    {% endfor %}
+  </div>
+
+  <span class="switch-label">View</span>
+  <div class="segmented" role="tablist" aria-label="Preview device">
+    <button id="btn-desktop" role="tab" aria-selected="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      Desktop <span class="kbd">D</span>
+    </button>
+    <button id="btn-mobile" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18.5h2"/></svg>
+      Mobile <span class="kbd">M</span>
+    </button>
+  </div>
+
+  <button class="btn" id="copy-html" type="button">Copy HTML</button>
+  <button class="btn" id="save-snapshot" type="button" disabled>Save as snapshot</button>
+</div>
+
+<div class="runbar" id="runbar">
+  <span class="live-dot" id="live-dot"></span>
+
+  <span class="switch-label">Date range</span>
+  <div class="segmented" role="tablist" aria-label="Lookback window">
+    {% for d in presets %}
+    <button class="days-btn" data-days="{{ d }}" role="tab"
+            aria-selected="{{ 'true' if loop.first else 'false' }}">Last {{ d }} days</button>
+    {% endfor %}
+  </div>
+
+  <label class="cost" for="limit-input">Cap entities
+    <input id="limit-input" type="number" min="0" step="1" value="0" title="0 = no cap"
+           style="width:62px; margin-left:6px; font:inherit; font-size:12px; color:var(--text);
+                  background:var(--pill); border:1px solid var(--line); border-radius:6px; padding:4px 6px;">
+  </label>
+
+  <span class="cost" id="cost-note"></span>
+
+  <button class="run-btn" id="run-btn" type="button">Run live</button>
+
+  {% if not has_tritonai or not has_tavily %}
+  <div class="warn">
+    Missing credentials in <code>.env</code>:
+    {% if not has_tavily %}<code>TAVILY_API_KEY</code>{% endif %}
+    {% if not has_tavily and not has_tritonai %} and {% endif %}
+    {% if not has_tritonai %}<code>TRITONAI_API_KEY</code>{% endif %}.
+    Add them and restart <code>python serve.py</code>.
+  </div>
+  {% endif %}
+</div>
+
+<div class="stage" style="display:block; padding-top:28px;">
+
+  <div class="progress hidden" id="progress">
+    <div class="progress-head">
+      <span class="h" id="prog-title">Running</span>
+      <span class="n" id="prog-count"></span>
+    </div>
+    <div class="track"><i id="prog-bar"></i></div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="shell" style="margin: 0 auto;">
+    <div class="frame" id="frame">
+
+      {% for r in reports %}
+      <div class="only-desktop only-{{ r.key }}">
+        <div class="titlebar">
+          <span class="dot" style="background:#ff5f57"></span>
+          <span class="dot" style="background:#febc2e"></span>
+          <span class="dot" style="background:#28c840"></span>
+          <span class="label">Inbox &mdash; {{ r.to_address }}</span>
+        </div>
+        <div class="msg-head">
+          <div class="msg-subject" data-subject="{{ r.key }}">{{ r.subject }}</div>
+          <div class="msg-meta">
+            <div class="avatar">{{ r.initials }}</div>
+            <div class="msg-from">
+              <div class="who">{{ r.from_name }}</div>
+              <div class="addr">{{ r.from_address }}</div>
+              <div class="to">to {{ r.to_address }}</div>
+            </div>
+            <div class="msg-time" data-sent="{{ r.key }}">{{ r.sent_label }}</div>
+          </div>
+          <div class="msg-preheader"><b>Preview text:</b> <span data-preheader="{{ r.key }}">{{ r.preheader }}</span></div>
+        </div>
+      </div>
+
+      <div class="only-mobile only-{{ r.key }}">
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="glyphs"><span>&#9679;&#9679;&#9679;</span><span>&#9679;</span><span>100%</span></span>
+        </div>
+        <div class="appbar">
+          <span class="back">&#8249; Inbox</span>
+          <div class="who-m">
+            <div class="n">{{ r.from_name }}</div>
+            <div class="s" data-subject="{{ r.key }}">{{ r.subject }}</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+
+      <div class="screen" id="screen">
+        {% for r in reports %}
+        <iframe class="only-{{ r.key }}" data-type="{{ r.key }}"
+                title="{{ r.label }} digest preview" srcdoc="{{ r.email_html|e }}"></iframe>
+        {% endfor %}
+      </div>
+
+      <div class="only-mobile homebar"><span></span></div>
+    </div>
+
+    <p class="caption">
+      Live run: Tavily news search &rarr; judging via <code>utils/connect.py</code> ({{ model_note }})
+      &rarr; <code>templates/digest.html</code>. Watchlists:
+      {% for k, p in watchlist_paths.items() %}<code>{{ p }}</code>{{ ", " if not loop.last }}{% endfor %}.
+    </p>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copied</div>
+
+<script>
+  (function () {
+    var body = document.body;
+    var typeBtns = Array.prototype.slice.call(document.querySelectorAll('.type-btn'));
+    var types = typeBtns.map(function (b) { return b.dataset.type; });
+    var daysBtns = Array.prototype.slice.call(document.querySelectorAll('.days-btn'));
+    var btnD = document.getElementById('btn-desktop');
+    var btnM = document.getElementById('btn-mobile');
+    var runBtn = document.getElementById('run-btn');
+    var saveBtn = document.getElementById('save-snapshot');
+    var limitInput = document.getElementById('limit-input');
+    var costNote = document.getElementById('cost-note');
+    var runbar = document.getElementById('runbar');
+    var progress = document.getElementById('progress');
+    var progTitle = document.getElementById('prog-title');
+    var progCount = document.getElementById('prog-count');
+    var progBar = document.getElementById('prog-bar');
+    var logEl = document.getElementById('log');
+    var toast = document.getElementById('toast');
+    var toastTimer, pollTimer;
+
+    var activeType = {{ default_type | tojson }};
+    var activeDays = {{ presets[0] | tojson }};
+    var entityCounts = {{ entity_counts | tojson }};
+    var queriesPerEntity = {{ queries_per_entity | tojson }};
+    var lastRunId = null;
+
+    function setType(key) {
+      if (types.indexOf(key) === -1) return;
+      activeType = key;
+      types.forEach(function (t) { body.classList.toggle('type-' + t, t === key); });
+      typeBtns.forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.type === key)); });
+      try { localStorage.setItem('runnerType', key); } catch (e) {}
+    }
+
+    function setMode(mode) {
+      var mobile = mode === 'mobile';
+      body.classList.toggle('mobile', mobile);
+      body.classList.toggle('desktop', !mobile);
+      btnM.setAttribute('aria-selected', String(mobile));
+      btnD.setAttribute('aria-selected', String(!mobile));
+      try { localStorage.setItem('runnerMode', mode); } catch (e) {}
+    }
+
+    function setDays(d) {
+      activeDays = d;
+      daysBtns.forEach(function (b) {
+        b.setAttribute('aria-selected', String(String(b.dataset.days) === String(d)));
+      });
+      updateCost();
+    }
+
+    function updateCost() {
+      var cap = parseInt(limitInput.value, 10) || 0;
+      var total = 0;
+      types.forEach(function (t) {
+        var n = entityCounts[t] || 0;
+        total += cap > 0 ? Math.min(cap, n) : n;
+      });
+      var credits = total * queriesPerEntity;
+      costNote.innerHTML = 'runs <b>both</b> reports &middot; ~<b>' + credits +
+        '</b> Tavily credits, <b>' + total + '</b> LLM calls';
+    }
+
+    typeBtns.forEach(function (b) { b.addEventListener('click', function () { setType(b.dataset.type); }); });
+    daysBtns.forEach(function (b) {
+      b.addEventListener('click', function () { setDays(parseInt(b.dataset.days, 10)); });
+    });
+    btnD.addEventListener('click', function () { setMode('desktop'); });
+    btnM.addEventListener('click', function () { setMode('mobile'); });
+    limitInput.addEventListener('input', updateCost);
+
+    document.addEventListener('keydown', function (e) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target && e.target.tagName === 'INPUT') return;
+      var k = e.key.toLowerCase();
+      if (k === 'd') setMode('desktop');
+      else if (k === 'm') setMode('mobile');
+      else if (/^[1-9]$/.test(k)) {
+        var i = parseInt(k, 10) - 1;
+        if (i < types.length) setType(types[i]);
+      }
+    });
+
+    try {
+      var st = localStorage.getItem('runnerType'); if (st) setType(st);
+      var sm = localStorage.getItem('runnerMode'); if (sm) setMode(sm);
+    } catch (e) {}
+    setDays(activeDays);
+
+    function flash(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 1900);
+    }
+
+    function addLog(line, cls) {
+      var d = document.createElement('div');
+      if (cls) d.className = cls;
+      d.textContent = line;
+      logEl.appendChild(d);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function classify(line) {
+      if (/SKIPPED|failed|error|no articles/i.test(line)) return 'bad';
+      if (/kept/i.test(line)) return 'ok';
+      if (/^(searching|judging|rendering)/i.test(line)) return 'dim';
+      return '';
+    }
+
+    runBtn.addEventListener('click', function () {
+      runBtn.disabled = true;
+      saveBtn.disabled = true;
+      runbar.classList.add('running');
+      progress.classList.remove('hidden');
+      logEl.innerHTML = '';
+      progBar.style.width = '0';
+      progTitle.textContent = 'Running — last ' + activeDays + ' days';
+      progCount.textContent = 'starting…';
+
+      fetch('api/run', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({days: activeDays, limit: parseInt(limitInput.value, 10) || 0})
+      }).then(function (r) { return r.json(); }).then(function (j) {
+        if (j.error) { throw new Error(j.error); }
+        lastRunId = j.run_id;
+        poll();
+      }).catch(function (e) {
+        addLog('could not start: ' + e.message, 'bad');
+        finish(false);
+      });
+    });
+
+    var shown = 0;
+    function poll() {
+      fetch('api/status?id=' + encodeURIComponent(lastRunId))
+        .then(function (r) { return r.json(); })
+        .then(function (s) {
+          (s.log || []).slice(shown).forEach(function (l) { addLog(l, classify(l)); });
+          shown = (s.log || []).length;
+
+          if (s.total) {
+            progBar.style.width = Math.round((s.done / s.total) * 100) + '%';
+            progCount.textContent = s.done + ' / ' + s.total + ' entities';
+          }
+
+          if (s.state === 'done') {
+            applyResults(s.reports || {});
+            progTitle.textContent = 'Done — last ' + s.days + ' days';
+            progBar.style.width = '100%';
+            finish(true);
+          } else if (s.state === 'error') {
+            addLog('run failed: ' + (s.error || 'unknown'), 'bad');
+            progTitle.textContent = 'Failed';
+            finish(false);
+          } else {
+            pollTimer = setTimeout(poll, 900);
+          }
+        })
+        .catch(function (e) {
+          addLog('lost contact with server: ' + e.message, 'bad');
+          finish(false);
+        });
+    }
+
+    function finish(ok) {
+      runBtn.disabled = false;
+      runbar.classList.remove('running');
+      saveBtn.disabled = !ok;
+      shown = 0;
+      clearTimeout(pollTimer);
+    }
+
+    function applyResults(reports) {
+      Object.keys(reports).forEach(function (key) {
+        var r = reports[key];
+        var frame = document.querySelector('#screen iframe[data-type="' + key + '"]');
+        if (frame && r.email_html) { frame.setAttribute('srcdoc', r.email_html); }
+        document.querySelectorAll('[data-subject="' + key + '"]').forEach(function (el) {
+          el.textContent = r.subject || '';
+        });
+        document.querySelectorAll('[data-preheader="' + key + '"]').forEach(function (el) {
+          el.textContent = r.preheader || '';
+        });
+        document.querySelectorAll('[data-sent="' + key + '"]').forEach(function (el) {
+          el.textContent = r.sent_label || '';
+        });
+      });
+    }
+
+    document.getElementById('copy-html').addEventListener('click', function () {
+      var frame = document.querySelector('#screen iframe[data-type="' + activeType + '"]');
+      if (!frame) { flash('Nothing to copy'); return; }
+      var html = frame.getAttribute('srcdoc');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(html).then(
+          function () { flash(activeType + ' email HTML copied'); },
+          function () { flash('Copy blocked by the browser'); }
+        );
+      } else { flash('Clipboard unavailable'); }
+    });
+
+    saveBtn.addEventListener('click', function () {
+      if (!lastRunId) return;
+      saveBtn.disabled = true;
+      fetch('api/snapshot?id=' + encodeURIComponent(lastRunId), {method: 'POST'})
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j.error) { throw new Error(j.error); }
+          addLog('snapshot saved: ' + (j.written || []).join(', '), 'ok');
+          addLog('commit and push docs/ to publish it to the Pages link', 'dim');
+          flash('Snapshot saved to data/ and docs/');
+        })
+        .catch(function (e) { addLog('snapshot failed: ' + e.message, 'bad'); flash('Snapshot failed'); })
+        .then(function () { saveBtn.disabled = false; });
+    });
+  })();
+</script>
+
+</body>
+</html>

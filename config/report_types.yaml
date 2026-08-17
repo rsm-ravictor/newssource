@@ -15,6 +15,15 @@ priorities:
   medium: {label: Medium, dot: '#f79009', fg: '#b54708'}
   low:    {label: Low,    dot: '#98a2b3', fg: '#475467'}
 
+# Lookback windows offered by the live runner (days).
+lookback_presets: [7, 30, 90]
+
+# Tavily search settings shared by both types.
+search:
+  max_results_per_query: 5
+  search_depth: basic
+  sleep_between_calls: 0.5
+
 report_types:
 
   # ─────────────────────────────────────────────────────────────────────────
@@ -36,6 +45,13 @@ report_types:
     privacy_note: >-
       only tenant names were sent to the search provider. Rent, lease terms, addresses, and the
       portfolio list never left the local database.
+
+    # THE ENTIRE PRIVACY SURFACE. Only {name} and {city} may appear here - never rent,
+    # square footage, lease dates, building names, or anything else from the rent roll.
+    # tests/test_search.py asserts that built queries contain nothing but those two.
+    query_templates:
+      - '"{name}" {city} layoffs OR bankruptcy OR restructuring OR default OR "cost cutting"'
+      - '"{name}" {city} office lease OR headquarters OR relocation OR expansion OR sublease'
 
     categories:
       financial_distress: {label: Financial distress, bg: '#fef3f2', fg: '#b42318'}
@@ -90,6 +106,11 @@ report_types:
     privacy_note: >-
       only competitor names were sent to the search provider. Your own portfolio, rents, and
       pipeline never left the local database.
+
+    # Same rule as above: {name} and {city} only.
+    query_templates:
+      - '"{name}" {city} acquires OR acquisition OR sells OR portfolio OR "breaks ground"'
+      - '"{name}" {city} lease OR leasing OR fund OR refinancing OR occupancy OR vacancy'
 
     categories:
       acquisition:       {label: Acquisition,   bg: '#eff8ff', fg: '#175cd3'}

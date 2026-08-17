@@ -1,18 +1,18 @@
-# Competitor watchlist — one entity per line.
+# Competitor watchlist — one entity per line. Drives LIVE runs (serve.py).
 #
 # Format:  Name
 #      or  Name, City
 #
 # Lines starting with # and blank lines are ignored.
 #
-# The placeholders below are fictional rival landlords / owner-operators, matching the
-# assumption documented in config/report_types.yaml. If your competitors are a different
-# kind of firm, update the `criteria` and `categories` for `competitors` in that file too.
-#
-# >>> REPLACE the fictional placeholders below with your real competitor list. <<<
+# >>> REPLACE these examples with your real competitor list. <<<
+# These are real landlords / owner-operators, matching the assumption documented in
+# config/report_types.yaml, so a live run returns real articles. If your competitors
+# are a different kind of firm, update `criteria` and `categories` for `competitors`
+# in that file too.
 
-Sandpiper Property Group, San Diego
-Aventine Realty Trust, Irvine
-Two Palms Industrial, Otay Mesa
-Bayfront Asset Partners, San Diego
-Copperline REIT, Phoenix
+Kilroy Realty, San Diego
+Alexandria Real Estate Equities, San Diego
+Rexford Industrial, Los Angeles
+BioMed Realty, San Diego
+Irvine Company, Irvine
