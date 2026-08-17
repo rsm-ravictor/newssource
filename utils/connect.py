@@ -43,7 +43,7 @@ EXPENSIVE_MODELS: list[str] = [
 OAUTH_MODELS: list[str] = ["oauth-gpt"]
 
 # >>> SET THIS FROM THE Q1 ANSWER — the only line an agent may edit. <<<
-DEFAULT_MODEL = "claude-opus-4-6-v1"
+DEFAULT_MODEL = "claude-sonnet-4-6"
 DEFAULT_SYSTEM = "You are a helpful assistant. Be concise."
 
 

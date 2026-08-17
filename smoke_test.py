@@ -43,6 +43,7 @@ def main() -> int:
         print(f"  {m['id']:<28} {m['type']}{marker}")
 
     if not any(m["id"] == DEFAULT_MODEL for m in models):
+        sys.stdout.flush()  # keep the warning below the model list, not above it
         print(
             f"\nwarning: {DEFAULT_MODEL!r} is not in the list above. "
             "Check https://tritonai-api.ucsd.edu/ui/?page=models and update "
@@ -54,9 +55,16 @@ def main() -> int:
     print(ask("Reply with exactly: connection ok", verbose=True))
 
     print("\n--- ask_json(schema=...) ---")
+    # The no-fence line is required: TritonAI accepts response_format=json_object
+    # but does not enforce it, so models happily return ```json ... ``` which
+    # fails Pydantic validation. The instruction has to come from the prompt.
     ping = ask_json(
         "Report status 'ok' and the family of the model answering this.",
         schema=Ping,
+        system=(
+            "You are a helpful assistant. Be concise. Return ONLY raw JSON. "
+            "Do not wrap it in markdown code fences and do not add prose."
+        ),
         verbose=True,
     )
     print(f"status={ping.status!r} model_family={ping.model_family!r}")

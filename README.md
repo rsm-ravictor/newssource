@@ -8,9 +8,8 @@ This is the UI slice only. Ingest, the SQLite portfolio database, and Tavily sea
 specified in `CONTEXT.md` but not built here — the preview runs off a JSON fixture, so it
 needs no database, no search credits, and no API key.
 
-**Preview:** open `docs/index.html` in a browser, or host `docs/` on GitHub Pages.
-
-<!-- Add your Pages URL here once the repo is up: https://<user>.github.io/<repo>/ -->
+**Preview:** <https://rsm-ravictor.github.io/newssource/> (once Pages is enabled), or open
+`docs/index.html` locally — it needs no server.
 
 ---
 
@@ -80,21 +79,56 @@ returning a validated Pydantic object via `ask_json(schema=...)`. It prints whic
 and which it excluded, so you can see the criteria working — the fixture deliberately includes a
 "Top Workplace" award, a product launch, and routine associate hires that should all be rejected.
 
+The committed `data/sample_alerts.json` is real `claude-sonnet-4-6` output from that script: 7
+findings kept across 5 tenants, all 3 decoys correctly excluded.
+
 ### Model
 
-The project default is **`claude-opus-4-6-v1`**, set at `utils/connect.py:46`.
+The project default is **`claude-sonnet-4-6`**, set at `utils/connect.py:46`.
 
-Note that this is the expensive AWS instructional tier. `TRITONAI_SETUP.md` intends the cheap
-on-prem tier for development; if cost becomes a factor, switch with either:
+> **The model table in `TRITONAI_SETUP.md` is out of date.** Of the seven ids it lists, only
+> `api-gpt-oss-120b` is still live — `claude-opus-4-6-v1`, `api-llama-4-scout`, `gemini-3-flash`,
+> `gpt-5.4`, and `gemini-3-pro-preview` all return `403 team_model_access_denied` or aren't served.
+> The setup file says its own models page is the source of truth when an id has been retired, and
+> that's what happened here. `claude-sonnet-4-6` is the closest live equivalent to Opus 4.6.
 
-```bash
-python generate_summaries.py --model api-llama-4-scout    # per run
+Live ids as of Aug 17, 2026 (`python smoke_test.py` re-lists them):
+
+```
+claude-sonnet-4-6         claude-sonnet-4-6-aws     api-gpt-oss-120b
+api-deepseek-v4-flash     api-gemma-4-26b           api-gemma-4-31b
+api-glm-5.2               minimax.minimax-m2        moonshotai.kimi-k2.5
+mistral.mistral-large-3-675b-instruct
+us.amazon.nova-2-lite-v1:0    us.amazon.nova-premier-v1:0
+api-lightonocr-1b (ocr)       api-tgpt-embeddings (embeddings)
 ```
 
-or change the one `DEFAULT_MODEL` line in `utils/connect.py`. That line is the only edit that file
-is meant to receive. All calls route through `utils/connect.py` — no second client anywhere.
+Switch per run, or change the one `DEFAULT_MODEL` line — the only edit `connect.py` is meant to
+receive. All calls route through it; there's no second client anywhere.
+
+```bash
+python generate_summaries.py --model api-gpt-oss-120b     # cheapest live option
+```
 
 TritonAI may require the campus network or VPN.
+
+### Structured output on this proxy
+
+TritonAI **accepts** `response_format={"type": "json_object"}` but doesn't enforce it, so
+`ask_json(schema=...)` intermittently receives ```json fences, a bare array instead of the
+`{"judgments": [...]}` envelope, or a trailing "hope that helps" paragraph — each of which fails
+Pydantic validation inside `connect.py`.
+
+Since `connect.py` is verbatim-locked, `generate_summaries.py` handles it at the call site:
+
+1. The system prompt states the exact envelope and forbids fences and prose.
+2. `judge_company()` calls `ask_json()` first, as the standing rules require.
+3. On `ValidationError` it retries once through `ask()` and repairs the response —
+   `_unfence()` brace-matches the first complete JSON object *or* array, and
+   `_coerce_envelope()` normalizes bare arrays, single bare objects, and wrong-key wrappers.
+
+Same model, same client, same prompt — a parsing repair, not a model fallback. A company that
+still fails is skipped and reported on stderr rather than silently shrinking the digest.
 
 ## Privacy model
 

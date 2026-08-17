@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -29,9 +30,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from pydantic import BaseModel, Field  # noqa: E402
+from pydantic import BaseModel, Field, ValidationError  # noqa: E402
 
-from utils.connect import DEFAULT_MODEL, ask_json, get_client  # noqa: E402
+from utils.connect import DEFAULT_MODEL, ask, ask_json, get_client  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
@@ -90,7 +91,92 @@ WRITING the output:
   article supports. Never speculate about rent, lease terms, or the landlord's own position.
 - confidence: 0.0-1.0, how firmly the article supports the judgment.
 - Return one judgment object per article given, echoing its source_url.
+
+OUTPUT FORMAT: return ONLY raw JSON - a single object with exactly one top-level key,
+"judgments", whose value is an array with one object per article. Not a bare array, not a single
+bare object. Do not wrap it in markdown code fences and do not add prose before or after it.
+TritonAI does not enforce the OpenAI json_object response format, so this instruction is what
+actually keeps the response parseable.
 """
+
+
+def _unfence(text: str) -> str:
+    """Pull the first complete JSON object out of a fenced or chatty response.
+
+    Brace-matched rather than trimmed to the last ``}``: models append prose
+    *after* valid JSON as often as they wrap it in fences, and a response that
+    starts with ``{`` can still have a trailing paragraph. Quotes and escapes
+    are tracked so a ``}`` inside a string does not end the scan early.
+    """
+    t = text.strip()
+    fenced = re.search(r"```(?:json)?\s*(.*?)\s*```", t, re.DOTALL)
+    if fenced:
+        t = fenced.group(1).strip()
+
+    # Accept an object OR an array: the model returns a bare array of judgments
+    # often enough that anchoring on "{" alone captures only its first element.
+    candidates = [i for i in (t.find("{"), t.find("[")) if i != -1]
+    if not candidates:
+        return t
+    start = min(candidates)
+    opener = t[start]
+    closer = "}" if opener == "{" else "]"
+
+    depth, in_string, escaped = 0, False, False
+    for i in range(start, len(t)):
+        ch = t[i]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch == opener:
+            depth += 1
+        elif ch == closer:
+            depth -= 1
+            if depth == 0:
+                return t[start : i + 1]
+    return t[start:]
+
+
+def _coerce_envelope(data):
+    """Normalize the shapes the model returns into {"judgments": [...]}.
+
+    The schema asks for a single ``judgments`` key, but responses arrive as a
+    bare array, a single bare judgment, or the array under some other key.
+    """
+    if isinstance(data, list):
+        return {"judgments": data}
+    if isinstance(data, dict) and "judgments" not in data:
+        if "source_url" in data or "is_relevant" in data:
+            return {"judgments": [data]}
+        for value in data.values():
+            if isinstance(value, list):
+                return {"judgments": value}
+    return data
+
+
+def judge_company(company: dict, *, schema: type, **kw):
+    """``ask_json`` first; repair the response if the model fenced its JSON.
+
+    TritonAI accepts ``response_format={"type": "json_object"}`` but does not
+    enforce it, so responses intermittently arrive as ```json ... ``` and fail
+    Pydantic validation inside ``ask_json``. ``connect.py`` is verbatim-locked
+    and cannot strip them, so the retry happens here: same model, same client,
+    same prompt - a parsing repair, not a model fallback.
+    """
+    prompt = build_prompt(company)
+    try:
+        return ask_json(prompt, schema=schema, **kw)
+    except ValidationError:
+        print("  ~ response was not clean JSON; retrying via ask() + repair", flush=True)
+        text = ask(prompt, **kw) or ""
+        return schema.model_validate(_coerce_envelope(json.loads(_unfence(text))))
 
 
 def build_prompt(company: dict) -> str:
@@ -134,6 +220,7 @@ def main() -> int:
 
     client = get_client()  # one client reused across every company
     out_companies: list[dict] = []
+    failed: list[str] = []
     kept = dropped = 0
 
     for company in companies:
@@ -141,16 +228,21 @@ def main() -> int:
         by_url = {a["source_url"]: a for a in company["articles"]}
         print(f"judging {company['display_name']} ({len(by_url)} articles)...", flush=True)
 
-        result: CompanyJudgment = ask_json(
-            build_prompt(company),
-            schema=CompanyJudgment,
-            model=args.model,
-            system=CRITERIA,
-            temperature=0.2,
-            max_tokens=4000,
-            verbose=args.verbose,
-            client=client,
-        )
+        try:
+            result: CompanyJudgment = judge_company(
+                company,
+                schema=CompanyJudgment,
+                model=args.model,
+                system=CRITERIA,
+                temperature=0.2,
+                max_tokens=4000,
+                verbose=args.verbose,
+                client=client,
+            )
+        except Exception as exc:  # noqa: BLE001 - one bad company must not lose the run
+            failed.append(company["display_name"])
+            print(f"  ! skipped: {type(exc).__name__}: {str(exc)[:120]}", file=sys.stderr)
+            continue
 
         alerts = []
         for j in result.judgments:
@@ -198,6 +290,9 @@ def main() -> int:
     Path(args.out).write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     print(f"\n{kept} findings kept, {dropped} excluded -> {args.out}")
+    if failed:
+        # Surfaced loudly rather than silently shrinking the digest.
+        print(f"{len(failed)} company/companies skipped on error: {', '.join(failed)}", file=sys.stderr)
     print("next: python build_preview.py --open")
     return 0
 
