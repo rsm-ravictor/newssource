@@ -28,6 +28,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Digest Preview — Tenant &amp; Competitor Intelligence</title>
+{% include '_theme_head.html' %}
 <style>
 {% include '_canvas_css.html' %}
 </style>
@@ -65,6 +66,8 @@
       Mobile <span class="kbd">M</span>
     </button>
   </div>
+
+  {% include '_theme_toggle.html' %}
 
   <button class="btn chrome-mobile-hide" id="copy-html" type="button">Copy HTML</button>
   <a class="btn chrome-mobile-hide" id="open-raw" href="{{ reports[0].raw_name }}" target="_blank" rel="noopener">Open raw&nbsp;&#8599;</a>
@@ -205,6 +208,8 @@
       var savedMode = localStorage.getItem('digestPreviewMode');
       if (savedMode === 'mobile' || savedMode === 'desktop') setMode(savedMode);
     } catch (e) { setType(activeType); }
+
+    initThemeToggle();
 
     function flash(msg) {
       toast.textContent = msg;

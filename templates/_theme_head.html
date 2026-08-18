@@ -1,0 +1,68 @@
+{#- Theme bootstrap. Goes in <head>, BEFORE the stylesheet is applied to content.
+
+    Runs synchronously so data-theme is on <html> before first paint: setting it
+    from a DOMContentLoaded handler instead would render one dark frame and then
+    flip, which is visible and ugly on every page load.
+
+    No stored choice means follow the OS, and keep following it if the OS flips
+    while the page is open. Clicking either button pins the choice for every page
+    (one localStorage key across the runner, the reference page and the preview).
+
+    Pages include this in <head>, _theme_toggle.html in the toolbar, and call
+    initThemeToggle() from their own script once the DOM exists. -#}
+<script>
+  (function () {
+    var KEY = 'uiTheme';
+
+    function stored() {
+      try { return localStorage.getItem(KEY); } catch (e) { return null; }
+    }
+    function system() {
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
+        ? 'light' : 'dark';
+    }
+    function paint(mode) {
+      document.documentElement.setAttribute('data-theme', mode);
+      var l = document.getElementById('btn-light');
+      var d = document.getElementById('btn-dark');
+      if (l) l.setAttribute('aria-selected', String(mode === 'light'));
+      if (d) d.setAttribute('aria-selected', String(mode === 'dark'));
+    }
+
+    paint(stored() || system());
+
+    window.setTheme = function (mode) {
+      try { localStorage.setItem(KEY, mode); } catch (e) {}
+      paint(mode);
+    };
+
+    window.currentTheme = function () {
+      return document.documentElement.getAttribute('data-theme') || 'dark';
+    };
+
+    window.initThemeToggle = function () {
+      var l = document.getElementById('btn-light');
+      var d = document.getElementById('btn-dark');
+      if (l) l.addEventListener('click', function () { setTheme('light'); });
+      if (d) d.addEventListener('click', function () { setTheme('dark'); });
+      paint(stored() || system());   // sync the buttons now that they exist
+
+      // T toggles. Ignored while typing, so it cannot land in the notes box.
+      document.addEventListener('keydown', function (e) {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        var t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        if (e.key && e.key.toLowerCase() === 't') {
+          setTheme(currentTheme() === 'light' ? 'dark' : 'light');
+        }
+      });
+
+      if (window.matchMedia) {
+        var mq = window.matchMedia('(prefers-color-scheme: light)');
+        var follow = function () { if (!stored()) paint(system()); };
+        if (mq.addEventListener) mq.addEventListener('change', follow);
+        else if (mq.addListener) mq.addListener(follow);
+      }
+    };
+  })();
+</script>

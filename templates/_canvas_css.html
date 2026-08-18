@@ -1,17 +1,151 @@
-{#- Shared canvas/chrome CSS for the static preview (preview.html) and the live
-    runner (runner.html). Included by both so they cannot drift. Expects `reports`
-    in context for the generated per-report-type visibility rules. -#}
+{#- Shared canvas/chrome CSS for the static preview (preview.html), the live
+    runner (runner.html) and the reference page (reference.html). Included by all
+    three so they cannot drift. Expects `reports` in context for the generated
+    per-report-type visibility rules.
+
+    THEME: every colour is a token on :root, with the light values under
+    :root[data-theme="light"]. Nothing below hardcodes a hex outside those two
+    blocks, so a new page gets both themes for free by using the tokens. The
+    theme attribute is set before first paint by _theme_head.html.
+
+    The one deliberate exception is --screen, the email viewport: an email is a
+    light document and its preview stays light in both themes, because that is
+    what the recipient will actually see. -#}
   :root {
-    --canvas:   #0b0e14;
-    --bar:      #151a24;
-    --line:     #262d3b;
-    --line-2:   #333c4e;
-    --text:     #e6e9ef;
-    --muted:    #8b95a7;
-    --faint:    #5d6779;
-    --accent:   #7dd3fc;
-    --pill:     #1c2532;
+    /* Surfaces */
+    --canvas:     #0b0e14;
+    --bar:        rgba(21,26,36,0.92);
+    --glow:       #1a2231;
+    --panel:      #1a202c;
+    --panel-2:    #232b3a;
+    --sunken:     #10151e;
+    --card:       #121824;
+    --card-head:  #161d29;
+    --pill:       #1c2532;
+
+    /* Lines */
+    --line:       #262d3b;
+    --line-2:     #333c4e;
+    --row-line:   #1b2230;
+    --row-hover:  #151c28;
+
+    /* Type */
+    --text:       #e6e9ef;
+    --muted:      #8b95a7;
+    --faint:      #5d6779;
+    --head-strong:#f3f5f8;
+    --accent:     #7dd3fc;
+    --accent-bg:     rgba(125,211,252,0.10);
+    --accent-border: rgba(125,211,252,0.28);
+    --on-accent:     #06251b;
+
+    /* Controls */
+    --seg-active-bg: #2b3547;
+    --seg-active-fg: #ffffff;
+    --shadow:        rgba(0,0,0,0.5);
+    --shadow-strong: rgba(0,0,0,0.6);
+    --seg-shadow:    rgba(0,0,0,0.3);
+
+    /* Status colours */
+    --ok:        #4ade80;
+    --ok-soft:   #86efac;
+    --ok-line:   #2f7d55;
+    --ok-glow:   rgba(74,222,128,0.16);
+    --on-ok:     #06251b;
+    --bad:       #f87171;
+    --bad-soft:  #fca5a5;
+    --bad-bg:    rgba(248,113,113,0.09);
+    --bad-border:rgba(248,113,113,0.25);
+    --bad-code:  #fecaca;
+    --warn-dot:  #f79009;
+    --track:     #1e2534;
+
+    /* Stepper */
+    --step-bg:        #151c28;
+    --step-border:    #263041;
+    --connector:      #202836;
+
+    /* Sample-data tag */
+    --tag-fg:     #fbbf24;
+    --tag-bg:     rgba(251,191,36,0.12);
+    --tag-border: rgba(251,191,36,0.25);
+
+    /* Device chrome */
+    --device:        #0a0d13;
+    --device-border: #2c3546;
+    --device-inset:  #1b2130;
+    --status-fg:     #cfd6e2;
+    --homebar:       #39445a;
+    --avatar-from:   #1e4a7a;
+    --avatar-to:     #0f1f33;
+    --avatar-fg:     #7dd3fc;
+
+    /* The email viewport - light in both themes, on purpose. */
+    --screen: #eef1f5;
   }
+
+  :root[data-theme="light"] {
+    --canvas:     #f1f4f9;
+    --bar:        rgba(255,255,255,0.93);
+    --glow:       #e2eaf7;
+    --panel:      #ffffff;
+    --panel-2:    #eef2f8;
+    --sunken:     #f6f8fc;
+    --card:       #ffffff;
+    --card-head:  #f2f5fa;
+    --pill:       #e9edf4;
+
+    --line:       #dfe4ee;
+    --line-2:     #c3ccdb;
+    --row-line:   #eaeef5;
+    --row-hover:  #f5f8fc;
+
+    --text:       #0f172a;
+    --muted:      #475467;
+    --faint:      #79839a;
+    --head-strong:#0b1220;
+    --accent:     #0d63c4;
+    --accent-bg:     rgba(13,99,196,0.08);
+    --accent-border: rgba(13,99,196,0.30);
+    --on-accent:     #ffffff;
+
+    --seg-active-bg: #ffffff;
+    --seg-active-fg: #0f172a;
+    --shadow:        rgba(16,24,40,0.13);
+    --shadow-strong: rgba(16,24,40,0.16);
+    --seg-shadow:    rgba(16,24,40,0.12);
+
+    --ok:        #16a34a;
+    --ok-soft:   #15803d;
+    --ok-line:   #8bd6a8;
+    --ok-glow:   rgba(22,163,74,0.16);
+    --on-ok:     #ffffff;
+    --bad:       #dc2626;
+    --bad-soft:  #b42318;
+    --bad-bg:    rgba(220,38,38,0.06);
+    --bad-border:rgba(220,38,38,0.28);
+    --bad-code:  #912018;
+    --warn-dot:  #d97706;
+    --track:     #e3e8f0;
+
+    --step-bg:        #ffffff;
+    --step-border:    #d2dae6;
+    --connector:      #dce2ec;
+
+    --tag-fg:     #92400e;
+    --tag-bg:     rgba(251,191,36,0.20);
+    --tag-border: rgba(217,119,6,0.35);
+
+    --device:        #e4e9f1;
+    --device-border: #ccd4e1;
+    --device-inset:  #f7f9fc;
+    --status-fg:     #475467;
+    --homebar:       #b7c0cf;
+    --avatar-from:   #cfe4fa;
+    --avatar-to:     #eaf3fe;
+    --avatar-fg:     #0b5fa5;
+  }
+
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
@@ -20,6 +154,12 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     font-size: 14px;
     -webkit-font-smoothing: antialiased;
+  }
+  /* Theme swaps are instant on the tokens; the surfaces ease so the switch does
+     not strobe. Suppressed for anyone who asked for less motion. */
+  body, .toolbar, .frame, .card, .screen { transition: background-color 160ms ease, color 160ms ease; }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
   }
 
   /* ── Per-report-type visibility, generated from the config ────────────── */
@@ -32,7 +172,7 @@
     position: sticky; top: 0; z-index: 10;
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
     padding: 14px 22px;
-    background: rgba(21,26,36,0.92);
+    background: var(--bar);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--line);
   }
@@ -41,8 +181,8 @@
   .brand-sub { font-size: 12px; color: var(--faint); white-space: nowrap; }
   .tag {
     font-size: 10.5px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
-    color: #fbbf24; background: rgba(251,191,36,0.12);
-    border: 1px solid rgba(251,191,36,0.25);
+    color: var(--tag-fg); background: var(--tag-bg);
+    border: 1px solid var(--tag-border);
     padding: 3px 8px; border-radius: 20px; white-space: nowrap;
   }
 
@@ -60,10 +200,12 @@
   }
   .segmented button:hover { color: var(--text); }
   .segmented button[aria-selected="true"] {
-    background: #2b3547; color: #ffffff;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    background: var(--seg-active-bg); color: var(--seg-active-fg);
+    box-shadow: 0 1px 2px var(--seg-shadow);
   }
   .segmented svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  /* Icon-only buttons (the theme switch) need square padding, not pill padding. */
+  .segmented.icons button { padding: 7px 10px; }
   .kbd {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 10px; color: var(--faint);
@@ -92,7 +234,7 @@
     display: flex; justify-content: center;
     padding: 40px 20px 72px;
     background:
-      radial-gradient(1100px 520px at 50% -80px, #1a2231 0%, transparent 70%),
+      radial-gradient(1100px 520px at 50% -80px, var(--glow) 0%, transparent 70%),
       var(--canvas);
     min-height: calc(100vh - 60px);
   }
@@ -106,13 +248,13 @@
 
   .frame { width: 100%; display: flex; flex-direction: column; }
   body.desktop .frame {
-    background: #1a202c; border: 1px solid var(--line-2); border-radius: 12px;
-    overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    background: var(--panel); border: 1px solid var(--line-2); border-radius: 12px;
+    overflow: hidden; box-shadow: 0 24px 60px var(--shadow);
   }
   body.mobile .frame {
-    background: #0a0d13; border: 1px solid #2c3546;
+    background: var(--device); border: 1px solid var(--device-border);
     border-radius: 42px; padding: 11px;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.6), inset 0 0 0 2px #1b2130;
+    box-shadow: 0 24px 60px var(--shadow-strong), inset 0 0 0 2px var(--device-inset);
   }
   @media (max-width: 460px) {
     body.mobile .frame { border-radius: 28px; padding: 6px; }
@@ -136,20 +278,20 @@
   /* Desktop window chrome */
   .titlebar {
     display: flex; align-items: center; gap: 8px;
-    padding: 11px 14px; background: #232b3a; border-bottom: 1px solid var(--line);
+    padding: 11px 14px; background: var(--panel-2); border-bottom: 1px solid var(--line);
   }
   .dot { width: 11px; height: 11px; border-radius: 50%; }
   .titlebar .label {
     margin-left: 8px; font-size: 11.5px; color: var(--faint);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .msg-head { padding: 18px 22px 16px; background: #1a202c; border-bottom: 1px solid var(--line); }
-  .msg-subject { font-size: 16.5px; font-weight: 600; color: #f3f5f8; line-height: 1.35; }
+  .msg-head { padding: 18px 22px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .msg-subject { font-size: 16.5px; font-weight: 600; color: var(--head-strong); line-height: 1.35; }
   .msg-meta { display: flex; align-items: center; gap: 11px; margin-top: 13px; }
   .avatar {
     width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%;
-    background: linear-gradient(140deg, #1e4a7a, #0f1f33);
-    color: #7dd3fc; font-size: 11.5px; font-weight: 700; letter-spacing: 0.4px;
+    background: linear-gradient(140deg, var(--avatar-from), var(--avatar-to));
+    color: var(--avatar-fg); font-size: 11.5px; font-weight: 700; letter-spacing: 0.4px;
     display: flex; align-items: center; justify-content: center;
   }
   .msg-from { flex: 1 1 auto; min-width: 0; line-height: 1.45; }
@@ -165,12 +307,12 @@
   /* Phone chrome */
   .statusbar {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 9px 20px 7px; font-size: 11.5px; font-weight: 600; color: #cfd6e2;
+    padding: 9px 20px 7px; font-size: 11.5px; font-weight: 600; color: var(--status-fg);
   }
   .statusbar .glyphs { display: flex; gap: 5px; align-items: center; font-size: 10px; letter-spacing: 1px; }
   .appbar {
     display: flex; align-items: center; gap: 12px;
-    padding: 9px 16px 12px; border-bottom: 1px solid #1e2534;
+    padding: 9px 16px 12px; border-bottom: 1px solid var(--line);
   }
   .appbar .back { color: var(--accent); font-size: 13px; white-space: nowrap; }
   .appbar .who-m { min-width: 0; line-height: 1.4; }
@@ -179,14 +321,15 @@
   .appbar .who-m .s { font-size: 11px; color: var(--faint);
                       overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .homebar { display: flex; justify-content: center; padding: 9px 0 4px; }
-  .homebar span { width: 118px; height: 4px; border-radius: 2px; background: #39445a; }
+  .homebar span { width: 118px; height: 4px; border-radius: 2px; background: var(--homebar); }
 
   /* ── The emails ───────────────────────────────────────────────────────── */
-  .screen { background: #eef1f5; overflow: hidden; }
+  /* Stays light in dark mode: this is a preview of a light email document. */
+  .screen { background: var(--screen); overflow: hidden; }
   /* Bottom corners only, so the email meets the app bar flush. */
   body.mobile .screen { border-radius: 0 0 30px 30px; }
   @media (max-width: 460px) { body.mobile .screen { border-radius: 0 0 22px 22px; } }
-  .screen iframe { display: block; width: 100%; border: 0; background: #eef1f5; }
+  .screen iframe { display: block; width: 100%; border: 0; background: var(--screen); }
   body.desktop .screen iframe { height: 940px; }
   body.mobile  .screen iframe { height: 740px; }
 
@@ -200,8 +343,9 @@
   }
   .toast {
     position: fixed; left: 50%; bottom: 30px; transform: translate(-50%, 14px);
-    background: #232b3a; color: var(--text); border: 1px solid var(--line-2);
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line-2);
     border-radius: 8px; padding: 9px 16px; font-size: 12.5px;
+    box-shadow: 0 8px 24px var(--shadow);
     opacity: 0; pointer-events: none; transition: opacity 180ms ease, transform 180ms ease;
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
