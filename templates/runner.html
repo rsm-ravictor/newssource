@@ -9,8 +9,9 @@
   API keys, which static hosting cannot provide. preview.html is the public one.
 
   Context: reports[] (placeholder metadata for chrome/labels), default_type,
-           presets[], entity_counts{}, credit_cost{}, model_note, has_tavily,
-           has_tritonai, watchlist_paths{}
+           presets[], entity_counts{}, steps[] (key, label, state, note),
+           queries_per_entity, model_note, has_tavily, has_tritonai,
+           watchlist_paths{}
 -#}
 <!DOCTYPE html>
 <html lang="en">
@@ -36,10 +37,12 @@
 @keyframes pulse { 50% { opacity: 0.35; } }
 
 .run-btn {
+  display: inline-flex; align-items: center; gap: 8px;
   font: inherit; font-size: 13px; font-weight: 600; color: #06251b;
   background: #4ade80; border: 0; border-radius: 8px;
   padding: 9px 18px; cursor: pointer; white-space: nowrap;
 }
+.run-btn .run-glyph { font-size: 10px; line-height: 1; }
 .run-btn:hover { background: #6ee7a0; }
 .run-btn:disabled { background: #2b3547; color: var(--faint); cursor: not-allowed; }
 
@@ -78,6 +81,86 @@
 .log .dim  { color: var(--faint); }
 .hidden { display: none !important; }
 
+/* ── Workflow status bar ─────────────────────────────────────────────────────
+   The five stages of a run, driven by /api/status. It lives here in the page
+   chrome, ABOVE .stage and outside .shell, so it is structurally incapable of
+   reaching the email: the digests render inside iframes further down, and this
+   markup is not in templates/digest.html at all. It therefore stays visible in
+   both Desktop and Mobile preview modes without ever being part of either
+   rendered email - which is the point. */
+.wfbar {
+  display: flex; justify-content: center;
+  padding: 15px 22px; background: #0e131c; border-bottom: 1px solid var(--line);
+}
+.wf-steps {
+  display: flex; align-items: flex-start; gap: 0;
+  width: 100%; max-width: 1060px;
+}
+.wf-step {
+  flex: 1 1 0; min-width: 0; position: relative;
+  display: flex; align-items: flex-start; gap: 9px;
+  padding-right: 14px;
+}
+/* Connector, drawn from each step to the next. */
+.wf-step:not(:last-child)::after {
+  content: ""; position: absolute; left: 0; top: 12px; z-index: 0;
+  width: 100%; height: 2px; background: #202836;
+  transform: translateX(13px);
+}
+.wf-step[data-state="done"]:not(:last-child)::after { background: #2f7d55; }
+.wf-mark {
+  position: relative; z-index: 1; flex: 0 0 26px;
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11.5px; font-weight: 700;
+  color: var(--faint); background: #151c28;
+  border: 2px solid #263041;
+  transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+.wf-text { min-width: 0; padding-top: 1px; }
+.wf-label {
+  display: block; font-size: 12px; font-weight: 600; line-height: 1.35;
+  color: var(--faint); transition: color 160ms ease;
+}
+.wf-note {
+  display: block; margin-top: 2px; font-size: 10.5px; line-height: 1.45;
+  color: #4d5666;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.wf-step[data-state="done"] .wf-mark {
+  color: #06251b; background: #4ade80; border-color: #4ade80;
+}
+/* The tick replaces the number once the stage is retired. */
+.wf-step[data-state="done"] .wf-num { display: none; }
+.wf-step[data-state="done"] .wf-mark::after { content: "\2713"; font-size: 13px; }
+.wf-step[data-state="done"] .wf-label { color: #86efac; }
+
+.wf-step[data-state="active"] .wf-mark {
+  color: #062b1f; background: #4ade80; border-color: #4ade80;
+  box-shadow: 0 0 0 4px rgba(74,222,128,0.16);
+  animation: wf-pulse 1.15s ease-in-out infinite;
+}
+.wf-step[data-state="active"] .wf-label { color: #ffffff; }
+.wf-step[data-state="active"] .wf-note { color: #86efac; }
+@keyframes wf-pulse { 50% { box-shadow: 0 0 0 8px rgba(74,222,128,0.06); } }
+
+.wf-step[data-state="failed"] .wf-mark {
+  color: #2b0b0b; background: #f87171; border-color: #f87171;
+}
+.wf-step[data-state="failed"] .wf-num { display: none; }
+.wf-step[data-state="failed"] .wf-mark::after { content: "\2715"; font-size: 12px; }
+.wf-step[data-state="failed"] .wf-label { color: #fca5a5; }
+
+/* Stacked below ~880px: the five labels cannot share a row legibly, and the
+   connector would run off the side. */
+@media (max-width: 880px) {
+  .wf-steps { flex-direction: column; gap: 9px; }
+  .wf-step { padding-right: 0; }
+  .wf-step:not(:last-child)::after { display: none; }
+  .wf-note { white-space: normal; }
+}
+
 .placeholder {
   text-align: center; color: var(--faint); font-size: 13px; line-height: 1.8;
   padding: 90px 24px;
@@ -115,6 +198,10 @@
     </button>
   </div>
 
+  <a class="btn chrome-mobile-hide" href="/reference" target="_blank" rel="noopener"
+     title="Rosters and the guidelines behind 'meaningful' - review only, never emailed">
+    Reference&nbsp;&#8599;
+  </a>
   <button class="btn chrome-mobile-hide" id="copy-html" type="button">Copy HTML</button>
   <span class="mobile-hint chrome-mobile-only">press <span class="kbd">D</span> for desktop</span>
   <button class="btn" id="save-snapshot" type="button" disabled>Save as snapshot</button>
@@ -139,7 +226,11 @@
 
   <span class="cost" id="cost-note"></span>
 
-  <button class="run-btn" id="run-btn" type="button">Run live</button>
+  {#- The manual trigger. Nothing runs on a schedule and nothing runs on page load:
+      a run only ever happens because someone pressed this. -#}
+  <button class="run-btn" id="run-btn" type="button" title="Trigger the workflow now">
+    <span class="run-glyph" aria-hidden="true">&#9654;</span> Push run now
+  </button>
 
   {% if not has_tritonai or not has_tavily %}
   <div class="warn">
@@ -150,6 +241,22 @@
     Add them and restart <code>python serve.py</code>.
   </div>
   {% endif %}
+</div>
+
+{#- Workflow status bar. Chrome, not content: it sits outside .shell and the email
+    iframes below, so neither the desktop nor the mobile digest can contain it. -#}
+<div class="wfbar" id="wfbar">
+  <div class="wf-steps" id="wf-steps" role="status" aria-live="polite" aria-label="Workflow status">
+    {% for s in steps %}
+    <div class="wf-step" data-step="{{ s.key }}" data-state="{{ s.state }}">
+      <span class="wf-mark"><span class="wf-num">{{ loop.index }}</span></span>
+      <span class="wf-text">
+        <span class="wf-label">{{ s.label }}</span>
+        <span class="wf-note" data-note="{{ s.key }}">{{ s.note }}</span>
+      </span>
+    </div>
+    {% endfor %}
+  </div>
 </div>
 
 <div class="stage" style="display:block; padding-top:28px;">
@@ -329,6 +436,34 @@
       logEl.scrollTop = logEl.scrollHeight;
     }
 
+    // ── Workflow status bar ────────────────────────────────────────────────
+    // The server owns the stage: it is the only thing that knows whether Tavily
+    // or the judge is running right now, so the page just paints what it reports.
+    var wfSteps = document.getElementById('wf-steps');
+
+    function renderSteps(steps) {
+      steps.forEach(function (s) {
+        var el = wfSteps.querySelector('.wf-step[data-step="' + s.key + '"]');
+        if (!el) return;
+        el.setAttribute('data-state', s.state);
+        var note = el.querySelector('[data-note]');
+        if (note) note.textContent = s.note || '';
+      });
+    }
+
+    function resetSteps() {
+      Array.prototype.slice.call(wfSteps.querySelectorAll('.wf-step')).forEach(function (el) {
+        el.setAttribute('data-state', 'pending');
+        var note = el.querySelector('[data-note]');
+        if (note) note.textContent = '';
+      });
+    }
+
+    function markStepFailed(key) {
+      var el = wfSteps.querySelector('.wf-step[data-step="' + key + '"]');
+      if (el) el.setAttribute('data-state', 'failed');
+    }
+
     function classify(line) {
       if (/SKIPPED|failed|error|no articles/i.test(line)) return 'bad';
       if (/kept/i.test(line)) return 'ok';
@@ -341,6 +476,7 @@
       saveBtn.disabled = true;
       runbar.classList.add('running');
       progress.classList.remove('hidden');
+      resetSteps();
       logEl.innerHTML = '';
       progBar.style.width = '0';
       progTitle.textContent = 'Running — last ' + activeDays + ' days';
@@ -356,6 +492,7 @@
         poll();
       }).catch(function (e) {
         addLog('could not start: ' + e.message, 'bad');
+        markStepFailed('list');
         finish(false);
       });
     });
@@ -365,6 +502,7 @@
       fetch('api/status?id=' + encodeURIComponent(lastRunId))
         .then(function (r) { return r.json(); })
         .then(function (s) {
+          if (s.steps) renderSteps(s.steps);
           (s.log || []).slice(shown).forEach(function (l) { addLog(l, classify(l)); });
           shown = (s.log || []).length;
 

@@ -1,0 +1,457 @@
+{#-
+  REFERENCE page - served by serve.py at /reference. Review only.
+
+  One tab per report type. Each tab shows, from the same sources a live run reads:
+    - the roster (tenant-list.md / competitor-list.md), grouped by section
+    - the guidelines that define "meaningful" (config/report_types.yaml -> criteria)
+    - the exact search queries that will be sent
+    - a writable notes box (data/notes/<key>.md), appended to the criteria next run
+
+  The tenant tab additionally shows the "#" RANK column, which is what drives
+  prioritization on that side. Competitor rosters have no rank column, so that tab
+  says so instead of inventing one.
+
+  NOTHING on this page is part of any email. digest.html never sees this context.
+
+  Context: tabs[] (key, label, brandmark, entity_noun, entity_noun_plural, ranked,
+           count, source, source_exists, sections[], categories{}, criteria,
+           rank_note, query_templates[], privacy_note, notes, notes_path),
+           reports[] (alias of tabs, for _canvas_css.html), default_type,
+           priorities{}, model_note
+-#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reference — Watchlists &amp; Guidelines</title>
+<style>
+{% include '_canvas_css.html' %}
+
+/* ── Reference page ──────────────────────────────────────────────────────── */
+.refpage { max-width: 1120px; margin: 0 auto; padding: 26px 22px 80px; }
+
+.ref-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.ref-head h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.2px; }
+.ref-head .count { font-size: 12.5px; color: var(--muted); }
+.ref-head .src {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px; color: var(--faint);
+}
+.ref-sub { font-size: 12.5px; color: var(--faint); line-height: 1.7; margin: 0 0 22px; }
+
+.review-tag {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
+  color: #7dd3fc; background: rgba(125,211,252,0.10);
+  border: 1px solid rgba(125,211,252,0.28);
+  padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+}
+
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .cards { grid-template-columns: 1fr; } }
+.card {
+  background: #121824; border: 1px solid var(--line); border-radius: 12px;
+  padding: 16px 18px 18px;
+}
+.card.wide { grid-column: 1 / -1; }
+.card h2 {
+  margin: 0 0 4px; font-size: 12px; font-weight: 650;
+  letter-spacing: 0.7px; text-transform: uppercase; color: var(--accent);
+}
+.card .hint { margin: 0 0 13px; font-size: 11.5px; color: var(--faint); line-height: 1.6; }
+
+.prose {
+  margin: 0; font-family: inherit; font-size: 12.5px; line-height: 1.72;
+  color: var(--muted); white-space: pre-wrap; word-break: break-word;
+}
+.prose.tight { font-size: 12px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 14px; }
+.chip {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.2px;
+  padding: 4px 10px; border-radius: 20px; white-space: nowrap;
+}
+.pri-chips { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; }
+.pri { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); }
+.pri i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+.query {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px; line-height: 1.7; color: #cbd5e1;
+  background: #0d121b; border: 1px solid var(--line); border-radius: 8px;
+  padding: 9px 12px; margin-bottom: 8px; word-break: break-word;
+}
+.query b { color: #7dd3fc; font-weight: 600; }
+
+/* Notes editor */
+.notes-area {
+  width: 100%; min-height: 190px; resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px; line-height: 1.7; color: var(--text);
+  background: #0d121b; border: 1px solid var(--line); border-radius: 8px;
+  padding: 11px 13px;
+}
+.notes-area:focus { outline: none; border-color: #3f7fa5; }
+.notes-foot {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 11px;
+}
+.save-btn {
+  font: inherit; font-size: 12.5px; font-weight: 600; color: #06251b;
+  background: #7dd3fc; border: 0; border-radius: 8px;
+  padding: 8px 16px; cursor: pointer; white-space: nowrap;
+}
+.save-btn:hover { background: #a5e2fd; }
+.save-btn:disabled { background: #2b3547; color: var(--faint); cursor: not-allowed; }
+.save-note { font-size: 11.5px; color: var(--faint); }
+.save-note.ok { color: #86efac; }
+.save-note.bad { color: #fca5a5; }
+.dirty-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #f79009;
+  display: none; flex: 0 0 6px;
+}
+.dirty .dirty-dot { display: block; }
+
+/* Roster table */
+.list-head {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.filter {
+  font: inherit; font-size: 12.5px; color: var(--text);
+  background: #0d121b; border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 12px; min-width: 220px;
+}
+.filter:focus { outline: none; border-color: #3f7fa5; }
+.shown { font-size: 11.5px; color: var(--faint); margin-left: auto; }
+
+.section-name {
+  margin: 20px 0 8px; font-size: 12px; font-weight: 650;
+  letter-spacing: 0.4px; color: var(--muted);
+}
+.section-name:first-of-type { margin-top: 4px; }
+.section-name span { color: var(--faint); font-weight: 400; }
+
+.tbl-wrap { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+table.roster { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.roster th {
+  text-align: left; font-size: 10.5px; font-weight: 650;
+  letter-spacing: 0.7px; text-transform: uppercase; color: var(--faint);
+  background: #161d29; padding: 9px 12px; border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 1;
+}
+table.roster td {
+  padding: 8px 12px; border-bottom: 1px solid #1b2230; color: var(--muted);
+  vertical-align: top;
+}
+table.roster tr:last-child td { border-bottom: 0; }
+table.roster tr:hover td { background: #151c28; }
+table.roster td.rank {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px; color: var(--faint); width: 62px; white-space: nowrap;
+}
+table.roster tr.top25 td.rank { color: #fbbf24; font-weight: 700; }
+table.roster td.nm { color: var(--text); font-weight: 500; }
+table.roster td.nm .raw {
+  display: block; font-size: 10.5px; color: var(--faint); font-weight: 400; margin-top: 2px;
+}
+table.roster td.tk {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px;
+}
+table.roster td.nt { color: var(--faint); font-size: 11.5px; }
+tr.filtered-out { display: none; }
+.empty-src {
+  font-size: 12.5px; line-height: 1.7; color: #fca5a5;
+  background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.25);
+  border-radius: 10px; padding: 12px 15px;
+}
+</style>
+</head>
+<body class="desktop type-{{ default_type }}">
+
+<div class="toolbar">
+  <div class="brand">
+    <span class="brand-name">Reference</span>
+    <span class="brand-sub">watchlists &amp; meaningfulness guidelines</span>
+  </div>
+
+  <span class="review-tag">Review only &middot; never emailed</span>
+
+  <span class="switch-label">Side</span>
+  <div class="segmented" role="tablist" aria-label="Report side">
+    {% for t in tabs %}
+    <button class="type-btn" data-type="{{ t.key }}" role="tab"
+            aria-selected="{{ 'true' if t.key == default_type else 'false' }}">
+      {{ t.label }} <span class="kbd">{{ loop.index }}</span>
+    </button>
+    {% endfor %}
+  </div>
+
+  <a class="btn" href="/">&#8592;&nbsp;Runner</a>
+</div>
+
+<div class="refpage">
+{% for t in tabs %}
+<div class="only-{{ t.key }}">
+
+  <div class="ref-head">
+    <h1>{{ t.brandmark }}</h1>
+    <span class="count">{{ t.count }} {{ t.entity_noun_plural }}</span>
+    <span class="src">{{ t.source }}</span>
+  </div>
+  <p class="ref-sub">
+    The list below and the rules beside it are exactly what a run uses &mdash; the roster is read
+    from <span class="src">{{ t.source }}</span> and the rules from
+    <span class="src">config/report_types.yaml</span>, so nothing here is a second copy that can
+    drift. Only the name and the city are ever sent out: {{ t.privacy_note }}
+  </p>
+
+  {% if not t.source_exists %}
+  <p class="empty-src">
+    <b>{{ t.source }} is missing.</b> Create it at the repo root and the list appears here and in
+    the next run. A Markdown table works: <span class="src">| # | Tenant Name | City |</span> for
+    tenants, <span class="src">| Company | Category | Ticker | Notes |</span> under a
+    <span class="src">## City</span> heading for competitors.
+  </p>
+  {% endif %}
+
+  <div class="cards">
+
+    <div class="card">
+      <h2>What counts as meaningful</h2>
+      <p class="hint">
+        Sent to the model as the system prompt for every {{ t.entity_noun }} in the list. Edit it in
+        <span class="src">config/report_types.yaml</span>; use the notes box for adjustments you want
+        to try on the next run without touching the config.
+      </p>
+      <div class="chips">
+        {% for ck, cat in t.categories.items() %}
+        <span class="chip" style="background: {{ cat.bg }}; color: {{ cat.fg }};">{{ cat.label }}</span>
+        {% endfor %}
+      </div>
+      <pre class="prose">{{ t.criteria }}</pre>
+      <div class="pri-chips">
+        {% for pk, pri in priorities.items() %}
+        <span class="pri"><i style="background: {{ pri.dot }};"></i>{{ pri.label }} <code class="src">{{ pk }}</code></span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      {% if t.ranked %}
+      <h2>Ranking &rarr; prioritization</h2>
+      <p class="hint">
+        The <b>#</b> column in <span class="src">{{ t.source }}</span> is the priority rank, and it is
+        what makes this side different from the competitor side. It is used twice: the model is told
+        the rank when it judges an article, and the rank breaks ties in the email's reading order, so
+        one urgent item at a top-25 {{ t.entity_noun }} leads the briefing over three items further
+        down the roster. Rank is counted within its roster section.
+      </p>
+      <pre class="prose tight">{{ t.rank_note }}</pre>
+      {% else %}
+      <h2>No ranking on this side</h2>
+      <p class="hint">
+        <span class="src">{{ t.source }}</span> has no <b>#</b> column, so {{ t.entity_noun_plural }}
+        carry no rank and nothing about rank reaches the model. Findings are ordered by severity, then
+        by how many findings the {{ t.entity_noun }} has. Category and ticker are shown below for
+        review; neither is sent anywhere.
+      </p>
+      <p class="hint" style="margin-bottom:0">
+        To rank this side too, add a <b>#</b> column to the roster tables and set
+        <span class="src">use_rank: true</span> under
+        <span class="src">report_types.{{ t.key }}</span> in the config.
+      </p>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>Queries sent per {{ t.entity_noun }}</h2>
+      <p class="hint">
+        {{ t.query_templates|length }} search{{ '' if t.query_templates|length == 1 else 'es' }} per
+        {{ t.entity_noun }}, {{ t.count * t.query_templates|length }} for the whole list.
+        <b>{name}</b> and <b>{city}</b> are the only fields substituted in.
+      </p>
+      {% for q in t.query_templates %}
+      <div class="query">{{ q|replace('{name}', '❰name❱')|replace('{city}', '❰city❱') }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="card" data-notes-card="{{ t.key }}">
+      <h2>Notes &amp; changes</h2>
+      <p class="hint">
+        Your working space: refine what counts as meaningful, record a call you made, or park a
+        question. Saved to <span class="src">{{ t.notes_path }}</span> and appended to the
+        {{ t.label|lower }} criteria on the next run, so a note here actually changes the judging.
+      </p>
+      <textarea class="notes-area" data-notes="{{ t.key }}"
+                placeholder="e.g. Treat a sublease listing as high for anyone in the top 25.&#10;Skip funding-round coverage for tenants outside the top 100.&#10;Reviewed Aug 18 — nothing to change.">{{ t.notes }}</textarea>
+      <div class="notes-foot">
+        <button class="save-btn" type="button" data-save="{{ t.key }}">Save notes</button>
+        <span class="dirty-dot"></span>
+        <span class="save-note" data-status="{{ t.key }}">Unchanged</span>
+      </div>
+    </div>
+
+    <div class="card wide">
+      <h2>{{ t.label }} list</h2>
+      <div class="list-head">
+        <input class="filter" type="search" data-filter="{{ t.key }}"
+               placeholder="Filter {{ t.entity_noun_plural }} by name, city{{ ', or ticker' if not t.ranked else '' }}…">
+        <span class="shown" data-shown="{{ t.key }}">{{ t.count }} of {{ t.count }}</span>
+      </div>
+
+      {% for sec in t.sections %}
+      {% if sec.name %}
+      <p class="section-name">{{ sec.name }} <span>&middot; {{ sec.count }} {{ t.entity_noun_plural }}{{ ', ranked 1–%d'|format(sec.count) if t.ranked else '' }}</span></p>
+      {% endif %}
+      <div class="tbl-wrap">
+        <table class="roster">
+          <thead>
+            <tr>
+              {% if t.ranked %}<th>#</th>{% endif %}
+              <th>{{ t.entity_noun|capitalize }}</th>
+              <th>City</th>
+              {% if not t.ranked %}<th>Category</th><th>Ticker</th><th>Notes</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in sec.rows %}
+            <tr data-row="{{ t.key }}" class="{{ 'top25' if t.ranked and e.rank and e.rank <= 25 else '' }}"
+                data-search="{{ (e.name ~ ' ' ~ e.city ~ ' ' ~ e.raw_name ~ ' ' ~ e.category ~ ' ' ~ e.ticker)|lower }}">
+              {% if t.ranked %}<td class="rank">{{ e.rank if e.rank else '—' }}</td>{% endif %}
+              <td class="nm">
+                {{ e.name }}
+                {% if e.raw_name %}<span class="raw">roster: {{ e.raw_name }}</span>{% endif %}
+              </td>
+              <td>{{ e.city or '—' }}</td>
+              {% if not t.ranked %}
+              <td>{{ e.category or '—' }}</td>
+              <td class="tk">{{ e.ticker or '—' }}</td>
+              <td class="nt">{{ e.notes or '' }}</td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+{% endfor %}
+</div>
+
+<div class="toast" id="toast">Saved</div>
+
+<script>
+  (function () {
+    var body = document.body;
+    var typeBtns = Array.prototype.slice.call(document.querySelectorAll('.type-btn'));
+    var types = typeBtns.map(function (b) { return b.dataset.type; });
+    var toast = document.getElementById('toast');
+    var toastTimer;
+
+    function setType(key) {
+      if (types.indexOf(key) === -1) return;
+      types.forEach(function (t) { body.classList.toggle('type-' + t, t === key); });
+      typeBtns.forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.type === key)); });
+      try { localStorage.setItem('referenceType', key); } catch (e) {}
+    }
+
+    typeBtns.forEach(function (b) {
+      b.addEventListener('click', function () { setType(b.dataset.type); });
+    });
+    try {
+      var saved = localStorage.getItem('referenceType');
+      if (saved) setType(saved);
+    } catch (e) {}
+
+    function flash(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 1800);
+    }
+
+    // ── Roster filter ─────────────────────────────────────────────────────
+    // data-search carries the cleaned name, the roster spelling, city, category
+    // and ticker, so a search for "GOOGLE" finds the row shown as "Google".
+    Array.prototype.slice.call(document.querySelectorAll('[data-filter]')).forEach(function (input) {
+      var key = input.dataset.filter;
+      var rows = Array.prototype.slice.call(document.querySelectorAll('[data-row="' + key + '"]'));
+      var shown = document.querySelector('[data-shown="' + key + '"]');
+      input.addEventListener('input', function () {
+        var q = input.value.trim().toLowerCase();
+        var n = 0;
+        rows.forEach(function (tr) {
+          var hit = !q || tr.dataset.search.indexOf(q) !== -1;
+          tr.classList.toggle('filtered-out', !hit);
+          if (hit) n++;
+        });
+        shown.textContent = n + ' of ' + rows.length;
+      });
+    });
+
+    // ── Notes ─────────────────────────────────────────────────────────────
+    Array.prototype.slice.call(document.querySelectorAll('[data-notes]')).forEach(function (area) {
+      var key = area.dataset.notes;
+      var card = document.querySelector('[data-notes-card="' + key + '"]');
+      var btn = document.querySelector('[data-save="' + key + '"]');
+      var status = document.querySelector('[data-status="' + key + '"]');
+      var onDisk = area.value;
+
+      function setStatus(text, cls) {
+        status.textContent = text;
+        status.className = 'save-note' + (cls ? ' ' + cls : '');
+      }
+
+      function refresh() {
+        var dirty = area.value !== onDisk;
+        card.classList.toggle('dirty', dirty);
+        if (dirty) setStatus('Unsaved changes');
+      }
+
+      area.addEventListener('input', refresh);
+
+      // Ctrl/Cmd+S is the reflex in a text box; catching it beats a browser
+      // "save page" dialog over the top of the notes.
+      area.addEventListener('keydown', function (e) {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+          e.preventDefault();
+          save();
+        }
+      });
+
+      function save() {
+        btn.disabled = true;
+        setStatus('Saving…');
+        fetch('/api/notes?key=' + encodeURIComponent(key), {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({notes: area.value})
+        }).then(function (r) { return r.json(); }).then(function (j) {
+          if (j.error) { throw new Error(j.error); }
+          onDisk = area.value;
+          card.classList.remove('dirty');
+          setStatus('Saved to ' + j.path + ' — applies to the next run', 'ok');
+          flash('Notes saved');
+        }).catch(function (e) {
+          setStatus('Save failed: ' + e.message, 'bad');
+        }).then(function () { btn.disabled = false; });
+      }
+
+      btn.addEventListener('click', save);
+      refresh();
+    });
+
+    // Leaving with unsaved notes is almost always an accident.
+    window.addEventListener('beforeunload', function (e) {
+      if (document.querySelector('.card.dirty')) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>

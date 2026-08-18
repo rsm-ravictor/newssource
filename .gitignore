@@ -19,3 +19,24 @@ dist/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Real watchlists are PRIVATE: they are the portfolio and competitor lists.
+# This repo is public, so only the *.example.txt templates are committed.
+data/watchlists/*.txt
+!data/watchlists/*.example.txt
+
+# Same reason for the hand-maintained rosters at the root, which are now the
+# point of reference for live runs and carry the full tenant and competitor lists.
+tenant-list.md
+competitor-list.md
+
+# Reviewer notes from the /reference page are written about real tenants and
+# competitors, and they feed the judging prompt.
+data/notes/
+
+# Live-run snapshots contain real tenant/competitor news. Publishing docs/ would
+# make them public - keep the fictional sample committed and snapshot locally.
+data/live_*.json
+
+# The .md rosters under data/watchlists/ are real lists too, not just the .txt ones.
+data/watchlists/*.md

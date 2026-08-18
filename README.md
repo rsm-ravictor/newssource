@@ -18,14 +18,16 @@ it needs no server.
 | Path | What it is |
 |---|---|
 | **`config/report_types.yaml`** | **Start here.** Defines both report types — categories, judging criteria, query templates, wording, file paths. Neither the template nor the scripts hardcode either taxonomy. |
-| **`data/watchlists/*.txt`** | **Paste your lists here**, one name per line (`Name` or `Name, City`). Drives live runs. |
+| **`tenant-list.md` / `competitor-list.md`** | **The watchlists.** Hand-maintained Markdown rosters at the repo root; the tenant `#` column is the priority rank. Drives live runs. |
 | **`serve.py`** | **The live runner.** Local web app: pick a date range, click Run, real pipeline executes. |
 | `search.py` | Search stage — Tavily news per entity, URL canonicalization, dedupe. The privacy surface. |
 | `judge.py` | Judge stage — one LLM call per entity, schema built from config, JSON repair. |
+| `watchlist.py` | Roster parsing — Markdown tables read by column name, rank/category/ticker, name cleaning. |
 | `render.py` | Render stage — alerts → digest context → HTML. Shared by the static build and live runs. |
 | `templates/digest.html` | **The email.** One Jinja2 template serving both report types; email-safe table HTML. Placeholder for the client's real template. |
 | `templates/preview.html` | The static preview harness (published to Pages). No Run button — it can't have one. |
-| `templates/runner.html` | The live runner UI. Shares `_canvas_css.html` with the preview so they can't drift. |
+| `templates/runner.html` | The live runner UI — manual push button, workflow status bar. Shares `_canvas_css.html` with the preview so they can't drift. |
+| `templates/reference.html` | The review page at `/reference` — rosters, meaningfulness guidelines, notes box. Never emailed. |
 | `build_preview.py` | Renders every report type into `docs/` from fixtures. No network, no key. |
 | `generate_summaries.py` | Judges the article *fixtures* offline — iterate on criteria without spending credits. |
 | `smoke_test.py` | Proves the TritonAI connection once your key is in `.env`. |
@@ -128,16 +130,50 @@ python build_preview.py --priorities high      # production default per CONTEXT.
 python build_preview.py --empty                # the no-findings state
 ```
 
-### Adding your lists
+### The watchlists
 
-1. Paste names into `data/watchlists/tenants.txt` and `data/watchlists/competitors.txt`.
-2. Check the `criteria` for each type in `config/report_types.yaml` still describes the signals
-   you care about.
-3. `python build_preview.py` — the "monitored" count comes from the watchlists, and the build
-   warns on stderr if a fixture entity isn't on its list.
+The two rosters at the repo root are the point of reference:
 
-Until the search stage exists, the article fixtures in `data/mock_articles_*.json` are what gets
-judged; the watchlists drive counts and will drive the Tavily queries once `search.py` lands.
+| File | Shape | Rank |
+|---|---|---|
+| `tenant-list.md` | `\| # \| Tenant Name \| City \|`, one table per segment (Office, Retail & MU) | **Yes** — the `#` column |
+| `competitor-list.md` | `\| Company \| Category \| Ticker \| Notes \|`, one table per market under a `## City` heading | No |
+
+`watchlist.py` reads Markdown tables **by column name**, so the meaning of a field comes from its
+header rather than its position, and a table with no `City` column inherits the city from its
+`## Heading`. Prose, headings, blank lines and table separators are skipped, so the files stay
+readable documents. Duplicate rows collapse to one entity keeping the best rank — the tenant
+roster lists a company once per lease, so 638 rows are 626 entities.
+
+Names are normalized for searching: `LPL HOLDINGS, INC` becomes `LPL Holdings`. A name that
+already carries mixed case was typed that way deliberately and is left alone, so `DivcoWest`
+survives. The `/reference` page shows both spellings.
+
+Only the **name and city** ever leave the machine. Rank, category, ticker and notes stay local.
+
+**These two files are gitignored** — they are the real portfolio and competitor lists, and this
+repo is public.
+
+1. Edit the rosters, then check the `criteria` for each type in `config/report_types.yaml` still
+   describes the signals you care about — or add adjustments in the notes box on `/reference`.
+2. `python build_preview.py` — the "monitored" count comes from the rosters.
+
+Until a live run replaces them, the article fixtures in `data/mock_articles_*.json` are what
+`generate_summaries.py` judges.
+
+### How rank drives prioritization
+
+Rank is the one real difference between the two sides, and it is used twice:
+
+1. **In judging.** The tenant prompt carries `Portfolio rank: 12 of 271 (Office roster)` plus the
+   `rank_note` rubric from the config: a top-25 tenant can have a medium signal escalated to high,
+   an outside-the-top-150 tenant has to clear a higher bar. Rank never makes an irrelevant article
+   relevant. The competitor prompt never mentions rank at all.
+2. **In reading order.** Within a severity, the briefing leads with the highest-ranked entity, so
+   one urgent item at the #3 tenant outranks three items at #400.
+
+Give the competitor side a rank by adding a `#` column to its tables and setting
+`use_rank: true` under `report_types.competitors`.
 
 ## Live runner — clickable date range
 
@@ -145,13 +181,28 @@ judged; the watchlists drive counts and will drive the Tavily queries once `sear
 python serve.py            # http://127.0.0.1:8765
 ```
 
-Pick **Last 7 / 30 / 90 days**, click **Run live**, and it really executes the pipeline:
+Pick **Last 7 / 30 / 90 days**, click **Push run now**, and it really executes the pipeline:
 Tavily news search per entity → judging via `utils/connect.py` → the same `digest.html`
-template. Per-entity progress streams into the page while it works, including which articles
-were kept and which were thrown out with the reason.
+template. Nothing runs on a schedule and nothing runs on page load — a run only ever happens
+because someone pressed that button, which is what makes it demoable.
+
+The **status bar** under the run bar tracks the five stages, driven by the server rather than a
+timer:
+
+    Reading List → Searching News Sources (Tavily) → Reviewing/Prioritizing Meaningful News
+    (Claude) → Curating Email → Done
+
+Searching and Reviewing alternate per entity, so the bar moves between them as the run works
+through the list; the note under each stage says which entity and how many articles. A stage that
+throws is marked in red. The bar is page chrome, above and outside the email frames — it is not in
+`digest.html`, so it never appears in either the desktop or the mobile email, or in Copy HTML.
+
+Per-entity progress also streams into the log below it, including which articles were kept and
+which were thrown out with the reason.
 
 - **Cap entities** limits how many names per list get run — use it to keep demos fast and cheap.
   The cost line shows the credit estimate before you click.
+- **Reference** opens `/reference` — see below.
 - **Copy HTML** copies the active report's email.
 - **Save as snapshot** freezes the finished run into `data/sample_alerts_*.json` and rebuilds
   `docs/`, so you can commit and push it to the public Pages link. Note that saving a *capped*
@@ -173,6 +224,32 @@ A 70-name list is roughly 140 credits, so cap entities while iterating.
 Real news is mostly noise, and the criteria are built to say no. In testing, Illumina returned
 10 articles over 30 days and **all 10 were excluded**; Qualcomm returned 8 and **4 were kept**.
 An empty digest is a correct result, not a broken one — `--empty` renders that state on purpose.
+
+## Reference page — review only
+
+```
+http://127.0.0.1:8765/reference        (the Reference button in the runner toolbar)
+```
+
+A tab per side, and nothing on it is ever part of an email. Each tab shows, read from the same
+places a run reads:
+
+- **The list.** The full roster, grouped by section, filterable. The tenant tab shows the `#` rank
+  and highlights the top 25; the competitor tab shows Category, Ticker and Notes instead and says
+  plainly that it has no rank. Where a name was normalized, the roster spelling is shown under it.
+- **What counts as meaningful.** The `criteria` block from `config/report_types.yaml` verbatim —
+  the categories, the exclusions, and the priority rubric — which is exactly what the model is
+  sent as its system prompt.
+- **Ranking → prioritization** on the tenant tab: the `rank_note` rubric, and how rank is used.
+- **Queries sent per entity**, with `{name}` and `{city}` marked, and the credit count for the
+  whole list.
+- **Notes & changes.** A writable box per side, saved to `data/notes/<key>.md`. This is not a
+  scratchpad: `judge.py` appends it to that side's criteria on the next run, under a header telling
+  the model to treat it as guidance that refines the standing criteria but cannot change the output
+  format. So a note like *"treat a sublease listing as high for anyone in the top 25"* actually
+  changes the next run's judging. `Ctrl/Cmd+S` saves; leaving with unsaved text warns.
+
+`data/notes/` is gitignored — the notes are written about real tenants and competitors.
 
 ## Connecting TritonAI
 
@@ -254,10 +331,19 @@ still fails is skipped and reported on stderr rather than silently shrinking the
 python -m unittest discover -s tests
 ```
 
-17 tests, no network and no key needed. The important ones assert that a built Tavily query
-contains the entity name and city and **nothing else** — if someone adds a placeholder to
-`query_templates`, they fail. The rest cover URL canonicalization (two tracking-param variants of
-one story must hash identically), source-name derivation, and date parsing.
+39 tests, no network and no key needed.
+
+`test_search.py` — the important ones assert that a built Tavily query contains the entity name
+and city and **nothing else**; if someone adds a placeholder to `query_templates`, they fail. The
+rest cover URL canonicalization (two tracking-param variants of one story must hash identically),
+source-name derivation, and date parsing.
+
+`test_watchlist.py` — roster parsing: rank and city read from their own columns, an empty middle
+column that must not shift the rest, prose above a table that must not become an entity, city
+inherited from a `## Market` heading, dedupe keeping the best rank, and name cleaning that titles
+`LPL HOLDINGS, INC` while leaving `DivcoWest` alone. Also that two markets sharing a firm name get
+distinct email anchors, and that rank orders entities within a severity. The tests against the real
+rosters skip themselves when those gitignored files are absent.
 
 ## Privacy model
 

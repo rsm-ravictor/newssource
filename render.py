@@ -16,12 +16,18 @@ from pathlib import Path
 import yaml
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
+# Roster parsing. Re-exported: callers import both from here.
+from watchlist import read_entries, read_watchlist  # noqa: F401
+
 ROOT = Path(__file__).resolve().parent
 TEMPLATES = ROOT / "templates"
 DOCS = ROOT / "docs"
 CONFIG = ROOT / "config" / "report_types.yaml"
 
 PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
+
+# Sorts an unranked entity after every ranked one instead of ahead of rank 1.
+UNRANKED = 10**6
 
 
 def load_config() -> dict:
@@ -37,20 +43,6 @@ def load_json(path: Path) -> dict:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         sys.exit(f"error: {path.name} is not valid JSON - {exc}")
-
-
-def read_watchlist(path: Path) -> list[tuple[str, str]]:
-    """(name, city) pairs from a watchlist file, ignoring comments and blanks."""
-    if not path.exists():
-        return []
-    entries = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        name, _, city = line.partition(",")
-        entries.append((name.strip(), city.strip()))
-    return entries
 
 
 def get_env() -> Environment:
@@ -81,8 +73,15 @@ def build_top_intel(groups: list[dict], *, cap_per_entity: int = 2, limit: int =
     rows = []
     for group in groups:
         for alert in group["alerts"][:cap_per_entity]:
-            rows.append({**alert, "company": group["display_name"], "slug": group["slug"]})
-    rows.sort(key=lambda r: PRIORITY_ORDER.get(r.get("priority"), 9))
+            rows.append({
+                **alert,
+                "company": group["display_name"],
+                "slug": group["slug"],
+                "rank": group.get("rank"),
+            })
+    # Severity first, then roster rank: two urgent findings are ordered by how much
+    # the entity matters. Unranked report types fall back to the old stable order.
+    rows.sort(key=lambda r: (PRIORITY_ORDER.get(r.get("priority"), 9), r.get("rank") or UNRANKED))
     return rows[:limit]
 
 
@@ -102,17 +101,54 @@ def build_groups(entities: list[dict], priorities: list[str]) -> list[dict]:
             {
                 "display_name": entity["display_name"],
                 "city": entity.get("city", ""),
+                "rank": entity.get("rank"),
+                "segment": entity.get("segment", ""),
                 "slug": slugify(entity["display_name"]),
                 "alerts": kept,
             }
         )
+    # Roster rank outranks finding count: on the tenant side a single urgent item at
+    # the #3 tenant leads the briefing over three items at #400. Unranked entities
+    # (the competitors side) all share UNRANKED, so their order is unchanged.
     groups.sort(
         key=lambda g: (
             PRIORITY_ORDER.get(g["alerts"][0].get("priority"), 9),
+            g["rank"] or UNRANKED,
             -len(g["alerts"]),
             g["display_name"],
         )
     )
+    return disambiguate(groups)
+
+
+def disambiguate(groups: list[dict]) -> list[dict]:
+    """Make each group's anchor and index label unique.
+
+    The competitor roster lists one firm per market, so Boston Properties can be
+    both a San Francisco and a Bellevue entry - two legitimate groups sharing a
+    name. Left alone they would emit the same element id twice and both index
+    pills would scroll to the first one. Repeated names get the city folded into
+    the slug and appended to the pill; unique names are untouched, which is the
+    normal case.
+    """
+    counts: dict[str, int] = {}
+    for group in groups:
+        counts[group["display_name"]] = counts.get(group["display_name"], 0) + 1
+
+    used: set[str] = set()
+    for group in groups:
+        group["pill_label"] = group["display_name"]
+        if counts[group["display_name"]] > 1:
+            if group["city"]:
+                group["pill_label"] = f"{group['display_name']} · {group['city']}"
+            group["slug"] = slugify(f"{group['display_name']} {group['city']}")
+        # Two entries in the same city, or a city-less duplicate, still need
+        # distinct ids, so the last resort is a counter.
+        slug, n = group["slug"], 2
+        while slug in used:
+            slug, n = f"{group['slug']}-{n}", n + 1
+        group["slug"] = slug
+        used.add(slug)
     return groups
 
 

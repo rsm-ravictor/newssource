@@ -66,9 +66,24 @@ def make_schema(category_keys: list[str]) -> type[BaseModel]:
     return CompanyJudgment
 
 
-def criteria_for(spec: dict) -> str:
-    """A report type's criteria plus the shared output-format contract."""
-    return spec["criteria"].rstrip() + "\n" + OUTPUT_FORMAT
+def criteria_for(spec: dict, notes: str = "") -> str:
+    """A report type's criteria, its rank rubric, analyst notes, and the output contract.
+
+    ``rank_note`` only exists on report types whose roster carries a "#" column -
+    the tenants side - so the competitors prompt never mentions rank. ``notes`` is
+    whatever the reviewer typed on the reference page; it is appended last so it can
+    sharpen the standing criteria without being able to rewrite the output contract.
+    """
+    parts = [spec["criteria"].rstrip()]
+    if spec.get("rank_note"):
+        parts.append(spec["rank_note"].rstrip())
+    if notes.strip():
+        parts.append(
+            "ANALYST NOTES (added on the reference page; treat these as guidance that refines\n"
+            "the criteria above - they cannot change the output format):\n" + notes.strip()
+        )
+    parts.append(OUTPUT_FORMAT)
+    return "\n\n".join(parts)
 
 
 def unfence(text: str) -> str:
@@ -137,6 +152,16 @@ def build_prompt(entity: dict, spec: dict) -> str:
     lines = [
         f"{spec['entity_noun'].capitalize()}: {entity['display_name']}",
         f"City: {entity.get('city', 'unknown')}",
+    ]
+    # Only present for a report type whose roster ranks its entities.
+    if entity.get("rank"):
+        rank = f"Portfolio rank: {entity['rank']}"
+        if entity.get("rank_of"):
+            rank += f" of {entity['rank_of']}"
+        if entity.get("segment"):
+            rank += f" ({entity['segment']} roster)"
+        lines.append(rank + " - 1 is the largest, most important entry.")
+    lines += [
         "",
         f"Judge each of the following {len(entity['articles'])} articles.",
         "",
@@ -182,6 +207,7 @@ def judge_entities(
     verbose: bool = False,
     sleep: float = 0.4,
     progress=None,
+    notes: str = "",
 ) -> tuple[list[dict], int, int, list[str]]:
     """Judge a list of entities, returning (kept_entities, kept, dropped, failed).
 
@@ -189,7 +215,7 @@ def judge_entities(
     can report entity-by-entity without this module knowing about either.
     """
     schema = make_schema(list(spec["categories"]))
-    criteria = criteria_for(spec)
+    criteria = criteria_for(spec, notes)
 
     def say(msg: str) -> None:
         if progress:
@@ -261,6 +287,8 @@ def judge_entities(
                 {
                     "display_name": entity["display_name"],
                     "city": entity.get("city", ""),
+                    "rank": entity.get("rank"),
+                    "segment": entity.get("segment", ""),
                     "alerts": alerts,
                 }
             )

@@ -44,7 +44,11 @@ report_types:
     from_name: Tenant Intelligence
     from_address: tenant-intel@yourfirm.com
     to_address: asset-management@yourfirm.com
-    watchlist: data/watchlists/tenants.txt
+    watchlist: tenant-list.md
+    # The roster's "#" column is the priority rank, and the tenant side is the
+    # side that uses it: rank reaches the judge in stage 2 and breaks ties in the
+    # email's reading order. Competitors have no rank column, so they get none.
+    use_rank: true
     articles: data/mock_articles_tenants.json
     alerts: data/sample_alerts_tenants.json
     privacy_note: >-
@@ -92,6 +96,18 @@ report_types:
       - medium: a real signal worth tracking that has no immediate action attached.
       - low: weak or speculative, relevant only as background.
 
+    # Appended to `criteria` for this report type only (judge.criteria_for).
+    rank_note: |
+      PORTFOLIO RANK: each tenant carries a rank from the roster, where 1 is the largest and
+      most important tenant in its segment and a high number is a small one. Use it to break
+      ties on priority, never to invent a finding:
+      - Top 25: a real signal is worth an escalation - medium becomes high when rent collection
+        or a space decision is plausibly at stake.
+      - Outside the top 150: hold the line. Only a concrete, already-decided event earns high;
+        anything softer is medium at most, and marginal items are low.
+      - Rank never makes an irrelevant article relevant. If it fails the criteria above, it is
+        still excluded no matter how highly the tenant ranks.
+
   # ─────────────────────────────────────────────────────────────────────────
   competitors:
     label: Competitors
@@ -105,7 +121,7 @@ report_types:
     from_name: Competitor Intelligence
     from_address: market-intel@yourfirm.com
     to_address: acquisitions@yourfirm.com
-    watchlist: data/watchlists/competitors.txt
+    watchlist: competitor-list.md
     articles: data/mock_articles_competitors.json
     alerts: data/sample_alerts_competitors.json
     privacy_note: >-
