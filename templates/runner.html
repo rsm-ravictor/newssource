@@ -103,8 +103,8 @@
     {% endfor %}
   </div>
 
-  <span class="switch-label">View</span>
-  <div class="segmented" role="tablist" aria-label="Preview device">
+  <span class="switch-label chrome-mobile-hide">View</span>
+  <div class="segmented chrome-mobile-hide" role="tablist" aria-label="Preview device">
     <button id="btn-desktop" role="tab" aria-selected="true">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
       Desktop <span class="kbd">D</span>
@@ -115,7 +115,8 @@
     </button>
   </div>
 
-  <button class="btn" id="copy-html" type="button">Copy HTML</button>
+  <button class="btn chrome-mobile-hide" id="copy-html" type="button">Copy HTML</button>
+  <span class="mobile-hint chrome-mobile-only">press <span class="kbd">D</span> for desktop</span>
   <button class="btn" id="save-snapshot" type="button" disabled>Save as snapshot</button>
 </div>
 
@@ -399,11 +400,41 @@
       clearTimeout(pollTimer);
     }
 
+    // Live results arrive as strings, so this runner must use srcdoc - and inside
+    // srcdoc a bare "#anchor" resolves against THIS page's URL, which would
+    // navigate the iframe away instead of scrolling. Same-origin over localhost,
+    // so intercept the click and scroll the iframe document ourselves.
+    function wireAnchors(frame) {
+      var doc;
+      try { doc = frame.contentDocument; } catch (e) { return; }
+      if (!doc || doc.__anchorsWired) return;
+      doc.__anchorsWired = true;
+      doc.addEventListener('click', function (ev) {
+        var el = ev.target;
+        while (el && el.nodeName !== 'A') { el = el.parentElement; }
+        if (!el) return;
+        var href = el.getAttribute('href') || '';
+        if (href.charAt(0) !== '#' || href.length < 2) return;
+        var target = doc.getElementById(href.slice(1));
+        if (!target) return;
+        ev.preventDefault();
+        target.scrollIntoView({behavior: 'smooth', block: 'start'});
+      }, true);
+    }
+
+    Array.prototype.slice.call(document.querySelectorAll('#screen iframe')).forEach(function (f) {
+      f.addEventListener('load', function () { wireAnchors(f); });
+      wireAnchors(f);  // srcdoc may already be parsed
+    });
+
     function applyResults(reports) {
       Object.keys(reports).forEach(function (key) {
         var r = reports[key];
         var frame = document.querySelector('#screen iframe[data-type="' + key + '"]');
-        if (frame && r.email_html) { frame.setAttribute('srcdoc', r.email_html); }
+        if (frame && r.email_html) {
+          frame.setAttribute('srcdoc', r.email_html);
+          frame.addEventListener('load', function () { wireAnchors(frame); }, {once: true});
+        }
         document.querySelectorAll('[data-subject="' + key + '"]').forEach(function (el) {
           el.textContent = r.subject || '';
         });

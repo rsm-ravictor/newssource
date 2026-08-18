@@ -11,8 +11,11 @@
   template loops over whatever it is given and generates the matching CSS, so
   adding a third type needs no edit here.
 
-  Emails are embedded via srcdoc so the page works from file:// with no server
-  and no fetch (which file:// would block).
+  Each email loads through an iframe `src` pointing at its built file, so the
+  email's own "#anchor" links resolve against the email document. Under srcdoc a
+  bare fragment resolves against the PARENT page and navigates the iframe away,
+  which broke the "Who's in the News" pills. Copy HTML reads the markup from an
+  inert JSON block instead, since fetch() is blocked when opened from file://.
 
   Context: reports[] (key, label, subject, preheader, from_name, from_address,
            to_address, sent_label, email_html, raw_name, total_alerts,
@@ -51,8 +54,8 @@
     {% endfor %}
   </div>
 
-  <span class="switch-label">View</span>
-  <div class="segmented" role="tablist" aria-label="Preview device">
+  <span class="switch-label chrome-mobile-hide">View</span>
+  <div class="segmented chrome-mobile-hide" role="tablist" aria-label="Preview device">
     <button id="btn-desktop" role="tab" aria-selected="true">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
       Desktop <span class="kbd">D</span>
@@ -63,8 +66,11 @@
     </button>
   </div>
 
-  <button class="btn" id="copy-html" type="button">Copy HTML</button>
-  <a class="btn" id="open-raw" href="{{ reports[0].raw_name }}" target="_blank" rel="noopener">Open raw&nbsp;&#8599;</a>
+  <button class="btn chrome-mobile-hide" id="copy-html" type="button">Copy HTML</button>
+  <a class="btn chrome-mobile-hide" id="open-raw" href="{{ reports[0].raw_name }}" target="_blank" rel="noopener">Open raw&nbsp;&#8599;</a>
+
+  {#- Only way back to Desktop once the switch is hidden, so it is not a trap. -#}
+  <span class="mobile-hint chrome-mobile-only">press <span class="kbd">D</span> for desktop</span>
 </div>
 
 <div class="stage">
@@ -111,11 +117,16 @@
       </div>
       {% endfor %}
 
-      <!-- One iframe per report type; the inactive one is hidden, never moved. -->
+      {#- One iframe per report type; the inactive one is hidden, never moved.
+          Loaded by `src` rather than srcdoc so the email's own "#anchor" links
+          (the "Who's in the News" pills and "Back to index") resolve against the
+          email document. Under srcdoc a bare fragment resolves against the PARENT
+          page's URL, which navigates the iframe to the preview page instead of
+          scrolling. Copy HTML reads the markup from the JSON block below. -#}
       <div class="screen" id="screen">
         {% for r in reports %}
-        <iframe class="only-{{ r.key }}" data-type="{{ r.key }}"
-                title="{{ r.label }} digest preview" srcdoc="{{ r.email_html|e }}"></iframe>
+        <iframe class="only-{{ r.key }}" data-type="{{ r.key }}" src="{{ r.raw_name }}"
+                title="{{ r.label }} digest preview"></iframe>
         {% endfor %}
       </div>
 
@@ -132,6 +143,10 @@
 </div>
 
 <div class="toast" id="toast">Copied</div>
+
+{#- Inert storage for Copy HTML. type="application/json" is never executed, and
+    fetching the iframe files instead would be blocked when opened from file://. -#}
+<script type="application/json" id="email-source">{{ emails_json|safe }}</script>
 
 <script>
   (function () {
@@ -198,10 +213,14 @@
       toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 1600);
     }
 
+    var emailSource = {};
+    try {
+      emailSource = JSON.parse(document.getElementById('email-source').textContent);
+    } catch (e) {}
+
     document.getElementById('copy-html').addEventListener('click', function () {
-      var frame = document.querySelector('#screen iframe[data-type="' + activeType + '"]');
-      if (!frame) { flash('Nothing to copy'); return; }
-      var html = frame.getAttribute('srcdoc');
+      var html = emailSource[activeType];
+      if (!html) { flash('Nothing to copy'); return; }
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(html).then(
           function () { flash(activeType + ' email HTML copied'); },

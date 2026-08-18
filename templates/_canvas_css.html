@@ -121,6 +121,18 @@
   /* Device chrome visibility. */
   body.desktop .only-mobile, body.mobile .only-desktop { display: none !important; }
 
+  /* Mobile preview mode is a clean phone mock: the device switch, Copy HTML and
+     Open raw all drop out of the toolbar. The keyboard shortcut still works, and
+     .chrome-mobile-only surfaces that hint so there is a way back to Desktop. */
+  body.mobile  .chrome-mobile-hide { display: none !important; }
+  body.desktop .chrome-mobile-only { display: none !important; }
+  /* Deliberately NOT .switch-label: that class is hidden under 1330px by the
+     media query below, which would suppress the only route back to Desktop. */
+  .mobile-hint {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--faint); white-space: nowrap;
+  }
+
   /* Desktop window chrome */
   .titlebar {
     display: flex; align-items: center; gap: 8px;

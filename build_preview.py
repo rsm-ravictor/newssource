@@ -21,10 +21,10 @@ Outputs:
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import webbrowser
 from datetime import datetime, timezone
-from pathlib import Path
 
 from render import (
     DOCS,
@@ -102,8 +102,16 @@ def main() -> int:
         )
         reports.append(report_meta(key, spec, context, email_html, raw_name))
 
+    # The preview shows each email through an iframe `src` (a real URL) rather than
+    # srcdoc, so in-email "#anchor" links resolve against the email itself. Under
+    # srcdoc they resolve against the PARENT page and navigate the iframe away.
+    # Copy HTML therefore needs the markup separately; ship it as inert JSON.
+    # "</" is escaped so a future template containing </script> cannot break out.
+    emails_json = json.dumps({r["key"]: r["email_html"] for r in reports}).replace("</", "<\\/")
+
     preview_html = env.get_template("preview.html").render(
         reports=reports,
+        emails_json=emails_json,
         default_type=reports[0]["key"],
         built_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         model_note=f"default model {default_model_note()}",
