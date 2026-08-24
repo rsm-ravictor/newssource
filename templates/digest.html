@@ -10,6 +10,12 @@
   holding the mobile breakpoint and the ticker keyframes. Outlook desktop ignores
   both and falls back to the inline styles plus a static list — intended.
 
+  Every source_url link carries target="_blank" rel="noopener noreferrer". Both
+  preview surfaces render this email inside an iframe, and every news host we cite
+  sends X-Frame-Options: SAMEORIGIN - so a link without a target navigates the
+  frame itself and the browser blocks it ("refused to connect"). A new tab is also
+  what a real mail client does, so this is right in the inbox as well as the demo.
+
   ONE template serves both report types. Everything type-specific — categories,
   headings, wording — arrives in the context from config/report_types.yaml.
 
@@ -144,7 +150,7 @@
                       <td style="padding:9px 16px 10px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;{{ ' border-top:1px solid #f2f4f7;' if not loop.first }}">
                         <span style="display:inline-block; padding:2px 7px; border-radius:9px; background-color:{{ sv.bg }}; color:{{ sv.fg }}; font-size:9.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">{{ sv.label }}</span>
                         <div style="padding-top:6px;">
-                          <a href="{{ row.source_url }}" style="font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;">{{ row.headline }}</a>
+                          <a href="{{ row.source_url }}" target="_blank" rel="noopener noreferrer" style="font-size:14px; line-height:20px; font-weight:600; color:#101828; text-decoration:none;">{{ row.headline }}</a>
                         </div>
                         <div style="font-size:11.5px; line-height:17px; color:#98a2b3; padding-top:3px;">
                           <span style="color:{{ cat.fg }};">{{ cat.label }}</span> &middot; {{ row.company }}
@@ -285,7 +291,7 @@
                             </td>
                             <td class="src-link" valign="middle" align="right" style="font-size:12px; line-height:17px; white-space:nowrap; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                               {%- if a.source_url %}
-                              <a href="{{ a.source_url }}" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
+                              <a href="{{ a.source_url }}" target="_blank" rel="noopener noreferrer" style="color:#1f5fbf; font-weight:600; text-decoration:none;">Read source&nbsp;&rarr;</a>
                               {%- endif %}
                             </td>
                           </tr>

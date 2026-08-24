@@ -168,7 +168,9 @@ Rank is the one real difference between the two sides, and it is used twice:
 1. **In judging.** The tenant prompt carries `Portfolio rank: 12 of 271 (Office roster)` plus the
    `rank_note` rubric from the config: a top-25 tenant can have a medium signal escalated to high,
    an outside-the-top-150 tenant has to clear a higher bar. Rank never makes an irrelevant article
-   relevant. The competitor prompt never mentions rank at all.
+   relevant. The competitor prompt never mentions rank at all; that side escalates on the
+   `tier_note` rubric instead, from a tier the model infers about the firm — direct submarket
+   competitor, public REIT peer, or institutional capital entrant.
 2. **In reading order.** Within a severity, the briefing leads with the highest-ranked entity, so
    one urgent item at the #3 tenant outranks three items at #400.
 
@@ -200,6 +202,14 @@ throws is marked in red. The bar is page chrome, above and outside the email fra
 Per-entity progress also streams into the log below it, including which articles were kept and
 which were thrown out with the reason.
 
+- **Pause & build email** appears only while a run is live. It stops the retrieval loop at the
+  next entity boundary — never mid-entity, so nothing is left searched-but-unjudged — and then
+  lets the run finish the rest of the way: review, curate, render. You get a real email built
+  from whatever came back, not a cancelled run. It is one-way; there is no resume, the next run
+  starts at the top of the roster. A paused briefing is labelled honestly: its period line reads
+  `... · paused after 24 of 626 tenants` and its "monitored" count is the number actually
+  screened, not the roster size. A report type the pause landed before is not rendered at all
+  rather than sent as a misleading empty briefing.
 - **Cap entities** limits how many names per list get run — use it to keep demos fast and cheap.
   The cost line shows the credit estimate before you click.
 - **Reference** opens `/reference` — see below.
@@ -207,7 +217,9 @@ which were thrown out with the reason.
 - **Save as snapshot** freezes the finished run into `data/sample_alerts_*.json` and rebuilds
   `docs/`, so you can commit and push it to the public Pages link. Note that saving a *capped*
   run writes a partial snapshot — its "monitored" count is the capped number, not your full list.
-  Leave the cap at 0 for a snapshot you intend to publish.
+  The same applies to a *paused* run, and a pause can also leave one report type's snapshot
+  untouched while it rewrites the other's. Leave the cap at 0 and let the run finish for a
+  snapshot you intend to publish.
 
 ### Why the live run is local-only
 
@@ -235,12 +247,15 @@ A tab per side, and nothing on it is ever part of an email. Each tab shows, read
 places a run reads:
 
 - **The list.** The full roster, grouped by section, filterable. The tenant tab shows the `#` rank
-  and highlights the top 25; the competitor tab shows Category, Ticker and Notes instead and says
-  plainly that it has no rank. Where a name was normalized, the roster spelling is shown under it.
+  and highlights the top 25; the competitor tab shows Category, Ticker and Notes instead, and
+  says plainly that it has no rank column. Where a name was normalized, the roster spelling is shown under it.
 - **What counts as meaningful.** The `criteria` block from `config/report_types.yaml` verbatim —
-  the categories, the exclusions, and the priority rubric — which is exactly what the model is
-  sent as its system prompt.
-- **Ranking → prioritization** on the tenant tab: the `rank_note` rubric, and how rank is used.
+  the categories, the exclusions, the geographic/market scoping rule, the priority rubric and
+  the CEO-flag test — which is exactly what the model is sent as its system prompt.
+- **Escalation**, one card per side: **Ranking → prioritization** on the tenant tab (the
+  `rank_note` rubric, and how rank is used) and **Competitor tiers → escalation** on the
+  competitor tab (the `tier_note` rubric). Both only move priority; neither can suppress a
+  finding.
 - **Queries sent per entity**, with `{name}` and `{city}` marked, and the credit count for the
   whole list.
 - **Notes & changes.** A writable box per side, saved to `data/notes/<key>.md`. This is not a

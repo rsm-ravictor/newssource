@@ -40,3 +40,6 @@ data/live_*.json
 
 # The .md rosters under data/watchlists/ are real lists too, not just the .txt ones.
 data/watchlists/*.md
+
+# Word lock files, created whenever a .docx is open
+~$*

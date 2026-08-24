@@ -4,8 +4,9 @@
     python serve.py --port 9000 --no-browser
 
 Two pages:
-    /            the runner - Push run now, a status bar for the five workflow
-                 stages, and the rendered emails in desktop or phone chrome
+    /            the runner - Push run now, Pause & build email, a status bar for
+                 the five workflow stages, and the rendered emails in desktop or
+                 phone chrome
     /reference   review-only: both rosters, the guidelines that define "meaningful",
                  and an editable notes box that feeds the next run
 
@@ -101,7 +102,14 @@ def write_notes(key: str, text: str) -> None:
 
 
 def execute_run(run_id: str, days: int, limit: int) -> None:
-    """Search -> judge -> render for every report type. Runs on a worker thread."""
+    """Search -> judge -> render for every report type. Runs on a worker thread.
+
+    Pausable: /api/stop sets ``stop`` on the run, and the entity loop checks it
+    before starting each entity. A pause is therefore never a kill - the run stops
+    retrieving, then walks the rest of the way through curate and render with
+    whatever it already has, so the emails are built from real retrieved findings
+    rather than being thrown away. There is no resume: the next run starts over.
+    """
     config = load_config()
     specs = config["report_types"]
     search_cfg = config.get("search", {})
@@ -115,6 +123,11 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
     def bump() -> None:
         with RUNS_LOCK:
             RUNS[run_id]["done"] += 1
+
+    def paused() -> bool:
+        """Has the reviewer pressed Pause? Checked between entities, never mid-call."""
+        with RUNS_LOCK:
+            return RUNS[run_id]["stop"]
 
     def stage(key: str, note: str = "", *, done: bool = False) -> None:
         """Move the status bar.
@@ -159,9 +172,19 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
         period = search_mod.period_label(days)
         run_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         results: dict[str, dict] = {}
+        skipped: list[str] = []
 
         for key, spec in specs.items():
             entries = planned[key]
+
+            # Paused before this report type began: nothing was retrieved for it, so
+            # there is nothing honest to put in an email. Say so rather than sending
+            # an empty briefing that reads like "we looked and found nothing".
+            if paused():
+                skipped.append(spec["label"])
+                log(f"[{spec['label']}] not started — paused before it began")
+                continue
+
             log(f"[{spec['label']}] {len(entries)} {spec['entity_noun_plural']}, {period}")
 
             # Whatever the reviewer typed on the reference page sharpens the criteria
@@ -178,6 +201,7 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
 
             judged: list[dict] = []
             kept = dropped = 0
+            processed = 0
             failed: list[str] = []
 
             # Search and judge one entity at a time. Interleaving keeps the progress
@@ -186,6 +210,13 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
             # flips between Searching and Reviewing with it, which is what is
             # actually happening.
             for entry in entries:
+                # Checked here, at the top of the entity, so an entity is never left
+                # half-done: whatever was searched has also been judged.
+                if paused():
+                    log(f"  paused after {processed} of {len(entries)} "
+                        f"{spec['entity_noun_plural']} — curating what was retrieved")
+                    break
+
                 name, city = entry.name, entry.city
                 rank_tag = f" (#{entry.rank})" if entry.rank else ""
                 stage("search", f"{name}{rank_tag}")
@@ -225,16 +256,32 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
                 kept += k
                 dropped += d
                 failed += f
+                processed += 1
                 bump()
+
+            cut_short = processed < len(entries)
+            if cut_short and not processed:
+                skipped.append(spec["label"])
+                log(f"[{spec['label']}] paused before any {spec['entity_noun']} was "
+                    "retrieved — no email rendered")
+                continue
 
             log(f"{spec['label']}: {kept} findings kept, {dropped} excluded"
                 + (f", {len(failed)} skipped" if failed else ""))
             # Not retired yet: the next report type searches and reviews too, and the
             # bar should say so rather than claiming those stages are finished.
             stage("review", f"{kept} kept, {dropped} excluded")
-            stage("curate", f"{spec['label']} — {kept} findings")
+            stage("curate", f"{spec['label']} — {kept} findings"
+                            + (" (paused)" if cut_short else ""))
 
-            monitored = len(entries)
+            # A paused run screened fewer entities than the roster holds, and the
+            # email says how many it screened. Both numbers have to reflect the
+            # pause or the briefing overstates its own coverage.
+            monitored = processed
+            period_label = period
+            if cut_short:
+                period_label = (f"{period} · paused after {processed} of {len(entries)} "
+                                f"{spec['entity_noun_plural']}")
             context = build_context(
                 spec,
                 config,
@@ -242,7 +289,7 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
                 priorities=DEFAULT_PRIORITIES,
                 monitored=monitored,
                 run_date=run_date,
-                period_label=period,
+                period_label=period_label,
             )
             email_html = render_digest(env, context)
             meta = report_meta(key, spec, context, email_html, f"digest-{key}.html")
@@ -257,19 +304,29 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
                 # Kept server-side for the snapshot writer.
                 "_alerts": judged,
                 "_run_date": run_date,
-                "_period": period,
+                "_period": period_label,
                 "_monitored": monitored,
             }
 
+        was_paused = paused()
+        if skipped:
+            log("not rendered (paused first): " + ", ".join(skipped))
+
         findings = sum(r["total_alerts"] for r in results.values())
         stage("curate", f"{len(results)} {'email' if len(results) == 1 else 'emails'} rendered", done=True)
-        stage("done", f"{findings} {'finding' if findings == 1 else 'findings'} in {len(results)} briefings", done=True)
+        stage(
+            "done",
+            f"{findings} {'finding' if findings == 1 else 'findings'} in {len(results)} briefings"
+            + (" — paused early" if was_paused else ""),
+            done=True,
+        )
 
         with RUNS_LOCK:
             RUNS[run_id]["reports"] = results
             RUNS[run_id]["days"] = days
+            RUNS[run_id]["stopped"] = was_paused
             RUNS[run_id]["state"] = "done"
-        log("done")
+        log("paused — email built from what was retrieved" if was_paused else "done")
 
     except Exception as exc:  # noqa: BLE001 - surface it to the page, don't kill the server
         traceback.print_exc()
@@ -312,6 +369,8 @@ def write_snapshot(run_id: str) -> list[str]:
         if not run or run.get("state") != "done":
             raise ValueError("run is not finished")
         reports = run["reports"]
+    if not reports:
+        raise ValueError("this run was paused before it retrieved anything - nothing to save")
 
     specs = load_config()["report_types"]
     written = []
@@ -406,6 +465,9 @@ class Handler(BaseHTTPRequestHandler):
                     "days": run.get("days"),
                     "error": run.get("error"),
                     "steps": step_states(run),
+                    # Pause requested but the entity in flight is still finishing.
+                    "pausing": bool(run.get("stop")) and run["state"] == "running",
+                    "paused": bool(run.get("stopped")),
                 }
                 if run["state"] == "done":
                     # Strip the private "_"-prefixed keys before they reach the page.
@@ -454,10 +516,27 @@ class Handler(BaseHTTPRequestHandler):
                 RUNS[run_id] = {
                     "state": "running", "log": [], "done": 0, "total": 0, "reports": {},
                     "step": "list", "steps_done": [], "step_notes": {},
+                    # Pause flag, and whether the finished run actually honoured one.
+                    "stop": False, "stopped": False,
                 }
 
             threading.Thread(target=execute_run, args=(run_id, days, limit), daemon=True).start()
             return self._json({"run_id": run_id})
+
+        # Stop retrieving. The worker notices between entities and then finishes the
+        # run normally - review, curate, render - on what it already has. One-way:
+        # a paused run cannot be resumed, the next run starts from the top.
+        if path == "/api/stop":
+            run_id = (parse_qs(route.query).get("id") or [""])[0]
+            with RUNS_LOCK:
+                run = RUNS.get(run_id)
+                if not run:
+                    return self._json({"error": "unknown run id"}, 404)
+                if run["state"] != "running":
+                    return self._json({"error": "run is not in progress"}, 409)
+                run["stop"] = True
+                run["log"].append("pause requested — finishing the entity in flight")
+            return self._json({"pausing": True})
 
         if path == "/api/notes":
             key = (parse_qs(route.query).get("key") or [""])[0]
@@ -571,7 +650,11 @@ def render_reference() -> str:
             "sections": sections,
             "categories": spec["categories"],
             "criteria": spec["criteria"].rstrip(),
+            # Escalation is rank-based on the tenants side and tier-based on the
+            # competitors side. Both keys are always present so the template can
+            # branch on them under StrictUndefined.
             "rank_note": (spec.get("rank_note") or "").rstrip(),
+            "tier_note": (spec.get("tier_note") or "").rstrip(),
             "query_templates": spec["query_templates"],
             "privacy_note": spec["privacy_note"],
             "notes": read_notes(key),

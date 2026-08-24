@@ -1,4 +1,4 @@
-"""Judge stage - Claude (via TritonAI) decides relevance, category, and priority.
+"""Judge stage - Claude (via TritonAI) decides relevance, category, priority, and CEO flag.
 
 One LLM call per entity covering all of that entity's articles: cost-efficient and
 it keeps the one-entity-at-a-time shape the privacy model wants. The category enum
@@ -33,6 +33,8 @@ WRITING the output:
 - client_summary: 2-3 sentences a broker could forward to a client unedited. State only what the
   article supports. Never speculate about rent, lease terms, or your own firm's position.
 - confidence: 0.0-1.0, how firmly the article supports the judgment.
+- ceo_flag: true only when the CEO FLAG test in the criteria above is met. It is separate from
+  priority - a medium item can carry the flag and a high one need not.
 - Return one judgment object per article given, echoing its source_url.
 
 OUTPUT FORMAT: return ONLY raw JSON - a single object with exactly one top-level key,
@@ -58,6 +60,9 @@ def make_schema(category_keys: list[str]) -> type[BaseModel]:
         headline: str = Field(default="", description="<= 90 characters, factual, no hype")
         client_summary: str = Field(default="", description="2-3 sentences, client-ready")
         confidence: float = 0.0
+        ceo_flag: bool = Field(
+            default=False, description="true only if the item belongs in a short CEO brief"
+        )
         reason_if_excluded: str = ""
 
     class CompanyJudgment(BaseModel):
@@ -67,16 +72,19 @@ def make_schema(category_keys: list[str]) -> type[BaseModel]:
 
 
 def criteria_for(spec: dict, notes: str = "") -> str:
-    """A report type's criteria, its rank rubric, analyst notes, and the output contract.
+    """A report type's criteria, its escalation rubric, analyst notes, and the output contract.
 
     ``rank_note`` only exists on report types whose roster carries a "#" column -
-    the tenants side - so the competitors prompt never mentions rank. ``notes`` is
+    the tenants side - so the competitors prompt never mentions rank. Competitors
+    carry ``tier_note`` instead: the same escalation job done from an inferred
+    competitor tier rather than from a rank the roster supplies. ``notes`` is
     whatever the reviewer typed on the reference page; it is appended last so it can
     sharpen the standing criteria without being able to rewrite the output contract.
     """
     parts = [spec["criteria"].rstrip()]
-    if spec.get("rank_note"):
-        parts.append(spec["rank_note"].rstrip())
+    for key in ("rank_note", "tier_note"):
+        if spec.get(key):
+            parts.append(spec[key].rstrip())
     if notes.strip():
         parts.append(
             "ANALYST NOTES (added on the reference page; treat these as guidance that refines\n"
@@ -266,7 +274,7 @@ def judge_entities(
                 say(f"    - {art['title'][:58]} ({(j.reason_if_excluded or 'no reason given')[:64]})")
                 continue
             kept += 1
-            say(f"    + {j.priority}/{j.category}: {j.headline[:58]}")
+            say(f"    + {j.priority}/{j.category}{' [CEO]' if j.ceo_flag else ''}: {j.headline[:58]}")
             alerts.append(
                 {
                     "category": j.category,
@@ -274,6 +282,7 @@ def judge_entities(
                     "headline": j.headline,
                     "client_summary": j.client_summary,
                     "confidence": round(j.confidence, 2),
+                    "ceo_flag": bool(j.ceo_flag),
                     # Provenance comes from the local record, not the model.
                     "source_name": art["source_name"],
                     "source_url": art["source_url"],

@@ -15,7 +15,7 @@
 
   Context: tabs[] (key, label, brandmark, entity_noun, entity_noun_plural, ranked,
            count, source, source_exists, sections[], categories{}, criteria,
-           rank_note, query_templates[], privacy_note, notes, notes_path),
+           rank_note, tier_note, query_templates[], privacy_note, notes, notes_path),
            reports[] (alias of tabs, for _canvas_css.html), default_type,
            priorities{}, model_note
 -#}
@@ -236,6 +236,11 @@ tr.filtered-out { display: none; }
         <span class="pri"><i style="background: {{ pri.dot }};"></i>{{ pri.label }} <code class="src">{{ pk }}</code></span>
         {% endfor %}
       </div>
+      <p class="hint" style="margin:12px 0 0">
+        Every finding also carries a separate <span class="src">ceo_flag</span>. It is not a fourth
+        severity: priority answers how fast the team should move, the flag answers whether leadership
+        needs to know, so a Watch item can carry it and an Urgent one need not.
+      </p>
     </div>
 
     <div class="card">
@@ -249,6 +254,21 @@ tr.filtered-out { display: none; }
         down the roster. Rank is counted within its roster section.
       </p>
       <pre class="prose tight">{{ t.rank_note }}</pre>
+      {#- `is defined` guard: config and templates are re-read per request but serve.py is
+        not, so a running server can reach a newer template than its own context builder.
+        Degrade to the no-ranking card instead of 500-ing the whole page. -#}
+      {% elif t.tier_note is defined and t.tier_note %}
+      <h2>Competitor tiers &rarr; escalation</h2>
+      <p class="hint">
+        <span class="src">{{ t.source }}</span> has no <b>#</b> column, so no rank reaches the model
+        on this side. Escalation comes from the competitor tier instead &mdash; and the tier is
+        inferred by the model from the firm itself, not stored on the roster, so it is judgment
+        rather than data. Tier only moves priority; it never suppresses a finding, and every firm on
+        the roster stays in scope. Findings are ordered by severity, then by how many findings the
+        {{ t.entity_noun }} has. Category and ticker are shown below for review; neither is sent
+        anywhere.
+      </p>
+      <pre class="prose tight">{{ t.tier_note }}</pre>
       {% else %}
       <h2>No ranking on this side</h2>
       <p class="hint">

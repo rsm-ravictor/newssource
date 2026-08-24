@@ -47,6 +47,16 @@
 .run-btn:hover { filter: brightness(1.08); }
 .run-btn:disabled { background: var(--pill); color: var(--faint); cursor: not-allowed; filter: none; }
 
+/* Amber rather than red: this is a hold-and-curate, not an abort. It only exists
+   while a run is live, so it never sits there greyed out next to Run. */
+.pause-btn {
+  color: var(--tag-fg); background: var(--tag-bg);
+  border: 1px solid var(--tag-border); padding: 8px 15px;
+}
+.pause-btn .run-glyph { font-size: 11px; letter-spacing: 0.5px; }
+.pause-btn:disabled { border-color: var(--line); }
+.runbar:not(.running) .pause-btn { display: none; }
+
 .cost { font-size: 11.5px; color: var(--faint); white-space: nowrap; }
 .cost b { color: var(--muted); font-weight: 600; }
 .cost input {
@@ -250,6 +260,14 @@
     <span class="run-glyph" aria-hidden="true">&#9654;</span> Push run now
   </button>
 
+  {#- Stops the search/review loop between entities, then lets the run finish the
+      rest of the way - curate and render - on whatever it already retrieved. Not a
+      cancel, and not resumable: the next run starts from the top of the roster. -#}
+  <button class="run-btn pause-btn" id="pause-btn" type="button" disabled
+          title="Stop retrieving now; review and curate whatever has come back so far into the email">
+    <span class="run-glyph" aria-hidden="true">&#10074;&#10074;</span> Pause &amp; build email
+  </button>
+
   {% if not has_tritonai or not has_tavily %}
   <div class="warn">
     Missing credentials in <code>.env</code>:
@@ -358,6 +376,7 @@
     var btnD = document.getElementById('btn-desktop');
     var btnM = document.getElementById('btn-mobile');
     var runBtn = document.getElementById('run-btn');
+    var pauseBtn = document.getElementById('pause-btn');
     var saveBtn = document.getElementById('save-snapshot');
     var limitInput = document.getElementById('limit-input');
     var costNote = document.getElementById('cost-note');
@@ -493,6 +512,8 @@
     runBtn.addEventListener('click', function () {
       runBtn.disabled = true;
       saveBtn.disabled = true;
+      pauseBtn.disabled = false;
+      pauseBtn.innerHTML = '<span class="run-glyph" aria-hidden="true">&#10074;&#10074;</span> Pause &amp; build email';
       runbar.classList.add('running');
       progress.classList.remove('hidden');
       resetSteps();
@@ -516,6 +537,27 @@
       });
     });
 
+    // Pause: tell the server to stop retrieving. It keeps going through review and
+    // curate on what it already has, so the run still ends in a rendered email -
+    // which is why the button leaves the poll loop alone and only disables itself.
+    pauseBtn.addEventListener('click', function () {
+      if (!lastRunId || pauseBtn.disabled) return;
+      pauseBtn.disabled = true;
+      pauseBtn.innerHTML = 'Pausing…';
+      progTitle.textContent = 'Pausing — curating what was retrieved';
+      fetch('api/stop?id=' + encodeURIComponent(lastRunId), {method: 'POST'})
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j.error) { throw new Error(j.error); }
+          flash('Pausing — building the email from what has come back');
+        })
+        .catch(function (e) {
+          addLog('pause failed: ' + e.message, 'bad');
+          pauseBtn.disabled = false;
+          pauseBtn.innerHTML = '<span class="run-glyph" aria-hidden="true">&#10074;&#10074;</span> Pause &amp; build email';
+        });
+    });
+
     var shown = 0;
     function poll() {
       fetch('api/status?id=' + encodeURIComponent(lastRunId))
@@ -530,11 +572,22 @@
             progCount.textContent = s.done + ' / ' + s.total + ' entities';
           }
 
+          if (s.pausing) {
+            pauseBtn.disabled = true;
+            pauseBtn.innerHTML = 'Pausing…';
+            progTitle.textContent = 'Pausing — curating what was retrieved';
+          }
+
           if (s.state === 'done') {
+            var built = Object.keys(s.reports || {}).length;
             applyResults(s.reports || {});
-            progTitle.textContent = 'Done — last ' + s.days + ' days';
-            progBar.style.width = '100%';
-            finish(true);
+            progTitle.textContent = s.paused
+              ? 'Paused — email built from ' + s.done + ' of ' + (s.total || s.done) + ' entities'
+              : 'Done — last ' + s.days + ' days';
+            // A paused run stops short of its own progress target, so filling the
+            // bar would claim coverage it does not have.
+            if (!s.paused) progBar.style.width = '100%';
+            finish(built > 0);
           } else if (s.state === 'error') {
             addLog('run failed: ' + (s.error || 'unknown'), 'bad');
             progTitle.textContent = 'Failed';
@@ -551,6 +604,7 @@
 
     function finish(ok) {
       runBtn.disabled = false;
+      pauseBtn.disabled = true;
       runbar.classList.remove('running');
       saveBtn.disabled = !ok;
       shown = 0;
@@ -571,11 +625,16 @@
         while (el && el.nodeName !== 'A') { el = el.parentElement; }
         if (!el) return;
         var href = el.getAttribute('href') || '';
-        if (href.charAt(0) !== '#' || href.length < 2) return;
-        var target = doc.getElementById(href.slice(1));
-        if (!target) return;
+        // Real source links carry target="_blank" and open in a new tab - leave
+        // them alone. Only same-document fragments are handled here.
+        if (href.charAt(0) !== '#') return;
+        // Any fragment must be swallowed, including the footer's dead "#"
+        // placeholders and a slug with no matching section: under srcdoc a bare
+        // fragment resolves against the PARENT url, so letting it through loads
+        // this whole runner page inside the email frame.
         ev.preventDefault();
-        target.scrollIntoView({behavior: 'smooth', block: 'start'});
+        var target = href.length > 1 && doc.getElementById(href.slice(1));
+        if (target) target.scrollIntoView({behavior: 'smooth', block: 'start'});
       }, true);
     }
 
