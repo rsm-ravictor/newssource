@@ -40,6 +40,7 @@ from dotenv import load_dotenv
 
 load_dotenv()  # before utils.connect is imported anywhere
 
+import db  # noqa: E402
 import search as search_mod  # noqa: E402
 from judge import judge_entities  # noqa: E402
 from render import (  # noqa: E402
@@ -55,6 +56,13 @@ from render import (  # noqa: E402
 )
 
 DEFAULT_PRIORITIES = ["high", "medium"]
+
+# Cross-run dedupe is correct for a scheduled email build - never alert the same URL
+# twice - but it makes a second demo run over the same roster look empty, because
+# Tavily returns the same stories inside one lookback window. So history is always
+# WRITTEN and the filter is opt-in: the page behaves identically every time it is
+# driven, and the email build turns this on.
+DEDUPE = os.environ.get("NEWS_DEDUPE", "").strip().lower() in {"1", "true", "yes", "on"}
 
 # The workflow the status bar shows, in order. Keys are what the run reports; the
 # labels are what the page prints. Deliberately defined here rather than in the
@@ -169,6 +177,26 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
 
         llm = llm_client()
 
+        # History belongs to the pipeline, not to this page: an email-only build that
+        # drops the UI keeps the same store by calling the same functions. Opened in
+        # the run thread because sqlite3 connections are not shared across threads.
+        history = None
+        try:
+            history = db.connect()
+        except Exception as exc:  # noqa: BLE001
+            log(f"  ! history store unavailable ({type(exc).__name__}) - run continues without it")
+
+        def remember(what: str, fn, *a, **kw):
+            """Best-effort store call: a history failure is logged, never fatal.
+            Losing the audit trail must not lose the briefing."""
+            if history is None:
+                return None
+            try:
+                return fn(history, *a, **kw)
+            except Exception as exc:  # noqa: BLE001
+                log(f"  ! history {what} failed: {type(exc).__name__}: {str(exc)[:80]}")
+                return None
+
         period = search_mod.period_label(days)
         run_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         results: dict[str, dict] = {}
@@ -199,8 +227,14 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
             for entry in entries:
                 segment_totals[entry.segment] = segment_totals.get(entry.segment, 0) + 1
 
+            hist_run = remember(
+                "start_run", db.start_run, key,
+                lookback_days=days, model=model, run_id=f"{run_id}:{key}",
+            )
+
             judged: list[dict] = []
             kept = dropped = 0
+            found_total = skipped_seen = 0
             processed = 0
             failed: list[str] = []
 
@@ -233,6 +267,14 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
                     on_error=lambda m: log(f"  ! {m}"),
                 )
                 log(f"  {name}: {len(articles)} articles found")
+                found_total += len(articles)
+
+                if DEDUPE:
+                    fresh = remember("unseen", db.unseen, key, name, articles)
+                    if fresh is not None and len(fresh) < len(articles):
+                        skipped_seen += len(articles) - len(fresh)
+                        log(f"  {name}: {len(articles) - len(fresh)} seen in an earlier run, not re-judged")
+                        articles = fresh
 
                 stage("review", f"{name}{rank_tag} · {len(articles)} articles")
                 one, k, d, f = judge_entities(
@@ -257,9 +299,29 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
                 dropped += d
                 failed += f
                 processed += 1
+
+                # Per entity rather than per run: a paused or crashed run still has
+                # everything it finished judging.
+                remember(
+                    "record", db.record, hist_run, key,
+                    {
+                        "display_name": name,
+                        "city": city,
+                        "rank": entry.rank if spec.get("use_rank") else None,
+                        "segment": entry.segment,
+                    },
+                    articles,
+                    one[0]["alerts"] if one else [],
+                )
                 bump()
 
             cut_short = processed < len(entries)
+            remember(
+                "finish_run", db.finish_run, hist_run,
+                status="paused" if cut_short else "complete",
+                entities_searched=processed, articles_found=found_total,
+                articles_skipped=skipped_seen, kept=kept, dropped=dropped,
+            )
             if cut_short and not processed:
                 skipped.append(spec["label"])
                 log(f"[{spec['label']}] paused before any {spec['entity_noun']} was "

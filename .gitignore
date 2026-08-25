@@ -43,3 +43,8 @@ data/watchlists/*.md
 
 # Word lock files, created whenever a .docx is open
 ~$*
+
+# History store - real findings about real tenants, and WAL sidecars
+*.db
+*.db-wal
+*.db-shm
