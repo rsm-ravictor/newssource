@@ -297,6 +297,48 @@ tr.filtered-out { display: none; }
       {% endfor %}
     </div>
 
+    {#- `is defined` guard, same reason as the escalation card above: config and
+      templates are re-read per request but serve.py is not, so a running server can
+      reach a newer template than its own context builder. -#}
+    {% if source_tiers is defined and source_tiers %}
+    <div class="card">
+      <h2>Source reliability &rarr; reading order</h2>
+      <p class="hint">
+        This is <b>not a filter</b>. Nothing is ever dropped for where it came from, and every
+        source below still reaches the briefing. Tier is the third sort key, never the first: it
+        only orders findings that already share a priority &mdash; and, on the {{ tabs[0].entity_noun }}
+        side, a roster rank. An urgent social post still leads a routine wire story. Within one
+        severity band, the reliable outlet reads first.
+      </p>
+      <table class="roster">
+        <thead>
+          <tr><th style="width:34px">#</th><th style="width:150px">Tier</th><th>Domains</th></tr>
+        </thead>
+        <tbody>
+          {% for tier in source_tiers %}
+          <tr{% if loop.index == default_tier_position %} class="top25"{% endif %}>
+            <td class="rank">{{ loop.index }}</td>
+            <td class="nm">
+              {{ tier.label }}
+              {%- if tier.hint %}<div class="nt">{{ tier.hint }}</div>{% endif %}
+            </td>
+            <td class="tk">
+              {%- if tier.domains %}{{ tier.domains|join(' · ') }}
+              {%- else %}<span class="nt">any domain not named on this page</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="hint" style="margin-bottom:0">
+        A subdomain matches its parent, so <span class="src">m.facebook.com</span> is tiered with
+        <span class="src">facebook.com</span>. Edit the <span class="src">source_tiers</span> block
+        in <span class="src">config/report_types.yaml</span> to move a domain; the next run picks it
+        up with no restart.
+      </p>
+    </div>
+    {% endif %}
+
     <div class="card" data-notes-card="{{ t.key }}">
       <h2>Notes &amp; changes</h2>
       <p class="hint">

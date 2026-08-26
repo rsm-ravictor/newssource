@@ -723,8 +723,15 @@ def render_reference() -> str:
             "notes_path": str(notes_path(key).relative_to(ROOT)).replace("\\", "/"),
         })
 
+    # Source tiers are shared by both report types, so they ride alongside `tabs`
+    # rather than inside one. Same contract as the rubrics: the page shows the list
+    # the run actually sorts by, read from the same config on the same request.
+    tier_block = config.get("source_tiers") or {}
+
     return env.get_template("reference.html").render(
         tabs=tabs,
+        source_tiers=tier_block.get("order") or [],
+        default_tier_position=tier_block.get("default_position"),
         # _canvas_css.html generates its per-type visibility rules from `reports`.
         reports=tabs,
         default_type=tabs[0]["key"],

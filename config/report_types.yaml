@@ -36,6 +36,65 @@ search:
   search_depth: basic
   sleep_between_calls: 0.5
 
+# Source reliability -> reading order. NOT a filter: nothing is ever dropped for
+# where it came from, and every source still reaches the digest. Tier is the third
+# sort key, never the first - it only orders findings that already share a priority
+# (and, on the tenant side, a roster rank). An urgent social-sourced finding still
+# leads a routine wire story; severity and rank stay the rubric's axes.
+#
+# Listed best-first. A domain matching nothing below lands at `default_position`,
+# and a subdomain matches its parent (m.facebook.com -> facebook.com).
+source_tiers:
+  default_position: 4
+  order:
+    - label: Wire & filings
+      hint: newswires, national business press, and the SEC - the system of record
+      domains:
+        - reuters.com
+        - bloomberg.com
+        - wsj.com
+        - ft.com
+        - apnews.com
+        - cnbc.com
+        - barrons.com
+        - sec.gov
+    - label: CRE trade press
+      hint: the outlets that cover leasing and investment sales directly
+      domains:
+        - costar.com
+        - bisnow.com
+        - therealdeal.com
+        - globest.com
+        - commercialobserver.com
+        - connectcre.com
+        - rebusinessonline.com
+        - bizjournals.com
+    - label: Company-issued
+      hint: authoritative for what a company says about itself, promotional in framing
+      domains:
+        - prnewswire.com
+        - businesswire.com
+        - globenewswire.com
+        - stocktitan.net
+    - label: General & unlisted
+      hint: local papers, trade blogs, and any domain not named on this page
+      domains: []
+    - label: Social & user-posted
+      hint: kept for signal - never leads a priority band
+      domains:
+        - facebook.com
+        - x.com
+        - twitter.com
+        - linkedin.com
+        - instagram.com
+        - reddit.com
+        - youtube.com
+        - tiktok.com
+        - threads.net
+        - medium.com
+        - substack.com
+        - quora.com
+
 report_types:
 
   # ─────────────────────────────────────────────────────────────────────────

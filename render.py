@@ -12,6 +12,7 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
 import yaml
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
@@ -28,6 +29,45 @@ PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 
 # Sorts an unranked entity after every ranked one instead of ahead of rank 1.
 UNRANKED = 10**6
+
+# Where a source lands when config/report_types.yaml has no source_tiers block at
+# all: one flat tier, so ordering falls back to exactly the pre-tier behaviour.
+FLAT_TIER = 0
+
+
+def source_tiers(config: dict) -> tuple[dict[str, int], int]:
+    """Flatten the config block into {domain: position} plus the unlisted position.
+
+    Position is 1-based and taken from the order the tiers are written in, so the
+    config reads top-to-bottom as best-to-worst with no separate rank field to keep
+    in sync.
+    """
+    block = config.get("source_tiers") or {}
+    lookup: dict[str, int] = {}
+    for i, tier in enumerate(block.get("order") or [], start=1):
+        for domain in tier.get("domains") or []:
+            lookup[domain.strip().lower().lstrip(".")] = i
+    return lookup, int(block.get("default_position", FLAT_TIER))
+
+
+def source_tier(url: str, lookup: dict[str, int], default: int) -> int:
+    """Tier position for one article's URL.
+
+    Matches the host or any parent of it, so m.facebook.com and web.facebook.com
+    both resolve to facebook.com without every subdomain being listed. The longest
+    match wins, so a specific subdomain can be tiered apart from its parent.
+    """
+    if not lookup:
+        return FLAT_TIER
+    host = urlparse(url or "").netloc.lower().split(":")[0]
+    if host.startswith("www."):
+        host = host[4:]
+    best = None
+    for domain, pos in lookup.items():
+        if host == domain or host.endswith("." + domain):
+            if best is None or len(domain) > len(best[0]):
+                best = (domain, pos)
+    return best[1] if best else default
 
 
 def load_config() -> dict:
@@ -64,12 +104,15 @@ def slugify(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "entity"
 
 
-def build_top_intel(groups: list[dict], *, cap_per_entity: int = 2, limit: int = 5) -> list[dict]:
+def build_top_intel(
+    groups: list[dict], *, cap_per_entity: int = 2, limit: int = 5, tiers=None
+) -> list[dict]:
     """The 'Top Intel' rows: at most N per entity, most severe first, capped.
 
     Capping per entity first stops one noisy company from filling the whole box.
     The sort is stable, so entities keep their reading order within a severity.
     """
+    lookup, default = tiers or ({}, FLAT_TIER)
     rows = []
     for group in groups:
         for alert in group["alerts"][:cap_per_entity]:
@@ -79,24 +122,36 @@ def build_top_intel(groups: list[dict], *, cap_per_entity: int = 2, limit: int =
                 "slug": group["slug"],
                 "rank": group.get("rank"),
             })
-    # Severity first, then roster rank: two urgent findings are ordered by how much
-    # the entity matters. Unranked report types fall back to the old stable order.
-    rows.sort(key=lambda r: (PRIORITY_ORDER.get(r.get("priority"), 9), r.get("rank") or UNRANKED))
+    # Severity first, then roster rank, then source tier: two urgent findings are
+    # ordered by how much the entity matters, and a tie between them is settled by
+    # which outlet carried it. Unranked report types fall back to the old stable
+    # order, and with no source_tiers configured every row shares FLAT_TIER.
+    rows.sort(key=lambda r: (
+        PRIORITY_ORDER.get(r.get("priority"), 9),
+        r.get("rank") or UNRANKED,
+        source_tier(r.get("source_url", ""), lookup, default),
+    ))
     return rows[:limit]
 
 
-def build_groups(entities: list[dict], priorities: list[str]) -> list[dict]:
+def build_groups(entities: list[dict], priorities: list[str], *, tiers=None) -> list[dict]:
     """Filter to the selected priorities and sort for reading order.
 
     Entities with the most urgent finding come first; within an entity, findings
-    are ordered high -> medium -> low. Entities left with nothing drop out.
+    are ordered high -> medium -> low, and findings of equal severity are ordered
+    by source tier so the reliable outlet leads. Entities left with nothing drop
+    out. Nothing is ever dropped for its source - tier only orders.
     """
+    lookup, default = tiers or ({}, FLAT_TIER)
     groups = []
     for entity in entities:
         kept = [a for a in entity.get("alerts", []) if a.get("priority") in priorities]
         if not kept:
             continue
-        kept.sort(key=lambda a: PRIORITY_ORDER.get(a.get("priority"), 9))
+        kept.sort(key=lambda a: (
+            PRIORITY_ORDER.get(a.get("priority"), 9),
+            source_tier(a.get("source_url", ""), lookup, default),
+        ))
         groups.append(
             {
                 "display_name": entity["display_name"],
@@ -114,6 +169,10 @@ def build_groups(entities: list[dict], priorities: list[str]) -> list[dict]:
         key=lambda g: (
             PRIORITY_ORDER.get(g["alerts"][0].get("priority"), 9),
             g["rank"] or UNRANKED,
+            # Lead finding's tier: on the unranked competitors side this is what
+            # puts the firm whose top item came from a wire ahead of the one whose
+            # top item came from a social post.
+            source_tier(g["alerts"][0].get("source_url", ""), lookup, default),
             -len(g["alerts"]),
             g["display_name"],
         )
@@ -186,7 +245,10 @@ def build_context(
     empty: bool = False,
 ) -> dict:
     """Assemble the digest render context for one report type."""
-    groups = [] if empty else build_groups(entities, priorities)
+    # Derived from `shared` rather than passed in: every caller already hands over
+    # the whole config, so the tier list cannot drift out of sync with the run.
+    tiers = source_tiers(shared)
+    groups = [] if empty else build_groups(entities, priorities, tiers=tiers)
     total_alerts = sum(len(g["alerts"]) for g in groups)
     total_entities = len(groups)
 
@@ -208,7 +270,7 @@ def build_context(
         "title": spec["title"],
         "run_date": format_run_date(run_date),
         # Top Intel box + the ticker/index need these derived views.
-        "top_intel": build_top_intel(groups),
+        "top_intel": build_top_intel(groups, tiers=tiers),
         "generated_at": datetime.now().strftime("%b %d, %Y at %I:%M %p").replace(" 0", " "),
         # The ticker scrolls a duplicated list; 33px per row, 4 rows visible.
         "ticker_row_px": 33,
