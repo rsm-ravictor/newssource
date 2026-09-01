@@ -1,4 +1,4 @@
-# TritonAI LLM Connection — Portable Setup
+i have# TritonAI LLM Connection — Portable Setup
 
 Drop this file into any project (or paste it into a new Claude / Cursor / ChatGPT
 session) to wire that build up to **TritonAI**, UCSD's OpenAI-compatible LLM proxy.

@@ -1,3 +1,4 @@
+
 # Tenant Intelligence Pipeline (`~/tenant-intel`)
 
 ## Context
