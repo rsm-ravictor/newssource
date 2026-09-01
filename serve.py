@@ -104,6 +104,19 @@ def write_notes(key: str, text: str) -> None:
     notes_path(key).write_text(text.replace("\r\n", "\n"), encoding="utf-8")
 
 
+def default_days(config: dict) -> int:
+    """The lookback preset the page loads with.
+
+    Read from ``lookback_default`` rather than taken as the first preset, so the
+    cheap 1-day test window can sit at the front of the bar without becoming what a
+    run uses when nobody picked a range. Falls back to the first preset, and to it
+    again if the configured default is not one of the offered windows.
+    """
+    presets = config.get("lookback_presets", [7, 30, 90])
+    value = config.get("lookback_default")
+    return value if value in presets else presets[0]
+
+
 # ---------------------------------------------------------------------------
 # The pipeline
 # ---------------------------------------------------------------------------
@@ -559,9 +572,10 @@ class Handler(BaseHTTPRequestHandler):
             except json.JSONDecodeError:
                 return self._json({"error": "bad JSON body"}, 400)
 
-            presets = load_config().get("lookback_presets", [7, 30, 90])
+            config = load_config()
+            presets = config.get("lookback_presets", [7, 30, 90])
             try:
-                days = int(body.get("days", presets[0]))
+                days = int(body.get("days", default_days(config)))
             except (TypeError, ValueError):
                 return self._json({"error": "days must be an integer"}, 400)
             if days not in presets:
@@ -661,6 +675,7 @@ def render_page() -> str:
         reports=reports,
         default_type=reports[0]["key"],
         presets=config.get("lookback_presets", [7, 30, 90]),
+        default_days=default_days(config),
         entity_counts=entity_counts,
         queries_per_entity=queries,
         watchlist_paths=watchlist_paths,

@@ -192,14 +192,20 @@ def get_client():
 
 
 def period_label(days: int) -> str:
-    """Human label for a lookback window, e.g. 'Last 7 days (Aug 11 - Aug 17, 2026)'."""
+    """Human label for a lookback window, e.g. 'Last 7 days (Aug 11 - Aug 17, 2026)'.
+
+    A one-day window reads as 'Last 24 hours'; it goes into the email subject line
+    and the briefing header, where "Last 1 days" would be the first thing a reader
+    sees.
+    """
     now = datetime.now(timezone.utc)
     start = now.timestamp() - days * 86400
     start_dt = datetime.fromtimestamp(start, tz=timezone.utc)
     same_year = start_dt.year == now.year
     left = f"{start_dt.strftime('%b')} {start_dt.day}" + ("" if same_year else f", {start_dt.year}")
     right = f"{now.strftime('%b')} {now.day}, {now.year}"
-    return f"Last {days} days ({left} - {right})"
+    window = "24 hours" if days == 1 else f"{days} days"
+    return f"Last {window} ({left} - {right})"
 
 
 def main() -> int:

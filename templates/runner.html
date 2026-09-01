@@ -244,7 +244,7 @@
   <div class="segmented" role="tablist" aria-label="Lookback window">
     {% for d in presets %}
     <button class="days-btn" data-days="{{ d }}" role="tab"
-            aria-selected="{{ 'true' if loop.first else 'false' }}">Last {{ d }} days</button>
+            aria-selected="{{ 'true' if d == default_days else 'false' }}">{{ 'Last 24 hours' if d == 1 else 'Last %d days' % d }}</button>
     {% endfor %}
   </div>
 
@@ -390,7 +390,7 @@
     var toastTimer, pollTimer;
 
     var activeType = {{ default_type | tojson }};
-    var activeDays = {{ presets[0] | tojson }};
+    var activeDays = {{ default_days | tojson }};
     var entityCounts = {{ entity_counts | tojson }};
     var queriesPerEntity = {{ queries_per_entity | tojson }};
     var lastRunId = null;
@@ -410,6 +410,12 @@
       btnM.setAttribute('aria-selected', String(mobile));
       btnD.setAttribute('aria-selected', String(!mobile));
       try { localStorage.setItem('runnerMode', mode); } catch (e) {}
+    }
+
+    // Matches period_label() in search.py, so the progress line and the rendered
+    // email describe the same window the same way.
+    function windowLabel(d) {
+      return d === 1 ? 'last 24 hours' : 'last ' + d + ' days';
     }
 
     function setDays(d) {
@@ -519,7 +525,7 @@
       resetSteps();
       logEl.innerHTML = '';
       progBar.style.width = '0';
-      progTitle.textContent = 'Running — last ' + activeDays + ' days';
+      progTitle.textContent = 'Running — ' + windowLabel(activeDays);
       progCount.textContent = 'starting…';
 
       fetch('api/run', {
@@ -583,7 +589,7 @@
             applyResults(s.reports || {});
             progTitle.textContent = s.paused
               ? 'Paused — email built from ' + s.done + ' of ' + (s.total || s.done) + ' entities'
-              : 'Done — last ' + s.days + ' days';
+              : 'Done — ' + windowLabel(s.days);
             // A paused run stops short of its own progress target, so filling the
             // bar would claim coverage it does not have.
             if (!s.paused) progBar.style.width = '100%';

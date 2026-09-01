@@ -27,8 +27,15 @@ priorities:
   medium: {label: Watch,         dot: '#f79009', fg: '#b54708', bg: '#fffaeb'}
   low:    {label: Informational, dot: '#2e90fa', fg: '#175cd3', bg: '#eff8ff'}
 
-# Lookback windows offered by the live runner (days).
-lookback_presets: [7, 30, 90]
+# Lookback windows offered by the live runner (days). 1 is the cheap test window:
+# a full-roster run over one day returns few enough articles to judge the whole list
+# without spending a week's worth of credits and tokens.
+lookback_presets: [1, 7, 30, 90]
+
+# Which preset is selected when the page loads. Kept separate from the order above so
+# the cheapest window can sit at the front of the bar without silently becoming what
+# an unattended production run uses.
+lookback_default: 7
 
 # Tavily search settings shared by both types.
 search:

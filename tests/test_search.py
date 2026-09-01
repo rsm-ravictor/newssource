@@ -135,6 +135,10 @@ class TestPeriodLabel(unittest.TestCase):
         self.assertTrue(period_label(7).startswith("Last 7 days ("))
         self.assertIn("-", period_label(30))
 
+    def test_one_day_reads_as_hours(self):
+        # "Last 1 days" would ship in the email subject line.
+        self.assertTrue(period_label(1).startswith("Last 24 hours ("))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
