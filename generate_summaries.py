@@ -30,12 +30,14 @@ load_dotenv()
 
 from judge import judge_entities  # noqa: E402
 from render import ROOT, load_config, load_json, read_watchlist  # noqa: E402
+from sources import citable_limit, source_tiers  # noqa: E402
 from utils.connect import DEFAULT_MODEL, get_client  # noqa: E402
 
 
 def run_type(key: str, spec: dict, args) -> tuple[int, int, list[str]]:
     """Judge every entity in one report type's article fixture."""
     print(f"\n=== {spec['label']} ===")
+    config = load_config()
     fixture = load_json(ROOT / spec["articles"])
     watchlist = read_watchlist(ROOT / spec["watchlist"])
 
@@ -50,6 +52,13 @@ def run_type(key: str, spec: dict, args) -> tuple[int, int, list[str]]:
         client=get_client(),  # one client reused across every entity
         verbose=args.verbose,
         progress=lambda m: print(f"  {m}", flush=True),
+        standard=config.get("evidence_standard", ""),
+        tiers=source_tiers(config),
+        citable_max=citable_limit(config),
+        # No date window offline: the fixtures are a fixed set that would age out
+        # and leave this script printing an empty digest a week after it was
+        # written. Live runs get the window from the range the user picked.
+        window_start=None,
     )
 
     payload = {

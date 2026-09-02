@@ -12,10 +12,14 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlparse
 
 import yaml
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
+
+# Source policy lives in sources.py so the judge can gate citations without
+# importing the renderer. Re-exported here: this is where callers and tests
+# have always found it.
+from sources import FLAT_TIER, source_tier, source_tiers  # noqa: F401
 
 # Roster parsing. Re-exported: callers import both from here.
 from watchlist import read_entries, read_watchlist  # noqa: F401
@@ -29,45 +33,6 @@ PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 
 # Sorts an unranked entity after every ranked one instead of ahead of rank 1.
 UNRANKED = 10**6
-
-# Where a source lands when config/report_types.yaml has no source_tiers block at
-# all: one flat tier, so ordering falls back to exactly the pre-tier behaviour.
-FLAT_TIER = 0
-
-
-def source_tiers(config: dict) -> tuple[dict[str, int], int]:
-    """Flatten the config block into {domain: position} plus the unlisted position.
-
-    Position is 1-based and taken from the order the tiers are written in, so the
-    config reads top-to-bottom as best-to-worst with no separate rank field to keep
-    in sync.
-    """
-    block = config.get("source_tiers") or {}
-    lookup: dict[str, int] = {}
-    for i, tier in enumerate(block.get("order") or [], start=1):
-        for domain in tier.get("domains") or []:
-            lookup[domain.strip().lower().lstrip(".")] = i
-    return lookup, int(block.get("default_position", FLAT_TIER))
-
-
-def source_tier(url: str, lookup: dict[str, int], default: int) -> int:
-    """Tier position for one article's URL.
-
-    Matches the host or any parent of it, so m.facebook.com and web.facebook.com
-    both resolve to facebook.com without every subdomain being listed. The longest
-    match wins, so a specific subdomain can be tiered apart from its parent.
-    """
-    if not lookup:
-        return FLAT_TIER
-    host = urlparse(url or "").netloc.lower().split(":")[0]
-    if host.startswith("www."):
-        host = host[4:]
-    best = None
-    for domain, pos in lookup.items():
-        if host == domain or host.endswith("." + domain):
-            if best is None or len(domain) > len(best[0]):
-                best = (domain, pos)
-    return best[1] if best else default
 
 
 def load_config() -> dict:
@@ -105,12 +70,27 @@ def slugify(name: str) -> str:
 
 
 def build_top_intel(
-    groups: list[dict], *, cap_per_entity: int = 2, limit: int = 5, tiers=None
+    groups: list[dict],
+    *,
+    cap_per_entity: int = 2,
+    limit: int = 5,
+    tiers=None,
+    reserve_beyond_rank: int | None = None,
+    reserve_slots: int = 0,
 ) -> list[dict]:
     """The 'Top Intel' rows: at most N per entity, most severe first, capped.
 
     Capping per entity first stops one noisy company from filling the whole box.
     The sort is stable, so entities keep their reading order within a severity.
+
+    ``reserve_beyond_rank`` fixes the failure mode that rank ordering creates: sort
+    strictly by severity then rank and the box fills with the biggest names every
+    week, so a real event at tenant #430 is never read. When set, up to
+    ``reserve_slots`` of the box are held for entities ranked worse than that
+    threshold, filled with their most severe findings. Reserved rows are chosen by
+    the same sort as everything else - this changes who is *eligible* for the last
+    seats, never the standard a finding has to meet. Nothing is padded: if no
+    lower-ranked entity has a finding, the seats go back to the general pool.
     """
     lookup, default = tiers or ({}, FLAT_TIER)
     rows = []
@@ -131,7 +111,52 @@ def build_top_intel(
         r.get("rank") or UNRANKED,
         source_tier(r.get("source_url", ""), lookup, default),
     ))
-    return rows[:limit]
+
+    if not reserve_beyond_rank or reserve_slots <= 0:
+        return rows[:limit]
+
+    def is_smaller(row: dict) -> bool:
+        rank = row.get("rank")
+        return bool(rank) and rank > reserve_beyond_rank
+
+    head = rows[:limit]
+    held = min(reserve_slots, limit)
+    # Only intervene if the natural top N has fewer lower-ranked rows than the
+    # reservation asks for, and there are some to promote.
+    missing = held - sum(1 for r in head if is_smaller(r))
+    if missing <= 0:
+        return head
+    promotions = [r for r in rows[limit:] if is_smaller(r)][:missing]
+    if not promotions:
+        return head
+    # Drop the weakest large-tenant rows to make room, keeping the most severe.
+    keep = [r for r in head if is_smaller(r)] + [r for r in head if not is_smaller(r)][
+        : limit - len(promotions) - sum(1 for r in head if is_smaller(r))
+    ]
+    merged = keep + promotions
+    merged.sort(key=lambda r: (
+        PRIORITY_ORDER.get(r.get("priority"), 9),
+        r.get("rank") or UNRANKED,
+        source_tier(r.get("source_url", ""), lookup, default),
+    ))
+    return merged[:limit]
+
+
+# Fields added by later pipeline stages that older alert fixtures and snapshots do
+# not carry. Defaulted here rather than guarded in the template, so StrictUndefined
+# keeps catching real typos instead of being softened to a .get() everywhere.
+OPTIONAL_ALERT_FIELDS = {
+    "event_date": "",
+    "event_date_basis": "",
+    "event_key": "",
+    "deal_metrics": "",
+    "corroborations": 0,
+}
+
+
+def normalize_alert(alert: dict) -> dict:
+    """One alert with every optional field present, so any snapshot renders."""
+    return {**OPTIONAL_ALERT_FIELDS, **alert}
 
 
 def build_groups(entities: list[dict], priorities: list[str], *, tiers=None) -> list[dict]:
@@ -145,7 +170,11 @@ def build_groups(entities: list[dict], priorities: list[str], *, tiers=None) -> 
     lookup, default = tiers or ({}, FLAT_TIER)
     groups = []
     for entity in entities:
-        kept = [a for a in entity.get("alerts", []) if a.get("priority") in priorities]
+        kept = [
+            normalize_alert(a)
+            for a in entity.get("alerts", [])
+            if a.get("priority") in priorities
+        ]
         if not kept:
             continue
         kept.sort(key=lambda a: (
@@ -270,7 +299,14 @@ def build_context(
         "title": spec["title"],
         "run_date": format_run_date(run_date),
         # Top Intel box + the ticker/index need these derived views.
-        "top_intel": build_top_intel(groups, tiers=tiers),
+        "top_intel": build_top_intel(
+            groups,
+            tiers=tiers,
+            # Only a ranked report type can reserve by rank; the competitors side
+            # has no rank column, so the block is simply absent from its config.
+            reserve_beyond_rank=(spec.get("top_intel_reserve") or {}).get("beyond_rank"),
+            reserve_slots=(spec.get("top_intel_reserve") or {}).get("slots", 0),
+        ),
         "generated_at": datetime.now().strftime("%b %d, %Y at %I:%M %p").replace(" 0", " "),
         # The ticker scrolls a duplicated list; 33px per row, 4 rows visible.
         "ticker_row_px": 33,

@@ -31,7 +31,7 @@ import threading
 import traceback
 import uuid
 import webbrowser
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -43,6 +43,7 @@ load_dotenv()  # before utils.connect is imported anywhere
 import db  # noqa: E402
 import search as search_mod  # noqa: E402
 from judge import judge_entities  # noqa: E402
+from sources import citable_limit, source_tiers  # noqa: E402
 from render import (  # noqa: E402
     DOCS,
     ROOT,
@@ -137,6 +138,14 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
     env = get_env()
     from utils.connect import DEFAULT_MODEL as model
 
+    # Evidence policy for this run, read once. The window is the same range the
+    # user picked: a finding has to be about something that happened inside it,
+    # not merely written about inside it.
+    standard = config.get("evidence_standard", "")
+    tiers = source_tiers(config)
+    citable_max = citable_limit(config)
+    window_start = (datetime.now(timezone.utc).date() - timedelta(days=days)) if days else None
+
     def log(msg: str) -> None:
         with RUNS_LOCK:
             RUNS[run_id]["log"].append(msg)
@@ -175,7 +184,7 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
         # Count the work up front so the progress bar is honest.
         planned: dict[str, list] = {}
         for key, spec in specs.items():
-            entries = read_entries(ROOT / spec["watchlist"])
+            entries = read_entries(ROOT / spec["watchlist"], spec.get("name_aliases"))
             planned[key] = entries[:limit] if limit else entries
         with RUNS_LOCK:
             RUNS[run_id]["total"] = sum(len(v) for v in planned.values())
@@ -306,7 +315,27 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
                     client=llm,
                     progress=log,
                     notes=notes,
+                    standard=standard,
+                    tiers=tiers,
+                    citable_max=citable_max,
+                    window_start=window_start,
                 )
+
+                # An event already reported in an earlier briefing is not news this
+                # week, whichever outlet carried it this time. Runs without the
+                # history store skip this and may repeat themselves - logged, not
+                # silent.
+                if one and history is not None:
+                    new, repeats = db.fresh_events(history, key, name, one[0]["alerts"])
+                    if repeats:
+                        for r in repeats:
+                            log(f"    - {r['headline'][:52]} (already reported: {r['event_key']})")
+                        k -= len(repeats)
+                        dropped += len(repeats)
+                        one[0]["alerts"] = new
+                        if not new:
+                            one = []
+
                 judged += one
                 kept += k
                 dropped += d
@@ -653,7 +682,7 @@ def render_page() -> str:
     entity_counts = {}
     watchlist_paths = {}
     for key, spec in specs.items():
-        entries = read_entries(ROOT / spec["watchlist"])
+        entries = read_entries(ROOT / spec["watchlist"], spec.get("name_aliases"))
         entity_counts[key] = len(entries)
         watchlist_paths[key] = spec["watchlist"]
 
@@ -699,7 +728,7 @@ def render_reference() -> str:
     tabs = []
 
     for key, spec in config["report_types"].items():
-        entries = read_entries(ROOT / spec["watchlist"])
+        entries = read_entries(ROOT / spec["watchlist"], spec.get("name_aliases"))
         ranked = bool(spec.get("use_rank"))
 
         # Rank is counted within a segment, so the roster is grouped by it. Files
@@ -747,6 +776,11 @@ def render_reference() -> str:
         tabs=tabs,
         source_tiers=tier_block.get("order") or [],
         default_tier_position=tier_block.get("default_position"),
+        # The evidence standard and the citation line are shared by both types, and
+        # both are shown verbatim: the page's whole promise is that it prints what
+        # the run actually applies, not a description of it.
+        evidence_standard=(config.get("evidence_standard") or "").rstrip(),
+        citable_max_position=tier_block.get("citable_max_position"),
         # _canvas_css.html generates its per-type visibility rules from `reports`.
         reports=tabs,
         default_type=tabs[0]["key"],

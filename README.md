@@ -28,6 +28,8 @@ and doesn't carry, the keys, the rosters you have to supply, and the loopback-on
 | `judge.py` | Judge stage — one LLM call per entity, schema built from config, JSON repair. |
 | `watchlist.py` | Roster parsing — Markdown tables read by column name, rank/category/ticker, name cleaning. |
 | `render.py` | Render stage — alerts → digest context → HTML. Shared by the static build and live runs. Owns the severity → rank → source-tier sort. |
+| `sources.py` | Source policy — which tier a domain is, whether it may be cited, and the entity's-own-domain rule. |
+| `export_rubrics.py` | Regenerates the two `*-intelligence-rubric.md` docs from the config. `--check` fails if they are stale. |
 | `db.py` | The history store — SQLite at `data/history.db`. Run records, every URL ever seen, judged alerts. Cross-run dedupe lives here. |
 | `ingest.py` | Converts the AAT Excel workbooks into `data/watchlists/*.txt`. Optional — the root rosters are the reference. |
 | `templates/digest.html` | **The email.** One Jinja2 template serving both report types; email-safe table HTML. Placeholder for the client's real template. |
@@ -37,7 +39,7 @@ and doesn't carry, the keys, the rosters you have to supply, and the loopback-on
 | `build_preview.py` | Renders every report type into `docs/` from fixtures. No network, no key. |
 | `generate_summaries.py` | Judges the article *fixtures* offline — iterate on criteria without spending credits. |
 | `smoke_test.py` | Proves the TritonAI connection once your key is in `.env`. |
-| `tests/` | 71 tests, no network and no key. Includes the assertions that only name + city can reach a query. |
+| `tests/` | 110 tests, no network and no key. Includes the assertions that only name + city can reach a query. |
 | [`SETUP.md`](SETUP.md) | Handoff guide — install, keys, rosters, and running this on another machine. |
 | `utils/connect.py` | The single LLM entry point, verbatim from `TRITONAI_SETUP.md`. |
 | `data/mock_articles_*.json` | Fictional search hits per report type, input to the offline judge. Include decoys that should be rejected. |
@@ -184,19 +186,32 @@ Rank is the one real difference between the two sides, and it is used twice:
 Give the competitor side a rank by adding a `#` column to its tables and setting
 `use_rank: true` under `report_types.competitors`.
 
-### Source reliability breaks the remaining ties
+### Source reliability does two jobs
 
-The full sort is **severity → roster rank → source tier**. `source_tiers` in the config lists
-outlets best-first — wire services and SEC filings, then the CRE trade press, then company-issued
-releases, then anything unlisted, then social and user-posted — and a finding's domain decides
-where it sits. Subdomains inherit their parent (`m.facebook.com` → `facebook.com`); a domain
-matching nothing lands at `default_position`.
+`source_tiers` in the config lists outlets best-first — wire services and SEC filings, then the CRE
+trade press, then company-issued releases, then anything unlisted, then social, AI answer engines
+and user-posted. A finding's domain decides where it sits. Subdomains inherit their parent
+(`m.facebook.com` → `facebook.com`); a domain matching nothing lands at `default_position`.
 
-It is a **sort key, not a filter.** Nothing is ever dropped for where it came from, and tier is
-third in line, so an urgent finding sourced from a LinkedIn post still leads a routine wire story.
-Severity and rank remain the rubric's axes; tier only orders findings that already tie on both.
-With no `source_tiers` block configured, every row shares one flat tier and ordering falls back to
-exactly the pre-tier behavior. The `/reference` page renders the tier table as configured.
+**Reading order.** Tier is the third sort key: the full sort is **severity → roster rank → source
+tier**, so it only orders findings that already tie on both. Severity and rank stay the rubric's
+axes.
+
+**Citation.** A finding is only emitted if it can be cited at or above `citable_max_position`
+(currently 3 — wire, trade, and company-issued). Weaker sources are still searched and still drive
+*discovery*; they just can't be the link the briefing hands you. Where several outlets carry one
+event, the best-tiered one is cited automatically, so a story a Facebook post surfaced still ships
+if Bisnow also has it. An event whose whole cluster sits below the line is dropped and the run log
+names the outlets — a gated drop never looks like "nothing happened."
+
+One exception, and it matters: **the entity's own domain is always citable.** An IR release or
+company newsroom is the primary record of a company's own announcement, so
+`investors.autodesk.com` qualifies for Autodesk even though no tier list could enumerate it. The
+match is by name against whole host labels, with generic words (`realty`, `properties`, `trust`)
+and short fragments ignored, so "Irvine Company" can't claim `citywatchla.com`.
+
+With no `source_tiers` block, every row shares one flat tier and nothing is gated — exactly the
+pre-tier behavior. The `/reference` page renders the tier table with the citation line marked.
 
 ## Live runner — clickable date range
 
@@ -373,7 +388,7 @@ still fails is skipped and reported on stderr rather than silently shrinking the
 python -m unittest discover -s tests
 ```
 
-71 tests, no network and no key needed.
+110 tests, no network and no key needed.
 
 `test_search.py` (18) — the important ones assert that a built Tavily query contains the entity name
 and city and **nothing else**; if someone adds a placeholder to `query_templates`, they fail. The
@@ -430,6 +445,61 @@ copy can't be mistaken for real reporting.
 
 Rebuild and commit `docs/` whenever the template or fixture changes.
 
+### Where the rubric actually lives
+
+`config/report_types.yaml` **is** the rubric: the `criteria`, `evidence_standard`, `rank_note` and
+`tier_note` blocks are verbatim what the model receives as its system prompt. The two
+`*-intelligence-rubric.md` files at the repo root are for people — they're what gets read in a
+review meeting — and **nothing reads them at runtime**.
+
+That split is useful right up until they disagree, at which point someone edits a document and
+their change never reaches the model. So they're generated, not maintained:
+
+```bash
+python export_rubrics.py           # rewrite both docs from the config
+python export_rubrics.py --check   # exit 1 if either is stale (worth a pre-commit hook)
+```
+
+Edit the YAML, re-run, commit both. For an adjustment you want to try on the next run without
+touching the config, use the notes box on `/reference` — `judge.py` appends it to that side's
+criteria.
+
+## The evidence standard
+
+Everything above decides whether a development *matters*. `evidence_standard` in the config — one
+block, prepended to both report types' criteria — decides whether a finding is trustworthy and new
+at all, and it is applied first. An article failing any of it is excluded however interesting its
+subject.
+
+| Rule | What it catches |
+|---|---|
+| **Is it about this entity?** | The model judges a title and a snippet, never the page. Search matches stray mentions, so a law firm's attorney bio listing a past client, or a consulting write-up of another company, arrives looking like news. `about_entity=false` excludes it. |
+| **When did the event happen?** | `event_date` is the date of the *development*, not of publication. A 2026 article about 2025 layoffs is a 2025 event. Undated means excluded: recency is the point of the briefing, and publication inside the window is not evidence the event is recent. |
+| **One event, one item.** | Every judgment carries an `event_key`. Judgments sharing one collapse to a single finding, keeping the cluster's most severe priority and CEO flag, so consolidating never quietly downgrades. |
+| **Can it be cited?** | See the citation line above. |
+| **Is it new?** | An event reported in an earlier briefing is not reported again, whichever outlet carried it this time. |
+
+The last three are enforced in code as well as prompt, in `judge.consolidate()` and
+`db.fresh_events()` — the model sees one article at a time and knows nothing about the domain
+policy or what shipped last week, so asking it to enforce them alone would be asking it to guess.
+`--verbose` and the runner log print every drop with its reason.
+
+Findings also carry `deal_metrics` — price, $/SF or $/unit, and cap rate as disclosed — which the
+competitor rubric requires for acquisitions, dispositions and pricing comps, and which the email
+renders under the summary.
+
+### Reserved seats for smaller tenants
+
+Sorting strictly by severity then rank fills Top Intel with the same large names every week, and a
+real event at tenant #430 never gets read. `top_intel_reserve` on the tenants side holds `slots: 2`
+of the box for entities ranked worse than `beyond_rank: 100`.
+
+This changes who is *eligible* for the last seats, never the standard a finding must meet. Nothing
+is padded: with no qualifying lower-ranked finding the seats return to the general pool, and a
+reserved row has passed exactly the same relevance bar as every other. The rubric side of the same
+problem is in `rank_note` — top-25 escalation now requires a *concrete* event, since the usual
+cause of a big-tenant-only briefing is escalating large names on thin material.
+
 ## The history store
 
 `db.py` keeps a SQLite database at `data/history.db`, created on first use and re-runnable —
@@ -442,7 +512,9 @@ Rebuild and commit `docs/` whenever the template or fixture changes.
   again, so re-running a window costs nothing in tokens and can't resurface an old story. Dedupe is
   scoped per entity *and* report type, and stripping tracking params happens before hashing, so two
   links to the same story collapse.
-- **`alerts`** — the judged-relevant findings, with `priority`, the CEO flag, and `emailed_at`.
+- **`alerts`** — the judged-relevant findings, with `priority`, the CEO flag, `event_date`,
+  `event_key`, `deal_metrics`, and `emailed_at`. `fresh_events()` reads `event_key` to stop one
+  development being reported twice from two URLs.
   `pending()` / `mark_emailed()` are the backstop that will let the send stage email a story at
   most once, ever — which makes daily-vs-weekly a pure scheduling choice.
 

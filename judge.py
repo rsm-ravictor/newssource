@@ -16,13 +16,18 @@ import json
 import re
 import sys
 import time
+from datetime import date, datetime
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, ValidationError
 
+from sources import FLAT_TIER, UNGATED, is_citable, source_tier
 from utils.connect import ask, ask_json
 
 Priority = Literal["high", "medium", "low"]
+
+# Most severe first: used to pick a cluster's surviving priority.
+PRIORITY_RANK = {"high": 0, "medium": 1, "low": 2}
 
 # Appended to every report type's criteria. TritonAI accepts
 # response_format=json_object but does not enforce it, so the envelope has to be
@@ -32,6 +37,16 @@ WRITING the output:
 - headline: <= 90 characters, factual, specific, no hype and no clickbait.
 - client_summary: 2-3 sentences a broker could forward to a client unedited. State only what the
   article supports. Never speculate about rent, lease terms, or your own firm's position.
+- about_entity: false when the entity is not the real subject of the article. An article you mark
+  false is never relevant, whatever it is about.
+- event_date: YYYY-MM-DD of the development itself. Empty only when the article does not establish
+  it - and then is_relevant must be false.
+- event_date_basis: the words you read the date from ("closed Tuesday", "in March"), or "month
+  only" / "year only" when you rounded to the 1st.
+- event_key: the same slug for every article about one development, a different slug for different
+  developments.
+- deal_metrics: transaction economics exactly as disclosed; empty when the finding is not a
+  transaction or the article gives no figures.
 - confidence: 0.0-1.0, how firmly the article supports the judgment.
 - ceo_flag: true only when the CEO FLAG test in the criteria above is met. It is separate from
   priority - a medium item can carry the flag and a high one need not.
@@ -55,10 +70,34 @@ def make_schema(category_keys: list[str]) -> type[BaseModel]:
     class Judgment(BaseModel):
         source_url: str = Field(description="echo the source_url of the article being judged")
         is_relevant: bool
+        about_entity: bool = Field(
+            default=True,
+            description="false if the article is not actually about this entity (a passing "
+            "mention, an attorney bio, a directory page); such an article is never relevant",
+        )
+        event_date: str = Field(
+            default="",
+            description="YYYY-MM-DD the DEVELOPMENT happened, not when it was published; "
+            "empty when the article does not establish it",
+        )
+        event_date_basis: str = Field(
+            default="",
+            description="the words the date was read from, or 'month only' / 'year only'",
+        )
+        event_key: str = Field(
+            default="",
+            description="short lowercase slug naming the underlying event; two articles about "
+            "one development must share it",
+        )
         category: Optional[CategoryT] = None  # type: ignore[valid-type]
         priority: Optional[Priority] = None
         headline: str = Field(default="", description="<= 90 characters, factual, no hype")
         client_summary: str = Field(default="", description="2-3 sentences, client-ready")
+        deal_metrics: str = Field(
+            default="",
+            description="price, $/SF or $/unit, and cap rate as disclosed, e.g. "
+            "'$412/SF · 5.1% cap · $88M'; empty for non-transaction findings",
+        )
         confidence: float = 0.0
         ceo_flag: bool = Field(
             default=False, description="true only if the item belongs in a short CEO brief"
@@ -71,7 +110,7 @@ def make_schema(category_keys: list[str]) -> type[BaseModel]:
     return CompanyJudgment
 
 
-def criteria_for(spec: dict, notes: str = "") -> str:
+def criteria_for(spec: dict, notes: str = "", standard: str = "") -> str:
     """A report type's criteria, its escalation rubric, analyst notes, and the output contract.
 
     ``rank_note`` only exists on report types whose roster carries a "#" column -
@@ -81,7 +120,10 @@ def criteria_for(spec: dict, notes: str = "") -> str:
     whatever the reviewer typed on the reference page; it is appended last so it can
     sharpen the standing criteria without being able to rewrite the output contract.
     """
-    parts = [spec["criteria"].rstrip()]
+    # The evidence standard goes FIRST: it decides whether an article is about the
+    # entity, dated, new, and citable at all, which is prior to what it is about.
+    parts = [standard.rstrip()] if standard.strip() else []
+    parts.append(spec["criteria"].rstrip())
     for key in ("rank_note", "tier_note"):
         if spec.get(key):
             parts.append(spec[key].rstrip())
@@ -92,6 +134,117 @@ def criteria_for(spec: dict, notes: str = "") -> str:
         )
     parts.append(OUTPUT_FORMAT)
     return "\n\n".join(parts)
+
+
+def parse_event_date(raw: str) -> date | None:
+    """The model's event_date as a date, or None when it gave nothing usable.
+
+    Accepts a bare YYYY-MM-DD and the common near-misses (a trailing time, a slashed
+    form). Anything else is treated as absent rather than guessed at: an event whose
+    date we cannot pin is exactly what the evidence standard tells the model to
+    exclude, so a sloppy string must not become a confident date.
+    """
+    text = (raw or "").strip()[:10]
+    if not text:
+        return None
+    for fmt in ("%Y-%m-%d", "%Y/%m/%d"):
+        try:
+            return datetime.strptime(text, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def event_group_key(judgment, article: dict) -> str:
+    """What makes two judgments the same underlying event.
+
+    The model's slug when it gave one; otherwise the article's own URL, so an
+    unkeyed finding stands alone rather than colliding with every other unkeyed
+    finding under a shared empty string.
+    """
+    key = (judgment.event_key or "").strip().lower()
+    return re.sub(r"[^a-z0-9]+", "-", key).strip("-") or f"url:{article['source_url']}"
+
+
+def consolidate(
+    candidates: list[dict],
+    *,
+    tiers=None,
+    citable_max: int = UNGATED,
+    window_start: date | None = None,
+    entity_name: str = "",
+    note=None,
+) -> tuple[list[dict], list[str]]:
+    """Collapse judged articles into one finding per event, cited to a real source.
+
+    Three rules, applied in this order, each of which the model cannot enforce on
+    its own because it sees one article at a time and does not know the domain policy:
+
+    1. **Recency.** A finding whose event predates the run's window is dropped, even
+       though the article was published inside it. This is the "2025 layoffs reported
+       in 2026" case.
+    2. **One event, one item.** Judgments sharing an event_key collapse to a single
+       finding. The surviving row keeps the group's most severe priority and its CEO
+       flag, so consolidating never quietly downgrades an event.
+    3. **Citation.** Of the articles covering an event, the best-tiered *citable* one
+       carries it. An event whose whole cluster sits below the citation line is
+       dropped and named in the log - social and aggregator hits did the discovery,
+       and nothing is left pointing at them.
+
+    Returns (findings, drop_notes) so the caller can report what went and why.
+    """
+    lookup, default = tiers or ({}, FLAT_TIER)
+    drops: list[str] = []
+
+    def say(msg: str) -> None:
+        drops.append(msg)
+        if note:
+            note(msg)
+
+    groups: dict[str, list[dict]] = {}
+    for cand in candidates:
+        when = cand["event_date_parsed"]
+        if window_start and when and when < window_start:
+            say(f"    - {cand['headline'][:52]} (event dated {when}, before this window)")
+            continue
+        groups.setdefault(cand["group_key"], []).append(cand)
+
+    findings: list[dict] = []
+    for key, cluster in groups.items():
+        citable = [
+            c for c in cluster
+            if is_citable(c["source_url"], lookup, default, citable_max, entity_name)
+        ]
+        if not citable:
+            hosts = ", ".join(sorted({c["source_name"] or "?" for c in cluster}))
+            say(f"    - {cluster[0]['headline'][:52]} (no citable source; only {hosts})")
+            continue
+
+        # Best outlet carries the story; ties go to the more severe judgment so a
+        # cluster is never represented by its mildest reading.
+        citable.sort(key=lambda c: (
+            source_tier(c["source_url"], lookup, default),
+            PRIORITY_RANK.get(c["priority"], 9),
+        ))
+        lead = dict(citable[0])
+        lead["priority"] = min(
+            (c["priority"] for c in cluster), key=lambda p: PRIORITY_RANK.get(p, 9)
+        )
+        lead["ceo_flag"] = any(c["ceo_flag"] for c in cluster)
+        lead["corroborations"] = len(cluster) - 1
+        if len(cluster) > 1:
+            others = sorted(
+                {c["source_name"] or "?" for c in cluster if c["source_url"] != lead["source_url"]}
+            )
+            say(
+                f"    ~ merged {len(cluster)} articles into one event ({key}); cited to "
+                f"{lead['source_name']}, also covered by {', '.join(others)}"
+            )
+        for scratch in ("event_date_parsed", "group_key"):
+            lead.pop(scratch, None)
+        findings.append(lead)
+
+    return findings, drops
 
 
 def unfence(text: str) -> str:
@@ -216,14 +369,23 @@ def judge_entities(
     sleep: float = 0.4,
     progress=None,
     notes: str = "",
+    standard: str = "",
+    tiers=None,
+    citable_max: int = UNGATED,
+    window_start: date | None = None,
 ) -> tuple[list[dict], int, int, list[str]]:
     """Judge a list of entities, returning (kept_entities, kept, dropped, failed).
 
     ``progress`` is called with short status strings so a CLI or the live runner
     can report entity-by-entity without this module knowing about either.
+
+    ``standard``, ``tiers``, ``citable_max`` and ``window_start`` carry the evidence
+    policy: the first is prompt text the model applies per article, the rest are
+    enforced here in ``consolidate`` because they need the whole set of articles for
+    an entity and the outlet policy from config.
     """
     schema = make_schema(list(spec["categories"]))
-    criteria = criteria_for(spec, notes)
+    criteria = criteria_for(spec, notes, standard)
 
     def say(msg: str) -> None:
         if progress:
@@ -261,34 +423,59 @@ def judge_entities(
             print(f"  ! {entity['display_name']}: {type(exc).__name__}: {str(exc)[:140]}", file=sys.stderr)
             continue
 
-        alerts = []
+        candidates = []
         for j in result.judgments:
             art = by_url.get(j.source_url)
             if art is None:
                 print(f"  ! judgment for unknown url {j.source_url!r}", file=sys.stderr)
                 continue
+            # Say why: on a live run over real news most articles are noise, and
+            # "0 kept" is only trustworthy if you can see what was thrown out.
+            if not j.about_entity:
+                say(f"    - {art['title'][:58]} (not about {entity['display_name']})")
+                continue
+            when = parse_event_date(j.event_date)
+            if j.is_relevant and when is None:
+                say(f"    - {art['title'][:58]} (no event date established)")
+                continue
             if not j.is_relevant or not j.category or not j.priority:
-                dropped += 1
-                # Say why: on a live run over real news most articles are noise, and
-                # "0 kept" is only trustworthy if you can see what was thrown out.
                 say(f"    - {art['title'][:58]} ({(j.reason_if_excluded or 'no reason given')[:64]})")
                 continue
-            kept += 1
-            say(f"    + {j.priority}/{j.category}{' [CEO]' if j.ceo_flag else ''}: {j.headline[:58]}")
-            alerts.append(
+            candidates.append(
                 {
                     "category": j.category,
                     "priority": j.priority,
                     "headline": j.headline,
                     "client_summary": j.client_summary,
+                    "deal_metrics": j.deal_metrics.strip(),
                     "confidence": round(j.confidence, 2),
                     "ceo_flag": bool(j.ceo_flag),
+                    "event_date": when.isoformat(),
+                    "event_date_basis": j.event_date_basis.strip(),
+                    "event_key": event_group_key(j, art),
                     # Provenance comes from the local record, not the model.
                     "source_name": art["source_name"],
                     "source_url": art["source_url"],
                     "published_date": art["published_date"],
+                    # Scratch keys consolidate() strips before returning.
+                    "event_date_parsed": when,
+                    "group_key": event_group_key(j, art),
                 }
             )
+
+        alerts, _ = consolidate(
+            candidates,
+            tiers=tiers,
+            citable_max=citable_max,
+            window_start=window_start,
+            entity_name=entity["display_name"],
+            note=say,
+        )
+        for a in alerts:
+            say(f"    + {a['priority']}/{a['category']}{' [CEO]' if a['ceo_flag'] else ''}"
+                f" [{a['event_date']}]: {a['headline'][:52]}")
+        kept += len(alerts)
+        dropped += len(by_url) - len(alerts)
 
         say(f"{entity['display_name']}: {len(alerts)} kept, {len(by_url) - len(alerts)} excluded")
         if alerts:

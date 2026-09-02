@@ -48,3 +48,7 @@ data/watchlists/*.md
 *.db
 *.db-wal
 *.db-shm
+
+# Briefings exported from a live run (the "Copy HTML" / saved-email files). Real
+# tenant and competitor news, same reason as data/live_*.json above.
+*Intel Briefing*.html

@@ -113,6 +113,11 @@ CREATE TABLE IF NOT EXISTS alerts (
     source_url     TEXT,
     url_hash       TEXT NOT NULL,
     published_date TEXT,
+    -- When the DEVELOPMENT happened, as distinct from published_date, which is
+    -- when someone wrote about it. The briefing shows this one.
+    event_date     TEXT,
+    event_key      TEXT,
+    deal_metrics   TEXT,
     run_id         TEXT,
     created_at     TEXT NOT NULL,
     emailed_at     TEXT,
@@ -120,6 +125,7 @@ CREATE TABLE IF NOT EXISTS alerts (
 );
 
 -- emailed_at first: "what has never been sent" is the query the email step runs.
+CREATE INDEX IF NOT EXISTS idx_alerts_event    ON alerts (report_type, entity_name, event_key);
 CREATE INDEX IF NOT EXISTS idx_alerts_unsent   ON alerts (emailed_at, priority);
 CREATE INDEX IF NOT EXISTS idx_alerts_type     ON alerts (report_type, priority);
 CREATE INDEX IF NOT EXISTS idx_alerts_ceo      ON alerts (ceo_flag);
@@ -146,9 +152,46 @@ def connect(path: str | Path | None = None) -> sqlite3.Connection:
     # Survives a killed run without corrupting the file, and lets a reader (the
     # UI) query while a run is writing.
     conn.execute("PRAGMA journal_mode=WAL")
+    # Migrate BEFORE the schema script: SCHEMA indexes the new columns, and
+    # CREATE INDEX IF NOT EXISTS still fails on a column the old table lacks.
+    # On a fresh database migrate() finds no tables and does nothing.
+    migrate(conn)
     conn.executescript(SCHEMA)
     conn.commit()
     return conn
+
+
+# Columns added after the first databases were already in use. CREATE TABLE
+# IF NOT EXISTS cannot add a column to a table that exists, so they are applied
+# here instead of being left to a manual rebuild - a store of real findings
+# should survive a schema change.
+MIGRATIONS: dict[str, dict[str, str]] = {
+    "alerts": {
+        "event_date": "TEXT",
+        "event_key": "TEXT",
+        "deal_metrics": "TEXT",
+    },
+}
+
+
+def migrate(conn) -> list[str]:
+    """Add any missing columns to existing tables. Returns what it added.
+
+    Additive only: no column is ever dropped or retyped, so an older build
+    reading a migrated database still works.
+    """
+    applied = []
+    for table, columns in MIGRATIONS.items():
+        have = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
+        if not have:
+            continue
+        for name, decl in columns.items():
+            if name not in have:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
+                applied.append(f"{table}.{name}")
+    if applied:
+        conn.commit()
+    return applied
 
 
 # -- runs ------------------------------------------------------------------
@@ -207,6 +250,31 @@ def unseen(conn, report_type: str, entity_name: str, articles: list[dict]) -> li
     return [a for a in articles if a.get("url_hash") not in seen]
 
 
+def fresh_events(conn, report_type: str, entity_name: str, alerts: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Split judged findings into (new events, events already reported before).
+
+    ``unseen()`` stops the same *URL* being judged twice; this stops the same
+    *event* being reported twice from a different URL. A deal covered by CoStar
+    last week and Bisnow this week is one development, and a briefing that leads
+    with it again is telling the reader something they have already acted on.
+
+    Only findings carrying an ``event_key`` can be matched - one without a key is
+    treated as new, since we have nothing to compare it against.
+    """
+    keys = [a["event_key"] for a in alerts if a.get("event_key")]
+    if not keys:
+        return list(alerts), []
+    rows = conn.execute(
+        "SELECT DISTINCT event_key FROM alerts WHERE report_type = ? AND entity_name = ?"
+        f" AND event_key IN ({','.join('?' * len(keys))})",
+        (report_type, entity_name, *keys),
+    ).fetchall()
+    known = {r["event_key"] for r in rows}
+    new = [a for a in alerts if a.get("event_key") not in known]
+    repeats = [a for a in alerts if a.get("event_key") in known]
+    return new, repeats
+
+
 def record(conn, run_id, report_type: str, entity: dict, articles: list[dict], alerts: list[dict]) -> int:
     """Persist one entity's judged batch: every article into results, the kept
     ones into alerts. Returns the number of alert rows actually inserted.
@@ -243,14 +311,16 @@ def record(conn, run_id, report_type: str, entity: dict, articles: list[dict], a
         cur = conn.execute(
             "INSERT OR IGNORE INTO alerts (report_type, entity_name, city, rank, segment,"
             " category, priority, headline, client_summary, confidence, ceo_flag, source_name,"
-            " source_url, url_hash, published_date, run_id, created_at)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " source_url, url_hash, published_date, event_date, event_key, deal_metrics,"
+            " run_id, created_at)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 report_type, entity["display_name"], entity.get("city"), entity.get("rank"),
                 entity.get("segment"), alert["category"], alert["priority"], alert.get("headline"),
                 alert.get("client_summary"), alert.get("confidence"),
                 1 if alert.get("ceo_flag") else 0, alert.get("source_name"),
                 alert.get("source_url"), key_of(alert), alert.get("published_date"),
+                alert.get("event_date"), alert.get("event_key"), alert.get("deal_metrics"),
                 run_id, stamp,
             ),
         )

@@ -218,6 +218,20 @@ tr.filtered-out { display: none; }
 
   <div class="cards">
 
+    {% if evidence_standard is defined and evidence_standard %}
+    <div class="card">
+      <h2>Evidence standard</h2>
+      <p class="hint">
+        Applied <b>before</b> the criteria below, and shared by both report types: is the article
+        actually about this {{ t.entity_noun }}, when did the development happen, is it one event
+        or several copies of one, can it be cited, and is it new? An article that fails any of
+        these is excluded however interesting its subject. Sent to the model verbatim, ahead of
+        the criteria.
+      </p>
+      <pre class="prose">{{ evidence_standard }}</pre>
+    </div>
+    {% endif %}
+
     <div class="card">
       <h2>What counts as meaningful</h2>
       <p class="hint">
@@ -302,14 +316,24 @@ tr.filtered-out { display: none; }
       reach a newer template than its own context builder. -#}
     {% if source_tiers is defined and source_tiers %}
     <div class="card">
-      <h2>Source reliability &rarr; reading order</h2>
+      <h2>Source reliability &rarr; reading order and citation</h2>
       <p class="hint">
-        This is <b>not a filter</b>. Nothing is ever dropped for where it came from, and every
-        source below still reaches the briefing. Tier is the third sort key, never the first: it
-        only orders findings that already share a priority &mdash; and, on the {{ tabs[0].entity_noun }}
-        side, a roster rank. An urgent social post still leads a routine wire story. Within one
-        severity band, the reliable outlet reads first.
+        Tier does two jobs. <b>Reading order:</b> it is the third sort key, never the first &mdash;
+        it only orders findings that already share a priority and, on the
+        {{ tabs[0].entity_noun }} side, a roster rank. Severity and rank stay the rubric's axes.
+        <b>Citation:</b> a finding is only sent if it can be cited at or above the line below.
+        Weaker sources are still searched and still used for <i>discovery</i> &mdash; they just
+        cannot be the link the briefing hands you, because a post is not the record of an event.
+        Where several outlets carry one event, the best-tiered one is cited automatically.
       </p>
+      {% if citable_max_position is defined and citable_max_position %}
+      <p class="hint">
+        <b>The citation line is tier {{ citable_max_position }}.</b> An event whose only coverage
+        sits below it is dropped, and the run log names the outlets it came from &mdash; so a
+        gated drop is never mistaken for &ldquo;nothing happened&rdquo;. Raise
+        <span class="src">citable_max_position</span> to admit more.
+      </p>
+      {% endif %}
       <table class="roster">
         <thead>
           <tr><th style="width:34px">#</th><th style="width:150px">Tier</th><th>Domains</th></tr>
@@ -320,6 +344,13 @@ tr.filtered-out { display: none; }
             <td class="rank">{{ loop.index }}</td>
             <td class="nm">
               {{ tier.label }}
+              {%- if citable_max_position is defined and citable_max_position %}
+                {%- if loop.index <= citable_max_position %}
+                <div class="nt">may be cited</div>
+                {%- else %}
+                <div class="nt">discovery only &mdash; never cited</div>
+                {%- endif %}
+              {%- endif %}
               {%- if tier.hint %}<div class="nt">{{ tier.hint }}</div>{% endif %}
             </td>
             <td class="tk">

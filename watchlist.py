@@ -338,6 +338,39 @@ def parse_watchlist(text: str) -> list[Entry]:
     return entries
 
 
+def canonicalize(entries: list[Entry], aliases: dict[str, str] | None = None) -> list[Entry]:
+    """Fold roster spellings of one firm onto a single name.
+
+    A hand-maintained roster drifts: the same landlord is entered as "Kilroy" in
+    one market and "Kilroy Realty" in another. Left alone that is two entities -
+    two searches, two index pills, two ways for one event to appear twice - so the
+    variants are mapped onto one canonical spelling before dedupe runs.
+
+    This renames; it does not merge across markets. One firm competing in two
+    markets is still two roster entries, which is deliberate: their submarket
+    relevance differs. Matching is case- and punctuation-insensitive, and the
+    original roster spelling is preserved in ``raw_name`` so the reference page can
+    still show what the file says.
+    """
+    if not aliases:
+        return entries
+
+    def norm(text: str) -> str:
+        return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+
+    lookup = {norm(variant): canon for canon, variants in aliases.items() for variant in variants}
+    lookup.update({norm(canon): canon for canon in aliases})
+
+    out = []
+    for entry in entries:
+        canon = lookup.get(norm(entry.name))
+        if canon and canon != entry.name:
+            out.append(replace(entry, name=canon, raw_name=entry.raw_name or entry.name))
+        else:
+            out.append(entry)
+    return out
+
+
 def dedupe(entries: list[Entry]) -> list[Entry]:
     """One row per (name, city), keeping the best rank.
 
@@ -360,11 +393,13 @@ def dedupe(entries: list[Entry]) -> list[Entry]:
     return [best[k] for k in order]
 
 
-def read_entries(path: Path) -> list[Entry]:
-    """Parse a watchlist file, deduped, falling back to a sibling extension.
+def read_entries(path: Path, aliases: dict[str, str] | None = None) -> list[Entry]:
+    """Parse a watchlist file, canonicalized and deduped, falling back to a sibling extension.
 
     Lets config name either tenant-list.md or tenant-list.txt without the caller
-    caring which one is actually maintained.
+    caring which one is actually maintained. ``aliases`` folds roster spellings of
+    one firm together before dedupe, so the variants collapse rather than being
+    searched separately.
     """
     candidates = [path]
     for other in (".md", ".txt"):
@@ -373,7 +408,8 @@ def read_entries(path: Path) -> list[Entry]:
 
     for candidate in candidates:
         if candidate.exists():
-            return dedupe(parse_watchlist(candidate.read_text(encoding="utf-8")))
+            entries = parse_watchlist(candidate.read_text(encoding="utf-8"))
+            return dedupe(canonicalize(entries, aliases))
     return []
 
 

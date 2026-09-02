@@ -43,16 +43,28 @@ search:
   search_depth: basic
   sleep_between_calls: 0.5
 
-# Source reliability -> reading order. NOT a filter: nothing is ever dropped for
-# where it came from, and every source still reaches the digest. Tier is the third
-# sort key, never the first - it only orders findings that already share a priority
-# (and, on the tenant side, a roster rank). An urgent social-sourced finding still
-# leads a routine wire story; severity and rank stay the rubric's axes.
+# Source reliability, doing two jobs.
+#
+# 1. READING ORDER. Tier is the third sort key, never the first - it only orders
+#    findings that already share a priority (and, on the tenant side, a roster
+#    rank). Severity and rank stay the rubric's axes.
+# 2. CITATION. A finding is only emitted if it can be cited to a source at or
+#    above `citable_max_position`. Weak sources are still searched and still used
+#    for DISCOVERY - they just cannot be the link the briefing hands you. When one
+#    underlying event is carried by several outlets, the best-tiered one is cited.
+#    An event whose only coverage is below the line is dropped, and the run log
+#    says so, so a silent drop is never mistaken for "nothing happened".
 #
 # Listed best-first. A domain matching nothing below lands at `default_position`,
 # and a subdomain matches its parent (m.facebook.com -> facebook.com).
 source_tiers:
   default_position: 4
+
+  # The citation line. 3 = wire/filings, CRE trade press, and company-issued
+  # releases may be cited; general/unlisted domains and social may not.
+  # Raise to 4 to let local papers and unlisted trade blogs carry a finding -
+  # that also readmits the aggregator junk that shares the unlisted tier.
+  citable_max_position: 3
   order:
     - label: Wire & filings
       hint: newswires, national business press, and the SEC - the system of record
@@ -86,8 +98,8 @@ source_tiers:
     - label: General & unlisted
       hint: local papers, trade blogs, and any domain not named on this page
       domains: []
-    - label: Social & user-posted
-      hint: kept for signal - never leads a priority band
+    - label: Social, AI answers & user-posted
+      hint: discovery only - never cited, because the post is not the record of the event
       domains:
         - facebook.com
         - x.com
@@ -101,6 +113,66 @@ source_tiers:
         - medium.com
         - substack.com
         - quora.com
+        # AI answer engines and scraped aggregators: they restate someone else's
+        # reporting, so citing them cites a copy rather than the source.
+        - perplexity.ai
+        - chatgpt.com
+        - gemini.google.com
+        - copilot.microsoft.com
+        - pressreader.com
+        - valueforum.com
+        - ad-hoc-news.de
+        - newsbreak.com
+        - msn.com
+
+# Cross-cutting evidence rules, prepended to BOTH report types' criteria by
+# judge.criteria_for. These are about whether a finding is trustworthy and new,
+# not about whether its subject matters - that stays in each type's own criteria.
+evidence_standard: |
+  EVIDENCE STANDARD - apply this before the category rules below. An article that
+  fails any test here is excluded no matter how interesting its subject is.
+
+  1. IS IT ACTUALLY ABOUT THIS ENTITY? You are given a title and a snippet, not the
+     page itself. Search engines match on stray mentions, so a result can name the
+     entity in passing while the article is about someone else entirely - a law
+     firm's attorney bio that lists a past client, a consulting firm's write-up of
+     another company, a directory page. Set about_entity=false and exclude whenever
+     the entity is not the actual subject of the development. If the snippet does
+     not let you tell, that is a false, not a maybe.
+
+  2. WHEN DID THE EVENT HAPPEN? Report the date of the DEVELOPMENT, never the date
+     the article was published or indexed. A 2026 article describing 2025 layoffs is
+     a 2025 event. A profile written this week about a deal that closed years ago is
+     an old event. Put it in event_date as YYYY-MM-DD; use the first of the month or
+     of the year when only that much is known (2025-06-01, 2025-01-01) and say which
+     in event_date_basis, quoting the words you read it from.
+
+     If the snippet does not establish when the development happened, set event_date
+     to "" and is_relevant=false, with reason_if_excluded naming the missing date.
+     Recency is the whole point of this briefing; an undated item is not a finding.
+     Publication inside the search window is NOT evidence that the event is recent.
+
+  3. ONE EVENT IS ONE ITEM. Several outlets covering one development is still one
+     development. Give every judgment an event_key: a short, stable, lowercase slug
+     naming the underlying event - entity, action, and object -
+     e.g. "jamestown-sells-ponce-city-market", "autodesk-cuts-1350-jobs". Two
+     articles about the same event MUST get the same key, even when their headlines
+     differ; two genuinely different events must not share one. The pipeline keeps
+     the best-sourced article per key and drops the rest, so the key is how you say
+     "these are the same story".
+
+  4. SOURCING. Social posts, forums, AI answer engines and scraped aggregators are
+     fine for finding a story and useless as the record of it. Judge the story on
+     its merits wherever it surfaced, but expect the pipeline to drop a finding it
+     cannot cite to a wire service, filing, established trade or business outlet, or
+     the company's own release. Where several articles share an event_key, the
+     best-sourced one is cited automatically - so do not discard a weak-sourced
+     article that shares a key with a strong one.
+
+  5. NEW INFORMATION ONLY. A development already reported in an earlier briefing is
+     not reported again. Fresh coverage of an old event is only a finding when the
+     development itself has moved - a deal that was rumoured has closed, a filing
+     became an approval, a number was revised. Say what changed in the summary.
 
 report_types:
 
@@ -122,6 +194,16 @@ report_types:
     # side that uses it: rank reaches the judge in stage 2 and breaks ties in the
     # email's reading order. Competitors have no rank column, so they get none.
     use_rank: true
+
+    # Rank ordering left unchecked fills Top Intel with the same large names every
+    # week. These seats are held for tenants ranked worse than `beyond_rank`, so a
+    # real event at a smaller tenant is read rather than buried. Nothing is padded:
+    # unused seats return to the general pool, and a reserved row still has to have
+    # passed the same relevance bar as everything else.
+    top_intel_reserve:
+      beyond_rank: 100
+      slots: 2
+
     articles: data/mock_articles_tenants.json
     alerts: data/sample_alerts_tenants.json
     privacy_note: >-
@@ -237,13 +319,22 @@ report_types:
       and most important tenant in its segment and a high number is a small one. Every tenant in
       the roster is in scope. Rank never makes an article relevant or irrelevant, and it never
       suppresses a finding. It only adjusts escalation:
-      - Top 25: escalate. Medium becomes high when rent collection or a space decision is plausibly
-        at stake.
+      - Top 25: escalate, but only on a concrete event. Medium becomes high when rent collection or
+        a space decision is plausibly at stake AND the article reports something decided, filed,
+        signed, or announced. Rank alone does not make a soft item urgent: a large tenant's rumour,
+        commentary, or routine disclosure stays exactly where the standard rubric puts it. The
+        commonest failure on this side is a briefing that reads as a running feed on the ten
+        biggest names, and it comes from escalating large tenants on thin material.
       - Rank 26-150: apply the standard rubric with no adjustment in either direction.
       - Rank 151+: report everything that passes the relevance test. Concrete, decided events - a
         filed bankruptcy, a signed sublease, an announced closure of the occupied location - earn
         high exactly as they would for a large tenant. Do not inflate speculative or soft items;
         those are medium at most.
+
+      Rank decides how loudly a finding is reported, never whether it is found. A meaningful
+      development at tenant #430 is a finding on the same terms as one at tenant #4, and the
+      briefing reserves space for lower-ranked tenants precisely so the large names cannot crowd
+      them out. Judge each tenant on its own article; the reading order is applied later.
 
   # ─────────────────────────────────────────────────────────────────────────
   competitors:
@@ -259,6 +350,25 @@ report_types:
     from_address: market-intel@yourfirm.com
     to_address: acquisitions@yourfirm.com
     watchlist: competitor-list.md
+
+    # Roster spellings of one firm, folded onto the canonical name on the left
+    # before dedupe. A hand-maintained roster drifts - "Kilroy" in one market,
+    # "Kilroy Realty" in another - and left alone that is two entities, two
+    # searches, and two ways for one event to be reported twice. This renames
+    # only: a firm competing in two markets is still two entries, because its
+    # submarket relevance differs. Matching ignores case and punctuation.
+    name_aliases:
+      Kilroy Realty:
+        - Kilroy
+        - Kilroy Realty Corporation
+        - KRC
+      Federal Realty:
+        - Federal Realty Investment Trust
+        - FRIT
+      Boston Properties:
+        - BXP
+        - Boston Properties Inc
+
     articles: data/mock_articles_competitors.json
     alerts: data/sample_alerts_competitors.json
     privacy_note: >-
@@ -351,16 +461,53 @@ report_types:
       - A single weak competitive indicator with no concrete implication. Retain it in the
         watchlist and elevate it only if later developments create a meaningful pattern.
 
-      MARKET SCOPING: for every finding, state whether it falls inside a market of interest and, if
-      determinable, name the competing submarket and product type. Events inside a market of
-      interest are weighted one priority level higher than the same event elsewhere. Tier 2
-      corporate and investor events are exempt from geographic weighting, since their relevance is
+      MARKET SCOPING: relevance is SUBMARKET AND PRODUCT TYPE, not metro proximity. Name the
+      submarket and the product type for every finding; if you cannot identify both, the event is
+      medium at best. An event competes with the landlord when it involves comparable product in a
+      submarket the landlord operates in - a UTC office tower competes with UTC office, a suburban
+      strip center does not, and neither does industrial in the same county. Events meeting that
+      test are weighted one priority level higher than the same event elsewhere. Tier 2 corporate
+      and investor events are exempt from geographic weighting, since their relevance is
       valuation-based rather than location-based.
 
-      PRIORITY rubric:
+      A MENTION OF THE MARKET IS NOT A MARKET EVENT. Do not convert an article into competitive
+      intelligence because it names the metro. A national portfolio trade that speculates about
+      redeploying proceeds locally, a firm saying it "likes" or is "looking at" the market, an
+      executive naming the city in an interview, or a market-wide statistic quoted alongside the
+      firm - none of these are findings. Exclude them unless the article states a specific,
+      committed action in a submarket of interest: an asset bought or sold, a site controlled, a
+      project filed or financed, a lease signed, or an announced strategy with a named target and
+      a timeframe. Speculative redeployment is a watchlist indicator, never a standalone alert.
+
+      DEAL ECONOMICS: for acquisition, disposition and pricing_valuation_comps findings, the
+      summary must carry the pricing detail the article discloses - total price, price per square
+      foot or per unit, and cap rate - and put the same figures in deal_metrics as a short string
+      such as "$412/SF · 5.1% cap · $88M". Where a figure is absent from the article, say so
+      explicitly rather than leaving it unstated ("price undisclosed"). A transaction finding
+      carrying no economics at all is medium at best: it tells the team a trade happened but gives
+      them nothing to price against. Never estimate, infer, or carry over a figure from a
+      comparable deal - report only what the article states.
+
+      MATERIALITY FLOOR: small transactions and small blocks of space do not routinely belong in a
+      briefing. A leasing, availability, or occupancy item needs a block material to the submarket
+      - roughly a full floor or more, a whole-building user, or a named tenant of interest -
+      before it is a standalone finding. A few thousand square feet coming available is not news
+      unless it involves one of the landlord's tenants or prospects, or it signals something
+      larger such as a phased give-back. Apply the same test to transactions: a sub-scale sale is
+      a comp only if it prices product genuinely comparable to the landlord's.
+
+      PRIORITY rubric. High is reserved for items the team could act on THIS WEEK. Before
+      assigning high, name the action available: a bid to make, a tenant to call, a price to
+      match, a decision to revisit. If you cannot name one, it is not high, however interesting
+      the fact is.
       - high: an act-this-week signal. Competing supply landing in a submarket you own, a tenant
         you want being signed elsewhere, or a deal you could still bid on.
-      - medium: a real competitive signal worth tracking with no immediate action attached.
+      - medium: a real competitive signal worth tracking with no immediate action attached. This
+        is where most genuinely useful intelligence belongs - reported operating metrics,
+        occupancy and asking-rate movements, earnings disclosures, closed deals you could not have
+        bid on, and strategy signals that inform a future decision without forcing one now. A peer
+        reporting 91% occupancy is useful and is medium; it is not urgent, because there is
+        nothing to do about it this week.
       - low: a potentially useful competitive indicator that has not crossed the threshold for a
         standalone alert. Retain it in the watchlist/background layer rather than sending it as a
         normal alert unless specifically requested.

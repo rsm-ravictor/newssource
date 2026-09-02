@@ -79,7 +79,7 @@ Six dependencies, all pure-Python: `openai`, `python-dotenv`, `pydantic`, `jinja
 **Checkpoint — this must work with no keys and no network:**
 
 ```bash
-python -m unittest discover -s tests     # 71 tests, all offline
+python -m unittest discover -s tests     # 110 tests, all offline
 python build_preview.py --open           # builds and opens the preview from committed fixtures
 ```
 
@@ -143,8 +143,13 @@ tables is ignored — the rosters stay readable documents. `data/watchlists/*.ex
 minimal flat-file form if you would rather start there. If you have the AAT Excel workbooks,
 `python ingest.py --list` describes them and a plain `python ingest.py` converts them.
 
-Then read the `criteria` blocks in `config/report_types.yaml` — that text *is* the system prompt
-the model receives. Adjust it to what your side cares about before spending credits.
+Then read the `criteria` and `evidence_standard` blocks in `config/report_types.yaml` — that text
+*is* the system prompt the model receives. Adjust it to what your side cares about before spending
+credits.
+
+The two `*-intelligence-rubric.md` files at the repo root are a generated, human-readable copy of
+those blocks; nothing reads them at runtime. After changing the YAML, run
+`python export_rubrics.py` to refresh them (`--check` fails if they are stale), and commit both.
 
 ---
 
@@ -227,6 +232,7 @@ snapshot** overwrites it with real findings — do not commit the result of that
 - [ ] Own TritonAI key in `.env`; `python smoke_test.py` passes
 - [ ] Own Tavily key in `.env`
 - [ ] Rosters in place; tests re-run and still green
-- [ ] `criteria` in `config/report_types.yaml` reviewed for your use case
+- [ ] `criteria` and `evidence_standard` in `config/report_types.yaml` reviewed for your use case
+- [ ] `python export_rubrics.py --check` clean
 - [ ] A capped live run through `serve.py` produces a digest
 - [ ] Understood: loopback only, `docs/` is public, name and city only
