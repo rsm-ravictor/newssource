@@ -43,6 +43,7 @@ load_dotenv()  # before utils.connect is imported anywhere
 import db  # noqa: E402
 import search as search_mod  # noqa: E402
 from judge import judge_entities  # noqa: E402
+from prose import structure  # noqa: E402
 from sources import citable_limit, source_tiers  # noqa: E402
 from render import (  # noqa: E402
     DOCS,
@@ -755,12 +756,15 @@ def render_reference() -> str:
             "source_exists": source.exists(),
             "sections": sections,
             "categories": spec["categories"],
-            "criteria": spec["criteria"].rstrip(),
+            # Structured rather than raw: the page renders paragraphs and lists,
+            # not the YAML file's line breaks. prose.py does the reflow, and the
+            # words are untouched.
+            "criteria": structure(spec["criteria"]),
             # Escalation is rank-based on the tenants side and tier-based on the
             # competitors side. Both keys are always present so the template can
             # branch on them under StrictUndefined.
-            "rank_note": (spec.get("rank_note") or "").rstrip(),
-            "tier_note": (spec.get("tier_note") or "").rstrip(),
+            "rank_note": structure(spec.get("rank_note") or ""),
+            "tier_note": structure(spec.get("tier_note") or ""),
             "query_templates": spec["query_templates"],
             "privacy_note": spec["privacy_note"],
             "notes": read_notes(key),
@@ -779,7 +783,7 @@ def render_reference() -> str:
         # The evidence standard and the citation line are shared by both types, and
         # both are shown verbatim: the page's whole promise is that it prints what
         # the run actually applies, not a description of it.
-        evidence_standard=(config.get("evidence_standard") or "").rstrip(),
+        evidence_standard=structure(config.get("evidence_standard") or ""),
         citable_max_position=tier_block.get("citable_max_position"),
         # _canvas_css.html generates its per-type visibility rules from `reports`.
         reports=tabs,

@@ -19,6 +19,28 @@
            reports[] (alias of tabs, for _canvas_css.html), default_type,
            priorities{}, model_note
 -#}
+{#- Renders one authored config block (criteria, evidence standard, escalation
+   note) from the structure prose.py derived. Nothing is reworded here: only the
+   file's line breaks are dropped so the text wraps to the reader's screen. -#}
+{% macro prose(blocks, tight=False) -%}
+<div class="prose{{ ' tight' if tight }}">
+  {%- for block in blocks %}
+  {%- if block.kind == 'p' %}
+  <p{{ ' class="lead"' if block.label and not block.text }}>
+    {%- if block.label %}<b>{{ block.label }}</b>{% if block.text %} {% endif %}{% endif %}
+    {{- block.text }}
+  </p>
+  {%- else %}
+  <{{ block.kind }}>
+    {%- for item in block['items'] %}
+    <li>{% if item.label %}<b>{{ item.label }}</b> {% endif %}{{ item.text }}</li>
+    {%- endfor %}
+  </{{ block.kind }}>
+  {%- endif %}
+  {%- endfor %}
+</div>
+{%- endmacro %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -61,10 +83,22 @@
 }
 .card .hint { margin: 0 0 13px; font-size: 11.5px; color: var(--faint); line-height: 1.6; }
 
-.prose {
-  margin: 0; font-family: inherit; font-size: 12.5px; line-height: 1.72;
-  color: var(--muted); white-space: pre-wrap; word-break: break-word;
-}
+/* Authored config text, reflowed by prose.py into paragraphs and lists. It used
+   to be a <pre>, which showed the reader the YAML file's line breaks and the
+   two-space hanging indents under each bullet instead of letting the text wrap
+   to their own screen. */
+.prose { margin: 0; font-size: 12.5px; line-height: 1.72; color: var(--muted); }
+.prose > * + * { margin-top: 9px; }
+.prose p { margin: 0; }
+.prose ul, .prose ol { margin: 0; padding-left: 20px; }
+.prose li + li { margin-top: 7px; }
+.prose li { padding-left: 2px; }
+.prose ol { padding-left: 22px; }
+.prose b { color: var(--ink); font-weight: 650; }
+/* A standalone label introducing the list under it ("EXCLUDE ...:") sits closer
+   to that list than to the paragraph above it. */
+.prose p.lead { margin-top: 13px; }
+.prose p.lead + ul, .prose p.lead + ol { margin-top: 5px; }
 .prose.tight { font-size: 12px; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 14px; }
@@ -188,6 +222,9 @@ tr.filtered-out { display: none; }
 
   {% include '_theme_toggle.html' %}
 
+  <button class="btn" id="copy-html" type="button"
+          title="Copy the active side as a standalone HTML file">Copy HTML</button>
+
   <a class="btn" href="/">&#8592;&nbsp;Runner</a>
 </div>
 
@@ -228,7 +265,7 @@ tr.filtered-out { display: none; }
         these is excluded however interesting its subject. Sent to the model verbatim, ahead of
         the criteria.
       </p>
-      <pre class="prose">{{ evidence_standard }}</pre>
+      {{ prose(evidence_standard) }}
     </div>
     {% endif %}
 
@@ -244,7 +281,7 @@ tr.filtered-out { display: none; }
         <span class="chip" style="background: {{ cat.bg }}; color: {{ cat.fg }};">{{ cat.label }}</span>
         {% endfor %}
       </div>
-      <pre class="prose">{{ t.criteria }}</pre>
+      {{ prose(t.criteria) }}
       <div class="pri-chips">
         {% for pk, pri in priorities.items() %}
         <span class="pri"><i style="background: {{ pri.dot }};"></i>{{ pri.label }} <code class="src">{{ pk }}</code></span>
@@ -267,7 +304,7 @@ tr.filtered-out { display: none; }
         one urgent item at a top-25 {{ t.entity_noun }} leads the briefing over three items further
         down the roster. Rank is counted within its roster section.
       </p>
-      <pre class="prose tight">{{ t.rank_note }}</pre>
+      {{ prose(t.rank_note, tight=True) }}
       {#- `is defined` guard: config and templates are re-read per request but serve.py is
         not, so a running server can reach a newer template than its own context builder.
         Degrade to the no-ranking card instead of 500-ing the whole page. -#}
@@ -282,7 +319,7 @@ tr.filtered-out { display: none; }
         {{ t.entity_noun }} has. Category and ticker are shown below for review; neither is sent
         anywhere.
       </p>
-      <pre class="prose tight">{{ t.tier_note }}</pre>
+      {{ prose(t.tier_note, tight=True) }}
       {% else %}
       <h2>No ranking on this side</h2>
       <p class="hint">
@@ -469,6 +506,81 @@ tr.filtered-out { display: none; }
       clearTimeout(toastTimer);
       toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 1800);
     }
+
+    // ── Copy HTML ─────────────────────────────────────────────────────────
+    // A standalone file for the active side: same page, minus everything that
+    // only works while a server is behind it. The recipient opens one file with
+    // no JS, no fetches and no toolbar, so what they see cannot drift from what
+    // the run applies - it was rendered from the same config on this request.
+    function activeType() {
+      for (var i = 0; i < types.length; i++) {
+        if (body.classList.contains('type-' + types[i])) return types[i];
+      }
+      return types[0];
+    }
+
+    function buildExport() {
+      var key = activeType();
+      var root = document.documentElement.cloneNode(true);
+
+      // The other side, dropped rather than left hidden: it doubles the file and
+      // a hidden roster is still readable in the source.
+      Array.prototype.slice.call(root.querySelectorAll('.refpage > div')).forEach(function (sec) {
+        if (!sec.classList.contains('only-' + key)) sec.parentNode.removeChild(sec);
+      });
+
+      // Controls with nothing behind them in a static copy.
+      var dead = '.toolbar, .toast, script, .filter, .notes-foot, .shown';
+      Array.prototype.slice.call(root.querySelectorAll(dead)).forEach(function (el) {
+        el.parentNode.removeChild(el);
+      });
+
+      // A cloned textarea keeps its original attribute, not what was typed into
+      // it, so the live value is read and written out as static text.
+      Array.prototype.slice.call(root.querySelectorAll('textarea[data-notes]')).forEach(function (ta) {
+        var live = document.querySelector('textarea[data-notes="' + ta.dataset.notes + '"]');
+        var text = (live && live.value.trim()) || '';
+        var box = root.ownerDocument.createElement('div');
+        box.className = 'notes-static';
+        box.textContent = text || 'No notes recorded.';
+        ta.parentNode.replaceChild(box, ta);
+      });
+
+      // Pin the theme the sender is looking at: without the toggle's script the
+      // recipient would otherwise get whatever _theme_head defaults to.
+      root.setAttribute('data-theme', document.documentElement.getAttribute('data-theme') || 'light');
+      root.querySelector('body').className = 'desktop type-' + key;
+
+      var style = root.ownerDocument.createElement('style');
+      style.textContent =
+        '.refpage{padding-top:30px}' +
+        '.notes-static{white-space:pre-wrap;font-size:12px;line-height:1.7;color:var(--muted);' +
+        'background:var(--sunken);border:1px solid var(--line);border-radius:8px;padding:11px 13px}' +
+        '.export-note{max-width:1120px;margin:0 auto;padding:18px 22px 0;font-size:11.5px;' +
+        'color:var(--faint)}';
+      root.querySelector('head').appendChild(style);
+
+      var note = root.ownerDocument.createElement('div');
+      note.className = 'export-note';
+      note.textContent =
+        'Reference — exported ' + new Date().toISOString().slice(0, 10) +
+        ' from config/report_types.yaml. Review only; never emailed.';
+      var page = root.querySelector('.refpage');
+      page.parentNode.insertBefore(note, page);
+
+      return '<!DOCTYPE html>\n' + root.outerHTML + '\n';
+    }
+
+    document.getElementById('copy-html').addEventListener('click', function () {
+      var html;
+      try { html = buildExport(); } catch (e) { flash('Could not build the copy'); return; }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(html).then(
+          function () { flash(activeType() + ' reference copied (' + Math.round(html.length / 1024) + ' KB)'); },
+          function () { flash('Copy blocked by the browser'); }
+        );
+      } else { flash('Clipboard unavailable'); }
+    });
 
     // ── Roster filter ─────────────────────────────────────────────────────
     // data-search carries the cleaned name, the roster spelling, city, category
