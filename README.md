@@ -4,12 +4,16 @@ A working prototype of the **email digests** from the Tenant Intelligence Pipeli
 ([`CONTEXT.md`](CONTEXT.md)): what lands in the team's inbox each week, in **two report types**
 (Tenants and Competitors), each previewable in **desktop and mobile**.
 
-This is the UI slice only. Ingest, the SQLite portfolio database, and Tavily search are
-specified in `CONTEXT.md` but not built here — the preview runs off JSON fixtures, so it
-needs no database, no search credits, and no API key.
+The pipeline now runs end to end: roster → Tavily search → LLM judging → rendered digest, with a
+SQLite history store behind it so a story is never judged twice. The **static preview** still runs
+off JSON fixtures, so it needs no database, no search credits, and no API key — what needs keys is
+a *live* run.
 
 **Preview:** <https://rsm-ravictor.github.io/newssource/> — or open `docs/index.html` locally,
 it needs no server.
+
+**Setting this up on another machine?** Start at [`SETUP.md`](SETUP.md) — it covers what git does
+and doesn't carry, the keys, the rosters you have to supply, and the loopback-only rule.
 
 ---
 
@@ -23,7 +27,9 @@ it needs no server.
 | `search.py` | Search stage — Tavily news per entity, URL canonicalization, dedupe. The privacy surface. |
 | `judge.py` | Judge stage — one LLM call per entity, schema built from config, JSON repair. |
 | `watchlist.py` | Roster parsing — Markdown tables read by column name, rank/category/ticker, name cleaning. |
-| `render.py` | Render stage — alerts → digest context → HTML. Shared by the static build and live runs. |
+| `render.py` | Render stage — alerts → digest context → HTML. Shared by the static build and live runs. Owns the severity → rank → source-tier sort. |
+| `db.py` | The history store — SQLite at `data/history.db`. Run records, every URL ever seen, judged alerts. Cross-run dedupe lives here. |
+| `ingest.py` | Converts the AAT Excel workbooks into `data/watchlists/*.txt`. Optional — the root rosters are the reference. |
 | `templates/digest.html` | **The email.** One Jinja2 template serving both report types; email-safe table HTML. Placeholder for the client's real template. |
 | `templates/preview.html` | The static preview harness (published to Pages). No Run button — it can't have one. |
 | `templates/runner.html` | The live runner UI — manual push button, workflow status bar. Shares `_canvas_css.html` with the preview so they can't drift. |
@@ -31,14 +37,15 @@ it needs no server.
 | `build_preview.py` | Renders every report type into `docs/` from fixtures. No network, no key. |
 | `generate_summaries.py` | Judges the article *fixtures* offline — iterate on criteria without spending credits. |
 | `smoke_test.py` | Proves the TritonAI connection once your key is in `.env`. |
-| `tests/test_search.py` | 17 tests, no network. Includes the assertions that only name + city can reach a query. |
+| `tests/` | 71 tests, no network and no key. Includes the assertions that only name + city can reach a query. |
+| [`SETUP.md`](SETUP.md) | Handoff guide — install, keys, rosters, and running this on another machine. |
 | `utils/connect.py` | The single LLM entry point, verbatim from `TRITONAI_SETUP.md`. |
 | `data/mock_articles_*.json` | Fictional search hits per report type, input to the offline judge. Include decoys that should be rejected. |
 | `data/sample_alerts_*.json` | Judged findings per report type, input to the emails. What the published page shows. |
 
-Pipeline: `search.py` → `judge.py` → `render.py` → `templates/digest.html`. Both the live runner
-and the static build go through the same three modules, so a live run and a published snapshot
-can't diverge.
+Pipeline: `search.py` → `judge.py` → `render.py` → `templates/digest.html`, with `db.py` recording
+each stage as it goes. Both the live runner and the static build go through the same three
+modules, so a live run and a published snapshot can't diverge.
 
 ## Email format — AAT Intel Briefing
 
@@ -177,16 +184,36 @@ Rank is the one real difference between the two sides, and it is used twice:
 Give the competitor side a rank by adding a `#` column to its tables and setting
 `use_rank: true` under `report_types.competitors`.
 
+### Source reliability breaks the remaining ties
+
+The full sort is **severity → roster rank → source tier**. `source_tiers` in the config lists
+outlets best-first — wire services and SEC filings, then the CRE trade press, then company-issued
+releases, then anything unlisted, then social and user-posted — and a finding's domain decides
+where it sits. Subdomains inherit their parent (`m.facebook.com` → `facebook.com`); a domain
+matching nothing lands at `default_position`.
+
+It is a **sort key, not a filter.** Nothing is ever dropped for where it came from, and tier is
+third in line, so an urgent finding sourced from a LinkedIn post still leads a routine wire story.
+Severity and rank remain the rubric's axes; tier only orders findings that already tie on both.
+With no `source_tiers` block configured, every row shares one flat tier and ordering falls back to
+exactly the pre-tier behavior. The `/reference` page renders the tier table as configured.
+
 ## Live runner — clickable date range
 
 ```bash
 python serve.py            # http://127.0.0.1:8765
 ```
 
-Pick **Last 7 / 30 / 90 days**, click **Push run now**, and it really executes the pipeline:
+Pick **Last 1 / 7 / 30 / 90 days**, click **Push run now**, and it really executes the pipeline:
 Tavily news search per entity → judging via `utils/connect.py` → the same `digest.html`
 template. Nothing runs on a schedule and nothing runs on page load — a run only ever happens
 because someone pressed that button, which is what makes it demoable.
+
+**1 day** is the cheap test window: a full-roster run over a single day returns few enough
+articles to judge the whole list without spending a week's worth of credits and tokens. The
+window that loads by default is `lookback_default` (7), kept separate from the preset order in
+`config/report_types.yaml` so the cheapest option can sit at the front of the bar without
+quietly becoming what an unattended production run uses.
 
 The **status bar** under the run bar tracks the five stages, driven by the server rather than a
 timer:
@@ -346,19 +373,33 @@ still fails is skipped and reported on stderr rather than silently shrinking the
 python -m unittest discover -s tests
 ```
 
-39 tests, no network and no key needed.
+71 tests, no network and no key needed.
 
-`test_search.py` — the important ones assert that a built Tavily query contains the entity name
+`test_search.py` (18) — the important ones assert that a built Tavily query contains the entity name
 and city and **nothing else**; if someone adds a placeholder to `query_templates`, they fail. The
 rest cover URL canonicalization (two tracking-param variants of one story must hash identically),
 source-name derivation, and date parsing.
 
-`test_watchlist.py` — roster parsing: rank and city read from their own columns, an empty middle
+`test_watchlist.py` (22) — roster parsing: rank and city read from their own columns, an empty middle
 column that must not shift the rest, prose above a table that must not become an entity, city
 inherited from a `## Market` heading, dedupe keeping the best rank, and name cleaning that titles
 `LPL HOLDINGS, INC` while leaving `DivcoWest` alone. Also that two markets sharing a firm name get
 distinct email anchors, and that rank orders entities within a severity. The tests against the real
 rosters skip themselves when those gitignored files are absent.
+
+`test_db.py` (19) — the history store: schema creation is re-runnable, `unseen` filters URLs from
+an earlier run but is scoped per entity *and* report type, two tracking-param variants of one
+story dedupe to each other, recording the same run twice doesn't double-report, and `pending` /
+`mark_emailed` guarantee a story is handed to the send stage at most once.
+
+`test_source_tiers.py` (12) — reading order: tiers rank in the order they're written, an unlisted
+domain takes `default_position` and still beats social, a subdomain matches its parent, and — the
+ones that matter — priority and roster rank both still outrank tier, nothing is ever dropped for
+its source, and passing no tiers reproduces the old order exactly.
+
+> A green run on a fresh clone does **not** mean your rosters parse — the roster tests skip
+> themselves when `tenant-list.md` / `competitor-list.md` are absent, which they are until you
+> add your own. Re-run the suite once they're in place.
 
 ## Privacy model
 
@@ -389,10 +430,35 @@ copy can't be mistaken for real reporting.
 
 Rebuild and commit `docs/` whenever the template or fixture changes.
 
+## The history store
+
+`db.py` keeps a SQLite database at `data/history.db`, created on first use and re-runnable —
+`python db.py` makes it if absent and prints its state (counts, then the last five runs).
+
+- **`runs`** — one row per run: report type, lookback, model, status, and the kept/dropped counters
+  stamped by `finish_run`.
+- **`results`** — every article ever fetched, keyed by a hash of its canonicalized URL. This is
+  what `unseen()` reads: an article already seen for that entity and report type is never judged
+  again, so re-running a window costs nothing in tokens and can't resurface an old story. Dedupe is
+  scoped per entity *and* report type, and stripping tracking params happens before hashing, so two
+  links to the same story collapse.
+- **`alerts`** — the judged-relevant findings, with `priority`, the CEO flag, and `emailed_at`.
+  `pending()` / `mark_emailed()` are the backstop that will let the send stage email a story at
+  most once, ever — which makes daily-vs-weekly a pure scheduling choice.
+
+The database is **machine-local and gitignored**. It holds real findings about real tenants, and
+copying it between machines mostly copies confusion — a new install should start empty.
+
 ## Not built yet
 
-From `CONTEXT.md`, still to come: SQLite schema and `init-db`, Excel rent-roll ingest with
-deterministic company IDs, Tavily search with URL canonicalization and cross-run dedupe, the
-`alerts` table that guarantees a story is emailed at most once, Gmail SMTP send, and the
-`tenant-intel` CLI. The judge stage exists here in prototype form and moves to `judge.py`; the
-email template moves in as-is.
+From `CONTEXT.md`, still to come:
+
+- **Gmail SMTP send.** `pending()` and `mark_emailed()` are ready and the `.env` keys are
+  reserved; nothing calls them yet, so digests are read in the browser or copied out by hand.
+- **Excel rent-roll ingest with deterministic company IDs.** `ingest.py` converts the AAT
+  workbooks into watchlists, but the rent-roll → `companies`/`properties`/`leases` schema in
+  `CONTEXT.md` — with rents that never leave the database — isn't built. No rent or lease data
+  is stored anywhere in this repo today.
+- **The `tenant-intel` CLI.** Stages are driven by `serve.py` and the individual scripts rather
+  than by one command with subcommands.
+- **Scheduling.** Every run is a button press, on purpose.
