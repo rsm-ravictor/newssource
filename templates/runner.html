@@ -64,6 +64,23 @@
   background: var(--sunken); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px;
 }
 
+/* Measured usage, distinct from the estimate above it: these are the providers'
+   own numbers, so they only exist once a run has started. */
+.usage {
+  display: none; align-items: center; gap: 16px; flex-wrap: wrap;
+  font-size: 11.5px; color: var(--faint);
+  padding: 8px 14px; margin: 0 0 10px;
+  background: var(--sunken); border: 1px solid var(--line); border-radius: 8px;
+}
+.usage.on { display: flex; }
+.usage .u-label {
+  font-size: 10px; font-weight: 650; letter-spacing: 0.6px; text-transform: uppercase;
+  color: var(--accent);
+}
+.usage .u { display: inline-flex; align-items: baseline; gap: 5px; }
+.usage .u b { color: var(--ink); font-weight: 650; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.usage .u-note { color: var(--faint); margin-left: auto; }
+
 .warn {
   width: 100%; font-size: 12px; line-height: 1.6;
   color: var(--bad-soft); background: var(--bad-bg);
@@ -303,6 +320,21 @@
       <span class="n" id="prog-count"></span>
     </div>
     <div class="track"><i id="prog-bar"></i></div>
+
+    {#- Measured API usage, straight from the providers' own reporting. The cost
+        line in the toolbar is an estimate made before the run; this is what the
+        run actually spent, and it is the number to reconcile against a bill. -#}
+    <div class="usage" id="usage">
+      <span class="u-label">Measured usage</span>
+      <span class="u"><b id="u-tavily">0</b> Tavily requests</span>
+      <span class="u"><b id="u-articles">0</b> articles returned</span>
+      <span class="u"><b id="u-calls">0</b> LLM calls</span>
+      <span class="u"><b id="u-in">0</b> input tokens</span>
+      <span class="u"><b id="u-out">0</b> output tokens</span>
+      <span class="u"><b id="u-total">0</b> total</span>
+      <span class="u-note" id="u-note"></span>
+    </div>
+
     <div class="log" id="log"></div>
   </div>
 
@@ -433,9 +465,20 @@
         var n = entityCounts[t] || 0;
         total += cap > 0 ? Math.min(cap, n) : n;
       });
+      // Tavily bills per SEARCH REQUEST, not per day of history, so this figure
+      // is deliberately independent of the lookback window: two queries per
+      // entity whether you ask for 1 day or 90. What the window changes is how
+      // many articles come back per request, and therefore the LLM tokens - and
+      // tokens cannot be known in advance, so they are measured during the run
+      // and shown in the usage readout rather than guessed at here.
       var credits = total * queriesPerEntity;
-      costNote.innerHTML = 'runs <b>both</b> reports &middot; ~<b>' + credits +
-        '</b> Tavily credits, <b>' + total + '</b> LLM calls';
+      costNote.innerHTML = 'runs <b>both</b> reports &middot; <b>' + credits +
+        '</b> Tavily requests (' + queriesPerEntity + '/entity, any window), <b>' +
+        total + '</b> LLM calls';
+      costNote.title =
+        'Tavily charges per search request, so this does not change with the date ' +
+        'range. A longer window returns more articles per request, which costs LLM ' +
+        'tokens, not credits - those are metered live once a run starts.';
     }
 
     typeBtns.forEach(function (b) { b.addEventListener('click', function () { setType(b.dataset.type); }); });
@@ -565,11 +608,36 @@
     });
 
     var shown = 0;
+    // Measured usage: the providers' own numbers, arriving with each status poll.
+    // Kept separate from the toolbar's estimate on purpose - one is arithmetic
+    // over the roster before the run, the other is the bill.
+    var usageBox = document.getElementById('usage');
+
+    function num(n) { return (n || 0).toLocaleString(); }
+
+    function renderUsage(u) {
+      if (!u || !u.llm_calls && !u.tavily_queries) return;
+      usageBox.classList.add('on');
+      document.getElementById('u-tavily').textContent = num(u.tavily_queries);
+      document.getElementById('u-articles').textContent = num(u.articles_returned);
+      document.getElementById('u-calls').textContent = num(u.llm_calls);
+      document.getElementById('u-in').textContent = num(u.input_tokens);
+      document.getElementById('u-out').textContent = num(u.output_tokens);
+      document.getElementById('u-total').textContent = num(u.total_tokens);
+
+      var notes = [];
+      if (u.cached_tokens) notes.push(num(u.cached_tokens) + ' cached');
+      if (u.llm_failed) notes.push(u.llm_failed + ' LLM call(s) failed');
+      if (u.tavily_failed) notes.push(u.tavily_failed + ' search(es) failed, likely unbilled');
+      document.getElementById('u-note').textContent = notes.join(' · ');
+    }
+
     function poll() {
       fetch('api/status?id=' + encodeURIComponent(lastRunId))
         .then(function (r) { return r.json(); })
         .then(function (s) {
           if (s.steps) renderSteps(s.steps);
+          renderUsage(s.usage);
           (s.log || []).slice(shown).forEach(function (l) { addLog(l, classify(l)); });
           shown = (s.log || []).length;
 

@@ -28,6 +28,7 @@ and doesn't carry, the keys, the rosters you have to supply, and the loopback-on
 | `judge.py` | Judge stage — one LLM call per entity, schema built from config, JSON repair. |
 | `watchlist.py` | Roster parsing — Markdown tables read by column name, rank/category/ticker, name cleaning. |
 | `render.py` | Render stage — alerts → digest context → HTML. Shared by the static build and live runs. Owns the severity → rank → source-tier sort. |
+| `usage.py` | Measured API usage — wraps both clients to capture the providers' own token and request counts. |
 | `sources.py` | Source policy — which tier a domain is, whether it may be cited, and the entity's-own-domain rule. |
 | `export_rubrics.py` | Regenerates the two `*-intelligence-rubric.md` docs from the config. `--check` fails if they are stale. |
 | `db.py` | The history store — SQLite at `data/history.db`. Run records, every URL ever seen, judged alerts. Cross-run dedupe lives here. |
@@ -39,7 +40,7 @@ and doesn't carry, the keys, the rosters you have to supply, and the loopback-on
 | `build_preview.py` | Renders every report type into `docs/` from fixtures. No network, no key. |
 | `generate_summaries.py` | Judges the article *fixtures* offline — iterate on criteria without spending credits. |
 | `smoke_test.py` | Proves the TritonAI connection once your key is in `.env`. |
-| `tests/` | 110 tests, no network and no key. Includes the assertions that only name + city can reach a query. |
+| `tests/` | 148 tests, no network and no key. Includes the assertions that only name + city can reach a query. |
 | [`SETUP.md`](SETUP.md) | Handoff guide — install, keys, rosters, and running this on another machine. |
 | `utils/connect.py` | The single LLM entry point, verbatim from `TRITONAI_SETUP.md`. |
 | `data/mock_articles_*.json` | Fictional search hits per report type, input to the offline judge. Include decoys that should be rejected. |
@@ -270,8 +271,31 @@ Run button would let anyone spend your Tavily credits. So `serve.py` binds to `1
 (this machine only), reads both keys from `.env`, and never sends anything secret to the browser.
 The published page (`docs/index.html`) is the static preview and has no Run button.
 
-Cost per run: **2 Tavily credits per entity** (two queries each) plus one LLM call per entity.
-A 70-name list is roughly 140 credits, so cap entities while iterating.
+### What a run actually costs
+
+**Tavily bills per search request, not per day of history.** Two queries per entity whether you
+pick 1 day or 90, so the credit estimate in the toolbar is deliberately *independent of the
+lookback window* — it does not change when you switch windows, and that is correct rather than a
+stuck number. A 70-name list is ~140 requests either way.
+
+What the window does change is how many articles come back per request (up to
+`max_results_per_query`), and therefore the **LLM tokens**, which cannot be known in advance.
+
+So the toolbar shows an estimate and the run shows the truth. `usage.py` wraps both API clients
+and records what the providers themselves report:
+
+    Measured usage   126 Tavily requests · 388 articles returned · 63 LLM calls
+                     412,889 input tokens · 8,204 output tokens · 421,093 total
+
+That readout counts up during the run, and the per-type totals are written to the `runs` table
+(`tavily_queries`, `llm_calls`, `input_tokens`, `output_tokens`), so `python db.py` reports
+lifetime spend. Runs from before this existed show zeroes — they were never measured, and
+back-filling a guess would defeat the point.
+
+Getting exact counts needed one trick: `utils/connect.py` is verbatim-locked and throws
+`resp.usage` away. But it accepts a `client` argument, and that injection point is the seam — the
+wrapper records usage on the way through, so the numbers are the provider's own rather than a
+local tokenizer's estimate of them.
 
 ### What a live run actually looks like
 
@@ -388,7 +412,7 @@ still fails is skipped and reported on stderr rather than silently shrinking the
 python -m unittest discover -s tests
 ```
 
-110 tests, no network and no key needed.
+148 tests, no network and no key needed.
 
 `test_search.py` (18) — the important ones assert that a built Tavily query contains the entity name
 and city and **nothing else**; if someone adds a placeholder to `query_templates`, they fail. The

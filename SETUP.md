@@ -79,7 +79,7 @@ Six dependencies, all pure-Python: `openai`, `python-dotenv`, `pydantic`, `jinja
 **Checkpoint — this must work with no keys and no network:**
 
 ```bash
-python -m unittest discover -s tests     # 110 tests, all offline
+python -m unittest discover -s tests     # 148 tests, all offline
 python build_preview.py --open           # builds and opens the preview from committed fixtures
 ```
 

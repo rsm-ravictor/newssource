@@ -44,6 +44,7 @@ import db  # noqa: E402
 import search as search_mod  # noqa: E402
 from judge import judge_entities  # noqa: E402
 from prose import structure  # noqa: E402
+from usage import Meter  # noqa: E402
 from sources import citable_limit, source_tiers  # noqa: E402
 from render import (  # noqa: E402
     DOCS,
@@ -147,6 +148,14 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
     citable_max = citable_limit(config)
     window_start = (datetime.now(timezone.utc).date() - timedelta(days=days)) if days else None
 
+    # Measured API usage for this run. Shared by both report types, because one
+    # press of the button is one bill.
+    meter = Meter()
+
+    def publish_usage() -> None:
+        with RUNS_LOCK:
+            RUNS[run_id]["usage"] = meter.totals()
+
     def log(msg: str) -> None:
         with RUNS_LOCK:
             RUNS[run_id]["log"].append(msg)
@@ -195,10 +204,14 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
             done=True,
         )
 
-        tavily = search_mod.get_client()
+        # Both clients pass through the meter, so what the page reports is what
+        # the providers reported - not arithmetic over the roster. connect.py is
+        # verbatim-locked and discards resp.usage, but it accepts a client, and
+        # that injection point is where the real token counts are captured.
+        tavily = meter.wrap_tavily(search_mod.get_client())
         from utils.connect import get_client as llm_client
 
-        llm = llm_client()
+        llm = meter.wrap_llm(llm_client())
 
         # History belongs to the pipeline, not to this page: an email-only build that
         # drops the UI keeps the same store by calling the same functions. Opened in
@@ -254,6 +267,9 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
                 "start_run", db.start_run, key,
                 lookback_days=days, model=model, run_id=f"{run_id}:{key}",
             )
+
+            # Meter reading as this type starts, so its own usage is the delta.
+            before = meter.totals()
 
             judged: list[dict] = []
             kept = dropped = 0
@@ -356,15 +372,30 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
                     articles,
                     one[0]["alerts"] if one else [],
                 )
+                publish_usage()
                 bump()
 
             cut_short = processed < len(entries)
+            used = meter.totals()
             remember(
                 "finish_run", db.finish_run, hist_run,
                 status="paused" if cut_short else "complete",
                 entities_searched=processed, articles_found=found_total,
                 articles_skipped=skipped_seen, kept=kept, dropped=dropped,
+                # Delta since this report type began: one press of the button
+                # writes two run rows, and each should own its share of the bill
+                # rather than both reporting the run total.
+                tavily_queries=used["tavily_queries"] - before["tavily_queries"],
+                llm_calls=used["llm_calls"] - before["llm_calls"],
+                input_tokens=used["input_tokens"] - before["input_tokens"],
+                output_tokens=used["output_tokens"] - before["output_tokens"],
             )
+            log(f"[{spec['label']}] used "
+                f"{used['tavily_queries'] - before['tavily_queries']} Tavily requests, "
+                f"{used['llm_calls'] - before['llm_calls']} LLM calls, "
+                f"{used['input_tokens'] - before['input_tokens']:,} in / "
+                f"{used['output_tokens'] - before['output_tokens']:,} out tokens")
+            publish_usage()
             if cut_short and not processed:
                 skipped.append(spec["label"])
                 log(f"[{spec['label']}] paused before any {spec['entity_noun']} was "
@@ -572,6 +603,8 @@ class Handler(BaseHTTPRequestHandler):
                     "steps": step_states(run),
                     # Pause requested but the entity in flight is still finishing.
                     "pausing": bool(run.get("stop")) and run["state"] == "running",
+                    # What the providers actually reported, not an estimate.
+                    "usage": run.get("usage") or {},
                     "paused": bool(run.get("stopped")),
                 }
                 if run["state"] == "done":
@@ -624,6 +657,8 @@ class Handler(BaseHTTPRequestHandler):
                     "step": "list", "steps_done": [], "step_notes": {},
                     # Pause flag, and whether the finished run actually honoured one.
                     "stop": False, "stopped": False,
+                    # Measured provider usage, replaced after every entity.
+                    "usage": Meter().totals(),
                 }
 
             threading.Thread(target=execute_run, args=(run_id, days, limit), daemon=True).start()

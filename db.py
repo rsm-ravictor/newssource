@@ -74,6 +74,12 @@ CREATE TABLE IF NOT EXISTS runs (
     articles_skipped  INTEGER DEFAULT 0,
     kept              INTEGER DEFAULT 0,
     dropped           INTEGER DEFAULT 0,
+    -- Measured, not estimated: what the providers reported for this run. Tavily
+    -- bills per request, so tavily_queries IS the credit count.
+    tavily_queries    INTEGER DEFAULT 0,
+    llm_calls         INTEGER DEFAULT 0,
+    input_tokens      INTEGER DEFAULT 0,
+    output_tokens     INTEGER DEFAULT 0,
     status            TEXT DEFAULT 'running'
 );
 
@@ -166,6 +172,12 @@ def connect(path: str | Path | None = None) -> sqlite3.Connection:
 # here instead of being left to a manual rebuild - a store of real findings
 # should survive a schema change.
 MIGRATIONS: dict[str, dict[str, str]] = {
+    "runs": {
+        "tavily_queries": "INTEGER DEFAULT 0",
+        "llm_calls": "INTEGER DEFAULT 0",
+        "input_tokens": "INTEGER DEFAULT 0",
+        "output_tokens": "INTEGER DEFAULT 0",
+    },
     "alerts": {
         "event_date": "TEXT",
         "event_key": "TEXT",
@@ -214,6 +226,7 @@ def finish_run(conn, run_id: str, *, status: str = "complete", **counters) -> No
     """Stamp a run finished. Counter names must match the runs columns."""
     allowed = {
         "entities_searched", "articles_found", "articles_skipped", "kept", "dropped",
+        "tavily_queries", "llm_calls", "input_tokens", "output_tokens",
     }
     bad = set(counters) - allowed
     if bad:
@@ -395,6 +408,11 @@ def stats(conn) -> dict:
         "alerts": one("SELECT COUNT(*) FROM alerts"),
         "unsent": one("SELECT COUNT(*) FROM alerts WHERE emailed_at IS NULL"),
         "ceo_flagged": one("SELECT COUNT(*) FROM alerts WHERE ceo_flag = 1"),
+        # Lifetime measured spend, so "what have I used" needs no extra tooling.
+        "tavily_requests": one("SELECT COALESCE(SUM(tavily_queries), 0) FROM runs"),
+        "llm_calls": one("SELECT COALESCE(SUM(llm_calls), 0) FROM runs"),
+        "input_tokens": one("SELECT COALESCE(SUM(input_tokens), 0) FROM runs"),
+        "output_tokens": one("SELECT COALESCE(SUM(output_tokens), 0) FROM runs"),
     }
 
 
@@ -410,7 +428,9 @@ def main() -> int:
         print("\n  recent runs")
         for r in runs:
             print(f"    {r['started_at']}  {r['report_type']:<12} {r['status']:<9}"
-                  f" kept={r['kept']} dropped={r['dropped']}")
+                  f" kept={r['kept']} dropped={r['dropped']}"
+                  f" tavily={r['tavily_queries'] or 0}"
+                  f" tokens={(r['input_tokens'] or 0) + (r['output_tokens'] or 0):,}")
     return 0
 
 
