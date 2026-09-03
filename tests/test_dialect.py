@@ -165,6 +165,19 @@ class RoutingTest(unittest.TestCase):
         self.assertEqual(conn.dialect, "sqlite")
         conn.close()
 
+    def test_news_db_outranks_a_connection_string(self):
+        """Someone pointing NEWS_DB at a scratch file means that file, whatever
+        .env holds. Silently using Postgres instead would write test rows into
+        the real store."""
+        os.environ["DATABASE_URL"] = "postgresql://nobody@nowhere/db"
+        os.environ["NEWS_DB"] = str(Path(self.tmp.name) / "scratch.db")
+        try:
+            conn = db.connect()
+            self.assertEqual(conn.dialect, "sqlite")
+            conn.close()
+        finally:
+            os.environ.pop("NEWS_DB", None)
+
     def test_news_db_still_selects_a_file(self):
         os.environ.pop("DATABASE_URL", None)
         os.environ["NEWS_DB"] = str(Path(self.tmp.name) / "env.db")

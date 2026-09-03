@@ -343,18 +343,31 @@ def connect(path: str | Path | None = None, url: str | None = None):
     """Open the history store, creating its schema if absent.
 
     Postgres when a connection string is given or ``DATABASE_URL`` is set, SQLite
-    otherwise. An explicit ``path`` always means the file store, which is what
-    keeps the tests on a disposable temp file no matter what is in the
-    environment - a test run must never be able to touch the real history.
+    otherwise. Precedence, most specific first:
+
+        path=      an explicit file          -> SQLite
+        url=       an explicit connection    -> Postgres
+        NEWS_DB    a file named in the env   -> SQLite
+        DATABASE_URL                         -> Postgres
+        (nothing)  data/history.db           -> SQLite
+
+    NEWS_DB deliberately outranks DATABASE_URL: it names one specific file, and
+    someone who points it at a scratch database means that file, not "whatever
+    .env happens to hold". Same reason an explicit ``path`` outranks everything -
+    it is what keeps the tests on a disposable temp file, and a test run must
+    never be able to touch the real history.
 
     Re-runnable either way: every statement in the schema is IF NOT EXISTS, so
     calling this on an existing database just hands back a connection.
     """
-    dsn = None if path else (url or os.environ.get("DATABASE_URL"))
+    file_first = path or os.environ.get("NEWS_DB")
+    dsn = None if file_first else (url or os.environ.get("DATABASE_URL"))
+    if url and not path:
+        dsn = url  # an explicit connection string still beats NEWS_DB
     if dsn:
         return _connect_postgres(dsn)
 
-    target = Path(path or os.environ.get("NEWS_DB") or DEFAULT_PATH)
+    target = Path(file_first or DEFAULT_PATH)
     target.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(target, factory=SqliteConnection)
     conn.row_factory = sqlite3.Row

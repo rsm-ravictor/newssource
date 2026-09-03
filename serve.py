@@ -230,13 +230,30 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
 
         def remember(what: str, fn, *a, **kw):
             """Best-effort store call: a history failure is logged, never fatal.
-            Losing the audit trail must not lose the briefing."""
+            Losing the audit trail must not lose the briefing.
+
+            Retried once through a fresh connection, because the store may now be
+            on the far end of a network rather than a file on this disk. Two
+            things make that worth doing rather than just logging: a run lasts
+            hours and a dropped connection in the middle of one is ordinary, and
+            in Postgres a failed statement aborts the transaction, so without a
+            reconnect the first failure would quietly disable checkpointing - and
+            with it resume - for the rest of the run.
+            """
+            nonlocal history
             if history is None:
                 return None
             try:
                 return fn(history, *a, **kw)
             except Exception as exc:  # noqa: BLE001
                 log(f"  ! history {what} failed: {type(exc).__name__}: {str(exc)[:80]}")
+            try:
+                history = db.connect()
+                out = fn(history, *a, **kw)
+                log("  history store reconnected")
+                return out
+            except Exception as exc:  # noqa: BLE001
+                log(f"  ! history reconnect failed: {type(exc).__name__}: {str(exc)[:80]}")
                 return None
 
         period = search_mod.period_label(days)
@@ -379,8 +396,13 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
                 # history store skip this and may repeat themselves - logged, not
                 # silent.
                 repeats_here = 0
-                if one and history is not None:
-                    new, repeats = db.fresh_events(history, key, name, one[0]["alerts"])
+                # Through remember() like every other store call: this one reaches
+                # the network too, and failing open repeats a finding at worst,
+                # where letting it raise would lose the whole run.
+                checked = remember("fresh_events", db.fresh_events, key, name,
+                                   one[0]["alerts"]) if one else None
+                if checked:
+                    new, repeats = checked
                     repeats_here = len(repeats)
                     if repeats:
                         for r in repeats:
