@@ -479,6 +479,24 @@ copy can't be mistaken for real reporting.
 
 Rebuild and commit `docs/` whenever the template or fixture changes.
 
+### The same folder on Vercel
+
+`vercel.json` points Vercel at `docs/` too, with no build step — these are finished HTML files.
+Two hosts, one folder, so they cannot show different briefings. Import the repo (framework
+preset: **Other**) or drag `docs/` onto <https://vercel.com/new>, which needs no repo at all.
+
+Nothing about the pipeline deploys: `.vercelignore` ships `docs/` and excludes every `.py`. A run
+takes hours and could never fit a serverless request.
+
+### The read-only viewer, when you want it
+
+`viewer/index.py` is a page over the *live* history store — current findings, filters, run
+history — rather than a frozen snapshot. It sits outside `api/` on purpose, because Vercel turns
+anything in `api/` into a function automatically and this one should not go live by accident. To
+turn it on: move it to `api/index.py`, rewrite `/` to `/api/index` in `vercel.json`, and set
+`DATABASE_URL` in the Vercel project's environment settings. It runs `SELECT` statements and
+nothing else; for a hard guarantee, give the deployment its own Neon role with only SELECT granted.
+
 ### Where the rubric actually lives
 
 `config/report_types.yaml` **is** the rubric: the `criteria`, `evidence_standard`, `rank_note` and
