@@ -67,6 +67,48 @@
 .runbar:not(.has-resume) .resume-btn,
 .runbar.running .resume-btn { display: none; }
 
+/* Company picker. A run over the whole roster costs real money, so choosing a
+   handful to try is how anyone decides what "meaningful" means without paying
+   for 689 companies to find out. */
+.pick-btn { color: var(--text); background: var(--sunken); border: 1px solid var(--line);
+            padding: 8px 15px; }
+.pick-btn.on { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.picker {
+  display: none; padding: 0 22px 18px; background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+.picker.open { display: block; }
+.picker-top { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 4px 0 12px; }
+.picker-top input[type="search"] {
+  flex: 1 1 240px; font: inherit; font-size: 13px; color: var(--text);
+  background: var(--sunken); border: 1px solid var(--line); border-radius: 7px; padding: 7px 11px;
+}
+.picker-cols { display: flex; gap: 18px; flex-wrap: wrap; }
+.picker-col { flex: 1 1 320px; min-width: 260px; }
+.picker-col h3 {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+  margin: 0 0 7px; font-weight: 600; display: flex; gap: 9px; align-items: baseline;
+}
+.picker-col h3 button {
+  font: inherit; font-size: 10.5px; text-transform: none; letter-spacing: 0;
+  background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0;
+}
+.picker-list {
+  max-height: 230px; overflow-y: auto; border: 1px solid var(--line);
+  border-radius: 8px; background: var(--sunken); padding: 5px;
+}
+.picker-list label {
+  display: flex; gap: 8px; align-items: baseline; padding: 4px 7px;
+  border-radius: 5px; cursor: pointer; font-size: 13px;
+}
+.picker-list label:hover { background: var(--pill); }
+.picker-list input { margin: 0; flex: 0 0 auto; }
+.picker-list .where { color: var(--faint); font-size: 11.5px; }
+.picker-list .none { color: var(--faint); padding: 12px 7px; font-size: 12.5px; }
+.picker-foot { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding-top: 12px; }
+.picker-foot .tally { font-size: 12.5px; color: var(--muted); }
+.picker-foot .tally b { color: var(--text); }
+
 .cost { font-size: 11.5px; color: var(--faint); white-space: nowrap; }
 .cost b { color: var(--muted); font-weight: 600; }
 .cost input {
@@ -296,6 +338,14 @@
     <span class="run-glyph" aria-hidden="true">&#10074;&#10074;</span> Pause &amp; build email
   </button>
 
+  {#- Cheap testing, and the review loop this whole tool exists for: pick a few
+      companies, run them, look at what came back, sharpen the notes on /reference,
+      run them again. Two Tavily requests per company, so five companies cost ten. -#}
+  <button class="run-btn pick-btn" id="pick-btn" type="button"
+          title="Choose specific companies instead of running the whole roster">
+    <span id="pick-label">Choose companies</span>
+  </button>
+
   {#- Recovery, not a second Run button: it appears only when the history store
       holds a run whose process died mid-roster. Entities that run already screened
       are replayed from the store, so resuming re-pays for nothing. -#}
@@ -313,6 +363,18 @@
     Add them and restart <code>python serve.py</code>.
   </div>
   {% endif %}
+</div>
+
+<div class="picker" id="picker">
+  <div class="picker-top">
+    <input type="search" id="pick-search" placeholder="Filter by name or city&hellip;"
+           autocomplete="off">
+    <button class="run-btn pick-btn" id="pick-clear" type="button">Clear selection</button>
+  </div>
+  <div class="picker-cols" id="pick-cols"></div>
+  <div class="picker-foot">
+    <span class="tally" id="pick-tally"></span>
+  </div>
 </div>
 
 {#- Workflow status bar. Chrome, not content: it sits outside .shell and the email
@@ -478,11 +540,198 @@
       updateCost();
     }
 
+    // ── Company picker ─────────────────────────────────────────────────────
+    // Selection is per report type, held as name -> true and mirrored into
+    // localStorage. Surviving a reload matters more than it looks: the intended
+    // use is run a few, read the output, sharpen the notes on /reference, run the
+    // same few again — and losing the set on every refresh would make that loop
+    // tedious enough that nobody does it.
+    var STORE_KEY = 'intel.picked.v1';
+    var roster = {};   // type -> {label, noun, entities[]}
+    var picked = {};   // type -> {name: true}
+
+    function loadPicked() {
+      try {
+        var raw = window.localStorage.getItem(STORE_KEY);
+        if (raw) picked = JSON.parse(raw) || {};
+      } catch (e) { picked = {}; }
+    }
+
+    function savePicked() {
+      try { window.localStorage.setItem(STORE_KEY, JSON.stringify(picked)); } catch (e) {}
+    }
+
+    function pickedNames(type) { return Object.keys(picked[type] || {}); }
+
+    function pickedTotal() {
+      return types.reduce(function (n, t) { return n + pickedNames(t).length; }, 0);
+    }
+
+    // A selection only means anything against the roster it was made from. A
+    // watchlist edit can retire a company, and a stale name would silently
+    // narrow a run to fewer companies than the page is claiming.
+    function pruneToRoster() {
+      types.forEach(function (t) {
+        if (!roster[t] || !picked[t]) return;
+        var live = {};
+        roster[t].entities.forEach(function (e) { live[e.name] = true; });
+        Object.keys(picked[t]).forEach(function (name) {
+          if (!live[name]) delete picked[t][name];
+        });
+      });
+      savePicked();
+    }
+
+    function afterPickChange() {
+      savePicked();
+      renderPicker();
+      updateCost();
+      syncRunLabel();
+    }
+
+    function renderPicker() {
+      var needle = (pickSearch.value || '').trim().toLowerCase();
+      pickCols.innerHTML = '';
+
+      types.forEach(function (t) {
+        var info = roster[t];
+        if (!info) return;
+
+        var col = document.createElement('div');
+        col.className = 'picker-col';
+
+        var chosen = pickedNames(t).length;
+        var head = document.createElement('h3');
+        head.appendChild(document.createTextNode(info.label + ' '));
+        var count = document.createElement('span');
+        count.style.color = 'var(--faint)';
+        count.textContent = chosen ? chosen + ' of ' + info.entities.length
+                                   : String(info.entities.length);
+        head.appendChild(count);
+
+        var all = document.createElement('button');
+        all.type = 'button';
+        all.textContent = 'all';
+        var none = document.createElement('button');
+        none.type = 'button';
+        none.textContent = 'none';
+        head.appendChild(all);
+        head.appendChild(none);
+        col.appendChild(head);
+
+        var shown = info.entities.filter(function (e) {
+          if (!needle) return true;
+          return (e.name + ' ' + (e.city || '')).toLowerCase().indexOf(needle) !== -1;
+        });
+
+        // "all" and "none" act on what is on screen, so a filtered "all" selects
+        // that segment rather than the whole roster hiding behind the filter.
+        all.addEventListener('click', function () {
+          picked[t] = picked[t] || {};
+          shown.forEach(function (e) { picked[t][e.name] = true; });
+          afterPickChange();
+        });
+        none.addEventListener('click', function () {
+          if (!picked[t]) return;
+          shown.forEach(function (e) { delete picked[t][e.name]; });
+          afterPickChange();
+        });
+
+        var list = document.createElement('div');
+        list.className = 'picker-list';
+
+        if (!shown.length) {
+          var empty = document.createElement('div');
+          empty.className = 'none';
+          empty.textContent = 'Nothing matches that filter.';
+          list.appendChild(empty);
+        }
+
+        shown.forEach(function (e) {
+          var row = document.createElement('label');
+          var box = document.createElement('input');
+          box.type = 'checkbox';
+          box.checked = !!(picked[t] && picked[t][e.name]);
+          box.addEventListener('change', function () {
+            picked[t] = picked[t] || {};
+            if (box.checked) { picked[t][e.name] = true; } else { delete picked[t][e.name]; }
+            savePicked();
+            count.textContent = pickedNames(t).length
+              ? pickedNames(t).length + ' of ' + info.entities.length
+              : String(info.entities.length);
+            syncTally();
+            updateCost();
+            syncRunLabel();
+          });
+          var name = document.createElement('span');
+          name.textContent = e.name + (e.rank ? ' · #' + e.rank : '');
+          var where = document.createElement('span');
+          where.className = 'where';
+          where.textContent = [e.city, e.segment].filter(Boolean).join(' · ');
+          row.appendChild(box);
+          row.appendChild(name);
+          row.appendChild(where);
+          list.appendChild(row);
+        });
+
+        col.appendChild(list);
+        pickCols.appendChild(col);
+      });
+
+      syncTally();
+    }
+
+    function syncTally() {
+      var n = pickedTotal();
+      if (!n) {
+        var whole = types.reduce(function (a, t) { return a + (entityCounts[t] || 0); }, 0);
+        pickTally.innerHTML = 'Nothing selected — a run covers the whole roster: <b>' +
+          whole + '</b> companies, <b>' + (whole * queriesPerEntity) + '</b> Tavily requests.';
+        return;
+      }
+      pickTally.innerHTML = '<b>' + n + '</b> selected · <b>' + (n * queriesPerEntity) +
+        '</b> Tavily requests · <b>' + n + '</b> LLM calls';
+    }
+
+    function syncRunLabel() {
+      var n = pickedTotal();
+      pickBtn.classList.toggle('on', n > 0);
+      pickLabel.textContent = n ? n + ' selected' : 'Choose companies';
+      runBtn.innerHTML = '<span class="run-glyph" aria-hidden="true">&#9654;</span> ' +
+        (n ? 'Run ' + n + ' selected' : 'Push run now');
+    }
+
+    function loadRoster() {
+      fetch('api/entities')
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          roster = j.types || {};
+          if (j.queries_per_entity) queriesPerEntity = j.queries_per_entity;
+          pruneToRoster();
+          renderPicker();
+          syncRunLabel();
+          updateCost();
+        })
+        .catch(function () {
+          pickCols.innerHTML = '<div class="picker-col">Could not load the rosters.</div>';
+        });
+    }
+
+    pickBtn.addEventListener('click', function () { picker.classList.toggle('open'); });
+    pickSearch.addEventListener('input', renderPicker);
+    document.getElementById('pick-clear').addEventListener('click', function () {
+      picked = {};
+      afterPickChange();
+    });
+
     function updateCost() {
       var cap = parseInt(limitInput.value, 10) || 0;
       var total = 0;
+      var chose = pickedTotal() > 0;
       types.forEach(function (t) {
-        var n = entityCounts[t] || 0;
+        // A selection replaces the roster as the thing being counted, so the
+        // estimate says what this run will cost rather than what a full one would.
+        var n = chose ? pickedNames(t).length : (entityCounts[t] || 0);
         total += cap > 0 ? Math.min(cap, n) : n;
       });
       // Tavily bills per SEARCH REQUEST, not per day of history, so this figure
@@ -492,7 +741,8 @@
       // tokens cannot be known in advance, so they are measured during the run
       // and shown in the usage readout rather than guessed at here.
       var credits = total * queriesPerEntity;
-      costNote.innerHTML = 'runs <b>both</b> reports &middot; <b>' + credits +
+      costNote.innerHTML = (chose ? 'runs <b>' + total + ' selected</b>' : 'runs <b>both</b> reports') +
+        ' &middot; <b>' + credits +
         '</b> Tavily requests (' + queriesPerEntity + '/entity, any window), <b>' +
         total + '</b> LLM calls';
       costNote.title =
@@ -526,6 +776,8 @@
       var sm = localStorage.getItem('runnerMode'); if (sm) setMode(sm);
     } catch (e) {}
     setDays(activeDays);
+    loadPicked();
+    loadRoster();
     checkResumable();
     initThemeToggle();
 
@@ -600,6 +852,13 @@
 
       var payload = {days: activeDays, limit: parseInt(limitInput.value, 10) || 0};
       if (resumeOf) payload.resume = resumeOf;
+      // Only sent when something is actually selected. Absent means the whole
+      // roster, which is what the server treats as the default; sending an empty
+      // selection would ask it to run nothing.
+      if (!resumeOf && pickedTotal() > 0) {
+        payload.entities = {};
+        types.forEach(function (t) { payload.entities[t] = pickedNames(t); });
+      }
 
       fetch('api/run', {
         method: 'POST',

@@ -125,6 +125,79 @@ class PasswordTest(unittest.TestCase):
         self.assertEqual(self.get(password=self.PASSWORD[:-1])[0], 401)
 
 
+class SelectionTest(unittest.TestCase):
+    """Validation of the company picker's payload.
+
+    Only rejections are exercised on purpose: a payload that passes validation
+    starts a real run, which spends real Tavily credits. Every case here is one
+    the server must refuse before it gets that far.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.previous = serve.PASSWORD
+        serve.PASSWORD = None
+        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), serve.Handler)
+        cls.port = cls.server.server_address[1]
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown()
+        cls.server.server_close()
+        serve.PASSWORD = cls.previous
+
+    def post_run(self, payload):
+        import json as jsonlib
+
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{self.port}/api/run",
+            data=jsonlib.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=10) as response:
+                return response.status, jsonlib.loads(response.read())
+        except urllib.error.HTTPError as err:
+            return err.code, jsonlib.loads(err.read())
+
+    def test_an_empty_selection_is_refused(self):
+        """Selecting nothing is a mistake, not an instruction to run nothing -
+        and it must not fall through to meaning "the whole roster"."""
+        status, body = self.post_run({"days": 1, "entities": {"tenants": []}})
+        self.assertEqual(status, 400)
+        self.assertIn("no companies selected", body["error"])
+
+    def test_selection_must_be_an_object(self):
+        status, body = self.post_run({"days": 1, "entities": ["Google"]})
+        self.assertEqual(status, 400)
+        self.assertIn("object", body["error"])
+
+    def test_unknown_report_types_are_dropped(self):
+        """Only the configured report types exist. A payload naming something
+        else has selected nothing, and is refused rather than silently widened."""
+        status, body = self.post_run({"days": 1, "entities": {"nonsense": ["Google"]}})
+        self.assertEqual(status, 400)
+        self.assertIn("no companies selected", body["error"])
+
+    def test_the_roster_endpoint_lists_both_lists(self):
+        with urllib.request.urlopen(
+            f"http://127.0.0.1:{self.port}/api/entities", timeout=30
+        ) as response:
+            import json as jsonlib
+
+            body = jsonlib.loads(response.read())
+        self.assertEqual(sorted(body["types"]), ["competitors", "tenants"])
+        for key, info in body["types"].items():
+            self.assertTrue(info["entities"], key)
+            first = info["entities"][0]
+            # Name, city, rank, segment - the same fields search is allowed to
+            # see. Nothing from the rent roll reaches the browser.
+            self.assertEqual(sorted(first), ["city", "name", "rank", "segment"])
+
+
 class NoPasswordTest(unittest.TestCase):
     def test_unset_password_means_open(self):
         """Local use is unchanged: no password, no prompt. main() is what refuses

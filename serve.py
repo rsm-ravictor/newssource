@@ -170,7 +170,8 @@ def default_days(config: dict) -> int:
 # ---------------------------------------------------------------------------
 
 
-def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None) -> None:
+def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None,
+                picked: dict[str, list[str]] | None = None) -> None:
     """Search -> judge -> render for every report type. Runs on a worker thread.
 
     Pausable: /api/stop sets ``stop`` on the run, and the entity loop checks it
@@ -184,6 +185,11 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
     to continue; its checkpointed entities are replayed from the store - no Tavily
     request, no judge call - and only the rest are searched. A pause is deliberately
     not resumable: it ended in a briefing the reviewer asked for.
+
+    ``picked`` narrows the run to named entities, per report type. None means the
+    whole roster. This is what makes a cheap test possible: two Tavily requests
+    per company, so a five-company run costs ten, and someone deciding what counts
+    as "meaningful" can iterate without spending a roster's worth of credits.
     """
     config = load_config()
     specs = config["report_types"]
@@ -246,6 +252,12 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
         planned: dict[str, list] = {}
         for key, spec in specs.items():
             entries = read_entries(ROOT / spec["watchlist"], spec.get("name_aliases"))
+            if picked is not None:
+                # Matched case-insensitively against the roster, and anything not
+                # on it is dropped: the roster is the authority on who exists, and
+                # a typo should narrow a run rather than invent an entity.
+                wanted = {n.casefold() for n in picked.get(key, [])}
+                entries = [e for e in entries if e.name.casefold() in wanted]
             planned[key] = entries[:limit] if limit else entries
         with RUNS_LOCK:
             RUNS[run_id]["total"] = sum(len(v) for v in planned.values())
@@ -305,6 +317,11 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
         run_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         results: dict[str, dict] = {}
         skipped: list[str] = []
+        # Kept apart from `skipped` because they are different facts. One report
+        # type was cut short by a pause; the other was never asked for. Reporting
+        # "paused first" for a type nobody selected would be a small lie in the
+        # one place a reviewer looks to find out what actually ran.
+        unselected: list[str] = []
 
         for key, spec in specs.items():
             entries = planned[key]
@@ -315,6 +332,13 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
             if paused():
                 skipped.append(spec["label"])
                 log(f"[{spec['label']}] not started — paused before it began")
+                continue
+
+            # Nothing chosen from this list. Rendering it would produce a briefing
+            # that says "we looked and found nothing", which is not what happened.
+            if not entries:
+                unselected.append(spec["label"])
+                log(f"[{spec['label']}] none selected — not run")
                 continue
 
             log(f"[{spec['label']}] {len(entries)} {spec['entity_noun_plural']}, {period}")
@@ -339,8 +363,12 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
             if resume_of:
                 hist_run = hist_id if remember("reopen_run", db.reopen_run, hist_id) else None
                 done_before = remember("checkpoints", db.checkpoints, hist_id) or {}
-                if done_before:
-                    log(f"  resuming: {len(done_before)} of {len(entries)} "
+                # Counted against what this run will actually attempt, not against
+                # every checkpoint on the row: a selected subset is a smaller
+                # denominator, and "2 of 1" is worse than no number at all.
+                already = sum(1 for e in entries if e.name in done_before)
+                if already:
+                    log(f"  resuming: {already} of {len(entries)} "
                         f"{spec['entity_noun_plural']} already screened, replaying from history")
             else:
                 hist_run = remember(
@@ -572,6 +600,8 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
         was_paused = paused()
         if skipped:
             log("not rendered (paused first): " + ", ".join(skipped))
+        if unselected:
+            log("not run (nothing selected): " + ", ".join(unselected))
 
         findings = sum(r["total_alerts"] for r in results.values())
         stage("curate", f"{len(results)} {'email' if len(results) == 1 else 'emails'} rendered", done=True)
@@ -598,7 +628,8 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
             RUNS[run_id]["failed_step"] = RUNS[run_id].get("step")
 
 
-def launch_run(days: int, limit: int, resume_of: str | None = None) -> str | None:
+def launch_run(days: int, limit: int, resume_of: str | None = None,
+               picked: dict[str, list[str]] | None = None) -> str | None:
     """Register a run and start its worker thread. None if one is already going.
 
     Shared by the button and the schedule so there is exactly one way a run
@@ -617,7 +648,8 @@ def launch_run(days: int, limit: int, resume_of: str | None = None) -> str | Non
             # Measured provider usage, replaced after every entity.
             "usage": Meter().totals(),
         }
-    threading.Thread(target=execute_run, args=(run_id, days, limit, resume_of), daemon=True).start()
+    threading.Thread(target=execute_run, args=(run_id, days, limit, resume_of, picked),
+                     daemon=True).start()
     return run_id
 
 
@@ -816,6 +848,25 @@ class Handler(BaseHTTPRequestHandler):
         # What a killed run left behind. One button press writes a history row per
         # report type, so the rows are grouped back into the single run the
         # reviewer actually started.
+        # The rosters, for the picker. Names only - the same fields the search
+        # stage is allowed to see, and the same ones already on the reference page.
+        if path == "/api/entities":
+            config = load_config()
+            out = {}
+            for key, spec in config["report_types"].items():
+                entries = read_entries(ROOT / spec["watchlist"], spec.get("name_aliases"))
+                out[key] = {
+                    "label": spec["label"],
+                    "noun": spec["entity_noun_plural"],
+                    "entities": [
+                        {"name": e.name, "city": e.city, "rank": e.rank, "segment": e.segment}
+                        for e in entries
+                    ],
+                }
+            queries = max((len(s.get("query_templates") or []) for s in config["report_types"].values()),
+                          default=2)
+            return self._json({"types": out, "queries_per_entity": queries})
+
         if path == "/api/resumable":
             try:
                 rows = db.resumable(db.connect())
@@ -911,7 +962,20 @@ class Handler(BaseHTTPRequestHandler):
                 if stored_days:
                     days = stored_days
 
-            run_id = launch_run(days, limit, resume_of)
+            # A selection narrows the run to named companies. Absent means the
+            # whole roster; present but empty would mean "run nothing", which is
+            # a mistake rather than an instruction, so it is rejected.
+            picked = body.get("entities")
+            if picked is not None:
+                if not isinstance(picked, dict):
+                    return self._json({"error": "entities must be an object keyed by report type"}, 400)
+                known = set(load_config()["report_types"])
+                picked = {k: [str(n) for n in v] for k, v in picked.items()
+                          if k in known and isinstance(v, list)}
+                if not any(picked.values()):
+                    return self._json({"error": "no companies selected"}, 400)
+
+            run_id = launch_run(days, limit, resume_of, picked)
             if run_id is None:
                 return self._json({"error": "a run is already in progress"}, 409)
             return self._json({"run_id": run_id, "days": days, "resumed": bool(resume_of)})

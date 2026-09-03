@@ -254,6 +254,15 @@ which were thrown out with the reason.
   `... · paused after 24 of 626 tenants` and its "monitored" count is the number actually
   screened, not the roster size. A report type the pause landed before is not rendered at all
   rather than sent as a misleading empty briefing.
+- **Choose companies** opens a picker over both rosters — filter by name or city, tick the ones
+  you want, and the Run button becomes *Run 5 selected*. This is the cheap loop the tool is
+  really for: two Tavily requests per company, so five companies cost ten requests instead of
+  1,378. Run a handful, read what came back, sharpen the criteria in the notes box on
+  `/reference`, run the same handful again. The selection survives a reload (it is kept in the
+  browser, not the server, so two people testing at once do not fight over it) and is checked
+  against the live roster on load, so a name retired from a watchlist cannot silently narrow a
+  run. A report type with nothing selected is not run and not rendered — an empty briefing that
+  says "we looked and found nothing" would be a different claim from "nobody asked".
 - **Cap entities** limits how many names per list get run — use it to keep demos fast and cheap.
   The cost line shows the credit estimate before you click.
 - **Resume interrupted run** appears only when the history store holds a run whose process died
