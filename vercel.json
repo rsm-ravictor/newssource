@@ -1,4 +1,6 @@
 {
+  "installCommand": "echo no dependencies to install",
+  "buildCommand": "echo static briefings - nothing to build",
   "outputDirectory": "docs",
   "cleanUrls": true,
   "trailingSlash": false
