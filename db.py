@@ -1,8 +1,20 @@
 """History store - every run, every article seen, every alert judged relevant.
 
-Deliberately small: stdlib ``sqlite3``, three tables, plain SQL, no ORM and no
-migration framework. This module is meant to be handed off and repointed, so
-there is nothing to learn before reading it.
+Deliberately small: four tables, plain SQL, no ORM and no migration framework.
+This module is meant to be handed off and repointed, so there is nothing to learn
+before reading it.
+
+TWO STORES, ONE API
+    Unset ``DATABASE_URL`` and the store is a stdlib ``sqlite3`` file under
+    data/ - no server, no network, nothing to install. Set it and the same tables
+    live in Postgres (Neon) instead. Every function below takes the connection and
+    is written once; the handful of places the two dialects genuinely differ -
+    placeholders, upserts, the column check behind migrate() - are isolated in the
+    "dialects" section and nowhere else.
+
+    The point of keeping both is that they fail differently. SQLite makes the test
+    suite fast, offline and disposable, and keeps a laptop with no connectivity
+    able to run the pipeline; Postgres makes the history outlive the laptop.
 
 WHY IT LIVES UNDER THE PIPELINE, NOT IN THE UI
     serve.py is a demo surface and is expected to be dropped once the briefing
@@ -45,11 +57,14 @@ in this schema at all, so the store cannot become a second copy of the rent roll
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any, Mapping
+from urllib.parse import urlparse
 
 # search.py owns URL canonicalization (utm_* stripped, fragments dropped), and the
 # dedupe keys must be built the same way there and here or the same story lands twice.
@@ -57,11 +72,15 @@ from search import url_hash
 
 ROOT = Path(__file__).resolve().parent
 
+# What a query hands back. sqlite3.Row and a psycopg dict row are both read by
+# column name, which is the only thing any caller here does with them.
+Row = Mapping[str, Any]
+
 # Override with NEWS_DB to point a run at a scratch file, or at a shared path
 # once this is more than one person's machine.
 DEFAULT_PATH = ROOT / "data" / "history.db"
 
-SCHEMA = """
+SQLITE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
     run_id            TEXT PRIMARY KEY,
     report_type       TEXT NOT NULL,
@@ -130,6 +149,25 @@ CREATE TABLE IF NOT EXISTS alerts (
     UNIQUE (report_type, entity_name, url_hash)
 );
 
+-- One row per entity a run finished. This is what makes a killed run resumable:
+-- the judged payload is stored verbatim, so a resumed run replays it instead of
+-- paying Tavily and the judge for the same entity twice.
+CREATE TABLE IF NOT EXISTS run_progress (
+    run_id      TEXT NOT NULL,
+    entity_name TEXT NOT NULL,
+    finished_at TEXT NOT NULL,
+    -- Per-entity counters, so a resumed run's totals cover the whole roster and
+    -- not just the entities it personally searched.
+    articles    INTEGER DEFAULT 0,
+    skipped     INTEGER DEFAULT 0,
+    kept        INTEGER DEFAULT 0,
+    dropped     INTEGER DEFAULT 0,
+    -- The judged entity as the renderer wants it, JSON. Null when the entity was
+    -- screened and nothing survived - which is a finished entity, not a missing one.
+    payload     TEXT,
+    PRIMARY KEY (run_id, entity_name)
+);
+
 -- emailed_at first: "what has never been sent" is the query the email step runs.
 CREATE INDEX IF NOT EXISTS idx_alerts_event    ON alerts (report_type, entity_name, event_key);
 CREATE INDEX IF NOT EXISTS idx_alerts_unsent   ON alerts (emailed_at, priority);
@@ -137,6 +175,7 @@ CREATE INDEX IF NOT EXISTS idx_alerts_type     ON alerts (report_type, priority)
 CREATE INDEX IF NOT EXISTS idx_alerts_ceo      ON alerts (ceo_flag);
 CREATE INDEX IF NOT EXISTS idx_alerts_entity   ON alerts (entity_name);
 CREATE INDEX IF NOT EXISTS idx_runs_type       ON runs (report_type, started_at);
+CREATE INDEX IF NOT EXISTS idx_progress_run   ON run_progress (run_id);
 """
 
 
@@ -145,24 +184,208 @@ def now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def connect(path: str | Path | None = None) -> sqlite3.Connection:
-    """Open the history db, creating it and its schema if absent.
+# ---------------------------------------------------------------------------
+# Dialects
+#
+# The only places SQLite and Postgres genuinely differ. Everything below this
+# section is written once, in plain SQL with ``?`` placeholders, and works
+# against either store.
+# ---------------------------------------------------------------------------
 
-    Re-runnable: every statement in SCHEMA is IF NOT EXISTS, so calling this on
-    an existing database is a no-op that just hands back a connection.
+
+def pg_schema() -> str:
+    """The same DDL, retyped where Postgres insists. Derived from the SQLite
+    schema rather than copied, so the two stores cannot drift apart: every
+    comment, column and index above has exactly one source."""
+    return SQLITE_SCHEMA.replace(
+        "alert_id       INTEGER PRIMARY KEY AUTOINCREMENT",
+        "alert_id       BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY",
+    )
+
+
+def qmarks_to_percent(sql: str) -> str:
+    """``?`` -> ``%s``, leaving quoted text alone.
+
+    Postgres uses a different placeholder than SQLite. Rather than write every
+    statement twice, they are written once in the SQLite style and translated on
+    the way out. Quoted strings are skipped so a literal question mark in a value
+    can never be mistaken for a parameter, and existing ``%`` is doubled because
+    psycopg reads it as its own escape.
     """
+    out, quote = [], None
+    for ch in sql:
+        # Doubled everywhere, quoted text included: psycopg scans the whole
+        # string for its own placeholders and does not care about SQL quoting.
+        if ch == "%":
+            out.append("%%")
+        elif quote:
+            out.append(ch)
+            if ch == quote:
+                quote = None
+        elif ch in "'\"":
+            quote = ch
+            out.append(ch)
+        elif ch == "?":
+            out.append("%s")
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+class PgConnection:
+    """Just enough of the sqlite3.Connection surface for this module.
+
+    A wrapper rather than a base class: psycopg hands out cursors, sqlite3 lets
+    you execute straight off the connection, and every call site here is written
+    in the second style. Kept deliberately thin - if something needs more of
+    psycopg than this exposes, it belongs in the dialects section too.
+    """
+
+    dialect = "postgres"
+
+    def __init__(self, raw, dsn: str, row_factory):
+        self._raw = raw
+        self.dsn = dsn
+        # psycopg hands back tuples by default; every call site here reads rows
+        # by column name, the way sqlite3.Row does.
+        self._row_factory = row_factory
+
+    def execute(self, sql: str, args=()):
+        cur = self._raw.cursor(row_factory=self._row_factory)
+        cur.execute(qmarks_to_percent(sql), tuple(args))
+        return cur
+
+    def executemany(self, sql: str, seq) -> None:
+        with self._raw.cursor() as cur:
+            cur.executemany(qmarks_to_percent(sql), [tuple(a) for a in seq])
+
+    def executescript(self, script: str) -> None:
+        """Postgres runs a multi-statement script in one execute, so long as no
+        parameters are bound - which is true of DDL."""
+        with self._raw.cursor() as cur:
+            cur.execute(script)
+
+    def commit(self) -> None:
+        self._raw.commit()
+
+    def rollback(self) -> None:
+        self._raw.rollback()
+
+    def close(self) -> None:
+        self._raw.close()
+
+
+def insert(conn, table: str, row: dict, *, on_conflict: str = "ignore", key: tuple = ()) -> int:
+    """One INSERT, written for whichever store is open. Returns rows written.
+
+    The two dialects spell conflict handling differently enough that hiding it in
+    a string rewrite would be worse than a helper: SQLite wants a verb prefix
+    (``INSERT OR IGNORE``), Postgres a trailing clause (``ON CONFLICT``). This is
+    the whole of that difference.
+
+    ``on_conflict="ignore"`` drops a row that is already there - the dedupe
+    backstop, so recording the same batch twice cannot double-report a finding.
+    ``"update"`` overwrites it, and needs ``key``: the conflicting columns.
+    """
+    cols = list(row)
+    values = [row[c] for c in cols]
+    names = ", ".join(cols)
+    slots = ", ".join("?" for _ in cols)
+
+    if getattr(conn, "dialect", "sqlite") == "postgres":
+        if on_conflict == "update":
+            sets = ", ".join(f"{c} = EXCLUDED.{c}" for c in cols if c not in key)
+            tail = f" ON CONFLICT ({', '.join(key)}) DO UPDATE SET {sets}"
+        else:
+            tail = " ON CONFLICT DO NOTHING"
+        sql = f"INSERT INTO {table} ({names}) VALUES ({slots}){tail}"
+    else:
+        verb = "INSERT OR REPLACE" if on_conflict == "update" else "INSERT OR IGNORE"
+        sql = f"{verb} INTO {table} ({names}) VALUES ({slots})"
+
+    return conn.execute(sql, values).rowcount or 0
+
+
+def describe(conn) -> str:
+    """Where this connection actually points, safe to print.
+
+    Passwords live in the connection string, and this line ends up in terminal
+    output and screenshots, so the Postgres form is host and database only.
+    """
+    if getattr(conn, "dialect", "sqlite") == "postgres":
+        parsed = urlparse(conn.dsn)
+        return f"postgres {parsed.hostname or '?'}{parsed.path or ''}"
+    return conn.execute("PRAGMA database_list").fetchone()["file"]
+
+
+def columns_of(conn, table: str) -> set[str]:
+    """The columns a table actually has, for migrate(). Empty when the table does
+    not exist yet, which on a fresh database is every table."""
+    if getattr(conn, "dialect", "sqlite") == "postgres":
+        rows = conn.execute(
+            "SELECT column_name AS name FROM information_schema.columns"
+            " WHERE table_schema = current_schema() AND table_name = ?",
+            (table,),
+        )
+    else:
+        rows = conn.execute(f"PRAGMA table_info({table})")
+    return {r["name"] for r in rows}
+
+
+
+class SqliteConnection(sqlite3.Connection):
+    """Plain sqlite3, tagged with its dialect so the helpers can branch."""
+
+    dialect = "sqlite"
+
+
+def connect(path: str | Path | None = None, url: str | None = None):
+    """Open the history store, creating its schema if absent.
+
+    Postgres when a connection string is given or ``DATABASE_URL`` is set, SQLite
+    otherwise. An explicit ``path`` always means the file store, which is what
+    keeps the tests on a disposable temp file no matter what is in the
+    environment - a test run must never be able to touch the real history.
+
+    Re-runnable either way: every statement in the schema is IF NOT EXISTS, so
+    calling this on an existing database just hands back a connection.
+    """
+    dsn = None if path else (url or os.environ.get("DATABASE_URL"))
+    if dsn:
+        return _connect_postgres(dsn)
+
     target = Path(path or os.environ.get("NEWS_DB") or DEFAULT_PATH)
     target.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(target)
+    conn = sqlite3.connect(target, factory=SqliteConnection)
     conn.row_factory = sqlite3.Row
     # Survives a killed run without corrupting the file, and lets a reader (the
     # UI) query while a run is writing.
     conn.execute("PRAGMA journal_mode=WAL")
-    # Migrate BEFORE the schema script: SCHEMA indexes the new columns, and
+    # Migrate BEFORE the schema script: the schema indexes the new columns, and
     # CREATE INDEX IF NOT EXISTS still fails on a column the old table lacks.
     # On a fresh database migrate() finds no tables and does nothing.
     migrate(conn)
-    conn.executescript(SCHEMA)
+    conn.executescript(SQLITE_SCHEMA)
+    conn.commit()
+    return conn
+
+
+def _connect_postgres(dsn: str) -> PgConnection:
+    """Same contract as the SQLite branch: migrations first, then the schema,
+    then a connection handed back."""
+    try:
+        import psycopg
+    except ModuleNotFoundError as exc:  # pragma: no cover - install-time problem
+        raise RuntimeError(
+            "DATABASE_URL is set but psycopg is not installed - "
+            "pip install 'psycopg[binary]' (or unset DATABASE_URL to use SQLite)"
+        ) from exc
+
+    from psycopg.rows import dict_row
+
+    conn = PgConnection(psycopg.connect(dsn), dsn, dict_row)
+    migrate(conn)
+    conn.executescript(pg_schema())
     conn.commit()
     return conn
 
@@ -194,7 +417,7 @@ def migrate(conn) -> list[str]:
     """
     applied = []
     for table, columns in MIGRATIONS.items():
-        have = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
+        have = columns_of(conn, table)
         if not have:
             continue
         for name, decl in columns.items():
@@ -213,11 +436,10 @@ def start_run(conn, report_type: str, *, lookback_days=None, model=None, run_id=
     """Open a run row and return its id. Reuses the caller's id when given one,
     so the UI's run id and the stored one are the same string."""
     rid = run_id or uuid.uuid4().hex[:12]
-    conn.execute(
-        "INSERT OR REPLACE INTO runs (run_id, report_type, started_at, lookback_days, model, status)"
-        " VALUES (?, ?, ?, ?, ?, 'running')",
-        (rid, report_type, now(), lookback_days, model),
-    )
+    insert(conn, "runs", {
+        "run_id": rid, "report_type": report_type, "started_at": now(),
+        "lookback_days": lookback_days, "model": model, "status": "running",
+    }, on_conflict="update", key=("run_id",))
     conn.commit()
     return rid
 
@@ -237,6 +459,84 @@ def finish_run(conn, run_id: str, *, status: str = "complete", **counters) -> No
         (now(), status, *counters.values(), run_id),
     )
     conn.commit()
+
+
+def sweep_interrupted(conn) -> int:
+    """Close out runs left open by a runner that died mid-run.
+
+    Live run state lives in the server process's memory, so a row still marked
+    'running' when the server starts belongs to a process that is gone. Left
+    alone it sits in the history forever, claiming to be in flight."""
+    cur = conn.execute(
+        "UPDATE runs SET finished_at = ?, status = 'interrupted' WHERE status = 'running'",
+        (now(),),
+    )
+    conn.commit()
+    return cur.rowcount
+
+
+# -- checkpoint / resume ----------------------------------------------------
+
+
+def checkpoint(conn, run_id: str, entity_name: str, *, payload=None,
+               articles: int = 0, skipped: int = 0, kept: int = 0, dropped: int = 0) -> None:
+    """Mark one entity finished for this run, storing what the judge returned.
+
+    Written after every entity, so the cost already paid survives the process. An
+    entity that produced nothing still gets a row with a null payload: "screened,
+    found nothing" and "never screened" are different facts, and only the second
+    is worth paying to redo.
+    """
+    insert(conn, "run_progress", {
+        "run_id": run_id, "entity_name": entity_name, "finished_at": now(),
+        "articles": articles, "skipped": skipped, "kept": kept, "dropped": dropped,
+        "payload": json.dumps(payload, ensure_ascii=False) if payload else None,
+    }, on_conflict="update", key=("run_id", "entity_name"))
+    conn.commit()
+
+
+def checkpoints(conn, run_id: str) -> dict[str, dict]:
+    """Every finished entity for a run, keyed by entity name."""
+    out: dict[str, dict] = {}
+    for row in conn.execute("SELECT * FROM run_progress WHERE run_id = ?", (run_id,)):
+        out[row["entity_name"]] = {
+            "payload": json.loads(row["payload"]) if row["payload"] else None,
+            "articles": row["articles"] or 0,
+            "skipped": row["skipped"] or 0,
+            "kept": row["kept"] or 0,
+            "dropped": row["dropped"] or 0,
+        }
+    return out
+
+
+def reopen_run(conn, run_id: str) -> bool:
+    """Put an interrupted run row back into flight, keeping its original
+    started_at so the history shows one run, not two. False if there is no
+    such row."""
+    cur = conn.execute(
+        "UPDATE runs SET status = 'running', finished_at = NULL WHERE run_id = ?", (run_id,)
+    )
+    conn.commit()
+    return bool(cur.rowcount)
+
+
+def resumable(conn, *, within_hours: int = 48) -> list[dict]:
+    """Interrupted runs that got far enough to be worth resuming.
+
+    Only 'interrupted' rows qualify. A paused run already ended in a briefing the
+    reviewer asked for, and a complete one has nothing left to do; picking either
+    back up would be resuming something that never stopped.
+    """
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=within_hours)).isoformat(timespec="seconds")
+    rows = conn.execute(
+        "SELECT r.*, COUNT(p.entity_name) AS finished FROM runs r"
+        " LEFT JOIN run_progress p ON p.run_id = r.run_id"
+        " WHERE r.status = 'interrupted' AND r.started_at >= ?"
+        " GROUP BY r.run_id HAVING COUNT(p.entity_name) > 0"
+        " ORDER BY r.started_at DESC",
+        (cutoff,),
+    ).fetchall()
+    return [dict(r) for r in rows]
 
 
 # -- the two calls the pipeline makes --------------------------------------
@@ -307,37 +607,29 @@ def record(conn, run_id, report_type: str, entity: dict, articles: list[dict], a
         h = key_of(art)
         if not h:
             continue
-        conn.execute(
-            "INSERT OR IGNORE INTO results (report_type, entity_name, url_hash, source_url,"
-            " source_name, title, published_date, first_seen_run, first_seen_at, is_relevant,"
-            " reason_if_excluded) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-            (
-                report_type, entity["display_name"], h, art.get("source_url", ""),
-                art.get("source_name"), art.get("title"), art.get("published_date"),
-                run_id, stamp, 1 if h in kept_by_hash else 0,
-                art.get("reason_if_excluded"),
-            ),
-        )
+        insert(conn, "results", {
+            "report_type": report_type, "entity_name": entity["display_name"],
+            "url_hash": h, "source_url": art.get("source_url", ""),
+            "source_name": art.get("source_name"), "title": art.get("title"),
+            "published_date": art.get("published_date"), "first_seen_run": run_id,
+            "first_seen_at": stamp, "is_relevant": 1 if h in kept_by_hash else 0,
+            "reason_if_excluded": art.get("reason_if_excluded"),
+        })
 
     inserted = 0
     for alert in alerts:
-        cur = conn.execute(
-            "INSERT OR IGNORE INTO alerts (report_type, entity_name, city, rank, segment,"
-            " category, priority, headline, client_summary, confidence, ceo_flag, source_name,"
-            " source_url, url_hash, published_date, event_date, event_key, deal_metrics,"
-            " run_id, created_at)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (
-                report_type, entity["display_name"], entity.get("city"), entity.get("rank"),
-                entity.get("segment"), alert["category"], alert["priority"], alert.get("headline"),
-                alert.get("client_summary"), alert.get("confidence"),
-                1 if alert.get("ceo_flag") else 0, alert.get("source_name"),
-                alert.get("source_url"), key_of(alert), alert.get("published_date"),
-                alert.get("event_date"), alert.get("event_key"), alert.get("deal_metrics"),
-                run_id, stamp,
-            ),
-        )
-        inserted += cur.rowcount or 0
+        inserted += insert(conn, "alerts", {
+            "report_type": report_type, "entity_name": entity["display_name"],
+            "city": entity.get("city"), "rank": entity.get("rank"),
+            "segment": entity.get("segment"), "category": alert["category"],
+            "priority": alert["priority"], "headline": alert.get("headline"),
+            "client_summary": alert.get("client_summary"), "confidence": alert.get("confidence"),
+            "ceo_flag": 1 if alert.get("ceo_flag") else 0,
+            "source_name": alert.get("source_name"), "source_url": alert.get("source_url"),
+            "url_hash": key_of(alert), "published_date": alert.get("published_date"),
+            "event_date": alert.get("event_date"), "event_key": alert.get("event_key"),
+            "deal_metrics": alert.get("deal_metrics"), "run_id": run_id, "created_at": stamp,
+        })
     conn.commit()
     return inserted
 
@@ -345,7 +637,7 @@ def record(conn, run_id, report_type: str, entity: dict, articles: list[dict], a
 # -- what the email step will use ------------------------------------------
 
 
-def pending(conn, *, report_type=None, priorities=("high",), ceo_only=False) -> list[sqlite3.Row]:
+def pending(conn, *, report_type=None, priorities=("high",), ceo_only=False) -> list[Row]:
     """Alerts that have never been emailed. This is the handoff seam: an
     email-only build needs this function and mark_emailed(), and nothing else
     from the UI."""
@@ -379,13 +671,19 @@ def mark_emailed(conn, alert_ids: list[int]) -> None:
 # -- read helpers for a history view ---------------------------------------
 
 
-def recent_runs(conn, limit: int = 20) -> list[sqlite3.Row]:
+def run_row(conn, run_id: str) -> dict | None:
+    """One run row as a plain dict, or None."""
+    row = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def recent_runs(conn, limit: int = 20) -> list[Row]:
     return conn.execute(
         "SELECT * FROM runs ORDER BY started_at DESC LIMIT ?", (limit,)
     ).fetchall()
 
 
-def alerts_for(conn, *, report_type=None, entity_name=None, limit: int = 200) -> list[sqlite3.Row]:
+def alerts_for(conn, *, report_type=None, entity_name=None, limit: int = 200) -> list[Row]:
     sql = ["SELECT * FROM alerts WHERE 1=1"]
     args: list = []
     if report_type:
@@ -401,26 +699,37 @@ def alerts_for(conn, *, report_type=None, entity_name=None, limit: int = 200) ->
 
 def stats(conn) -> dict:
     """One-line health check, also what `python db.py` prints."""
-    one = lambda q: conn.execute(q).fetchone()[0]  # noqa: E731
+    # Named rather than positional: a psycopg row is a dict and has no row[0].
+    one = lambda q: conn.execute(q).fetchone()["n"]  # noqa: E731
     return {
-        "runs": one("SELECT COUNT(*) FROM runs"),
-        "articles_seen": one("SELECT COUNT(*) FROM results"),
-        "alerts": one("SELECT COUNT(*) FROM alerts"),
-        "unsent": one("SELECT COUNT(*) FROM alerts WHERE emailed_at IS NULL"),
-        "ceo_flagged": one("SELECT COUNT(*) FROM alerts WHERE ceo_flag = 1"),
+        "runs": one("SELECT COUNT(*) AS n FROM runs"),
+        "articles_seen": one("SELECT COUNT(*) AS n FROM results"),
+        "alerts": one("SELECT COUNT(*) AS n FROM alerts"),
+        "unsent": one("SELECT COUNT(*) AS n FROM alerts WHERE emailed_at IS NULL"),
+        "ceo_flagged": one("SELECT COUNT(*) AS n FROM alerts WHERE ceo_flag = 1"),
         # Lifetime measured spend, so "what have I used" needs no extra tooling.
-        "tavily_requests": one("SELECT COALESCE(SUM(tavily_queries), 0) FROM runs"),
-        "llm_calls": one("SELECT COALESCE(SUM(llm_calls), 0) FROM runs"),
-        "input_tokens": one("SELECT COALESCE(SUM(input_tokens), 0) FROM runs"),
-        "output_tokens": one("SELECT COALESCE(SUM(output_tokens), 0) FROM runs"),
+        "tavily_requests": one("SELECT COALESCE(SUM(tavily_queries), 0) AS n FROM runs"),
+        "llm_calls": one("SELECT COALESCE(SUM(llm_calls), 0) AS n FROM runs"),
+        "input_tokens": one("SELECT COALESCE(SUM(input_tokens), 0) AS n FROM runs"),
+        "output_tokens": one("SELECT COALESCE(SUM(output_tokens), 0) AS n FROM runs"),
     }
 
 
 def main() -> int:
-    """`python db.py` creates the database if needed and prints its state."""
+    """`python db.py` creates the store if needed and prints its state."""
+    # Only here, never at import: serve.py loads .env before importing this
+    # module, and the tests deliberately run with whatever environment they set
+    # up themselves. This is for the person typing `python db.py`, who expects
+    # DATABASE_URL in .env to be what the file means.
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+    except ModuleNotFoundError:  # pragma: no cover - dotenv is a hard dep of the app
+        pass
+
     conn = connect()
-    path = conn.execute("PRAGMA database_list").fetchone()["file"]
-    print(f"history db: {path}")
+    print(f"history db: {describe(conn)}")
     for key, value in stats(conn).items():
         print(f"  {key:<14} {value}")
     runs = recent_runs(conn, 5)

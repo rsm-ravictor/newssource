@@ -125,14 +125,20 @@ def default_days(config: dict) -> int:
 # ---------------------------------------------------------------------------
 
 
-def execute_run(run_id: str, days: int, limit: int) -> None:
+def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None) -> None:
     """Search -> judge -> render for every report type. Runs on a worker thread.
 
     Pausable: /api/stop sets ``stop`` on the run, and the entity loop checks it
     before starting each entity. A pause is therefore never a kill - the run stops
     retrieving, then walks the rest of the way through curate and render with
     whatever it already has, so the emails are built from real retrieved findings
-    rather than being thrown away. There is no resume: the next run starts over.
+    rather than being thrown away.
+
+    Resumable: every finished entity is checkpointed to the history store, so a run
+    whose process dies can be picked up where it stopped. ``resume_of`` is the run id
+    to continue; its checkpointed entities are replayed from the store - no Tavily
+    request, no judge call - and only the rest are searched. A pause is deliberately
+    not resumable: it ended in a briefing the reviewer asked for.
     """
     config = load_config()
     specs = config["report_types"]
@@ -263,10 +269,22 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
             for entry in entries:
                 segment_totals[entry.segment] = segment_totals.get(entry.segment, 0) + 1
 
-            hist_run = remember(
-                "start_run", db.start_run, key,
-                lookback_days=days, model=model, run_id=f"{run_id}:{key}",
-            )
+            # One history row per report type. A resumed run keeps writing to the
+            # row it was interrupted in, so the store shows one run that took two
+            # attempts rather than two runs that each did half the roster.
+            hist_id = f"{resume_of or run_id}:{key}"
+            done_before: dict[str, dict] = {}
+            if resume_of:
+                hist_run = hist_id if remember("reopen_run", db.reopen_run, hist_id) else None
+                done_before = remember("checkpoints", db.checkpoints, hist_id) or {}
+                if done_before:
+                    log(f"  resuming: {len(done_before)} of {len(entries)} "
+                        f"{spec['entity_noun_plural']} already screened, replaying from history")
+            else:
+                hist_run = remember(
+                    "start_run", db.start_run, key,
+                    lookback_days=days, model=model, run_id=hist_id,
+                )
 
             # Meter reading as this type starts, so its own usage is the delta.
             before = meter.totals()
@@ -283,6 +301,22 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
             # flips between Searching and Reviewing with it, which is what is
             # actually happening.
             for entry in entries:
+                # Replayed before the pause check: this entity was already paid for
+                # in the interrupted attempt, and reading it back costs nothing.
+                seen = done_before.get(entry.name)
+                if seen is not None:
+                    if seen["payload"]:
+                        judged.append(seen["payload"])
+                    kept += seen["kept"]
+                    dropped += seen["dropped"]
+                    found_total += seen["articles"]
+                    skipped_seen += seen["skipped"]
+                    processed += 1
+                    log(f"  {entry.name}: replayed from the interrupted run "
+                        f"({seen['kept']} kept)")
+                    bump()
+                    continue
+
                 # Checked here, at the top of the entity, so an entity is never left
                 # half-done: whatever was searched has also been judged.
                 if paused():
@@ -308,11 +342,13 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
                 log(f"  {name}: {len(articles)} articles found")
                 found_total += len(articles)
 
+                seen_here = 0
                 if DEDUPE:
                     fresh = remember("unseen", db.unseen, key, name, articles)
                     if fresh is not None and len(fresh) < len(articles):
-                        skipped_seen += len(articles) - len(fresh)
-                        log(f"  {name}: {len(articles) - len(fresh)} seen in an earlier run, not re-judged")
+                        seen_here = len(articles) - len(fresh)
+                        skipped_seen += seen_here
+                        log(f"  {name}: {seen_here} seen in an earlier run, not re-judged")
                         articles = fresh
 
                 stage("review", f"{name}{rank_tag} · {len(articles)} articles")
@@ -342,8 +378,10 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
                 # week, whichever outlet carried it this time. Runs without the
                 # history store skip this and may repeat themselves - logged, not
                 # silent.
+                repeats_here = 0
                 if one and history is not None:
                     new, repeats = db.fresh_events(history, key, name, one[0]["alerts"])
+                    repeats_here = len(repeats)
                     if repeats:
                         for r in repeats:
                             log(f"    - {r['headline'][:52]} (already reported: {r['event_key']})")
@@ -372,11 +410,31 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
                     articles,
                     one[0]["alerts"] if one else [],
                 )
+                # The resume point. Written after the entity is fully judged and
+                # recorded, so a process that dies here leaves work that is finished
+                # or absent, never half-done.
+                remember(
+                    "checkpoint", db.checkpoint, hist_id, name,
+                    payload=one[0] if one else None,
+                    # What this entity contributed to the run's totals, so a resumed
+                    # run reports coverage for the whole roster and not just its own
+                    # half. found_total counts what search returned, before dedupe.
+                    articles=len(articles) + seen_here, skipped=seen_here,
+                    kept=k, dropped=d + repeats_here,
+                )
                 publish_usage()
                 bump()
 
             cut_short = processed < len(entries)
             used = meter.totals()
+            # A resumed run's row already holds what the interrupted attempt spent.
+            # This process only knows its own delta, so carry the earlier numbers
+            # forward or the row would report half the bill.
+            prior = (remember("run_row", db.run_row, hist_run) or {}) if resume_of else {}
+
+            def carried(field: str) -> int:
+                return prior.get(field) or 0
+
             remember(
                 "finish_run", db.finish_run, hist_run,
                 status="paused" if cut_short else "complete",
@@ -385,10 +443,10 @@ def execute_run(run_id: str, days: int, limit: int) -> None:
                 # Delta since this report type began: one press of the button
                 # writes two run rows, and each should own its share of the bill
                 # rather than both reporting the run total.
-                tavily_queries=used["tavily_queries"] - before["tavily_queries"],
-                llm_calls=used["llm_calls"] - before["llm_calls"],
-                input_tokens=used["input_tokens"] - before["input_tokens"],
-                output_tokens=used["output_tokens"] - before["output_tokens"],
+                tavily_queries=carried("tavily_queries") + used["tavily_queries"] - before["tavily_queries"],
+                llm_calls=carried("llm_calls") + used["llm_calls"] - before["llm_calls"],
+                input_tokens=carried("input_tokens") + used["input_tokens"] - before["input_tokens"],
+                output_tokens=carried("output_tokens") + used["output_tokens"] - before["output_tokens"],
             )
             log(f"[{spec['label']}] used "
                 f"{used['tavily_queries'] - before['tavily_queries']} Tavily requests, "
@@ -587,6 +645,27 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"error": "unknown report type"}, 404)
             return self._json({"key": key, "notes": read_notes(key)})
 
+        # What a killed run left behind. One button press writes a history row per
+        # report type, so the rows are grouped back into the single run the
+        # reviewer actually started.
+        if path == "/api/resumable":
+            try:
+                rows = db.resumable(db.connect())
+            except Exception as exc:  # noqa: BLE001 - no history is not an error here
+                return self._json({"runs": [], "error": f"{type(exc).__name__}: {exc}"})
+            grouped: dict[str, dict] = {}
+            for row in rows:
+                head, _, key = row["run_id"].partition(":")
+                run = grouped.setdefault(head, {
+                    "id": head, "started_at": row["started_at"],
+                    "days": row["lookback_days"], "finished": 0, "types": {},
+                })
+                run["finished"] += row["finished"]
+                run["types"][key] = row["finished"]
+                run["started_at"] = min(run["started_at"], row["started_at"])
+            return self._json({"runs": sorted(
+                grouped.values(), key=lambda r: r["started_at"], reverse=True)})
+
         if path == "/api/status":
             run_id = (parse_qs(route.query).get("id") or [""])[0]
             with RUNS_LOCK:
@@ -648,6 +727,20 @@ class Handler(BaseHTTPRequestHandler):
             except (TypeError, ValueError):
                 limit = 0
 
+            # Resuming an interrupted run. The lookback comes from the run being
+            # resumed, never from the page: the evidence window is part of what was
+            # already judged, and mixing two windows into one briefing would make
+            # its date range a lie.
+            resume_of = (body.get("resume") or "").strip() or None
+            if resume_of:
+                match = [r for r in db.resumable(db.connect())
+                         if r["run_id"].partition(":")[0] == resume_of]
+                if not match:
+                    return self._json({"error": "no interrupted run with that id"}, 404)
+                stored_days = next((r["lookback_days"] for r in match if r["lookback_days"]), None)
+                if stored_days:
+                    days = stored_days
+
             with RUNS_LOCK:
                 if any(r["state"] == "running" for r in RUNS.values()):
                     return self._json({"error": "a run is already in progress"}, 409)
@@ -661,12 +754,15 @@ class Handler(BaseHTTPRequestHandler):
                     "usage": Meter().totals(),
                 }
 
-            threading.Thread(target=execute_run, args=(run_id, days, limit), daemon=True).start()
-            return self._json({"run_id": run_id})
+            threading.Thread(
+                target=execute_run, args=(run_id, days, limit, resume_of), daemon=True
+            ).start()
+            return self._json({"run_id": run_id, "days": days, "resumed": bool(resume_of)})
 
         # Stop retrieving. The worker notices between entities and then finishes the
         # run normally - review, curate, render - on what it already has. One-way:
-        # a paused run cannot be resumed, the next run starts from the top.
+        # a paused run cannot be resumed - it ended in the briefing that was asked
+        # for. Resume is for a run whose process died, which is a different thing.
         if path == "/api/stop":
             run_id = (parse_qs(route.query).get("id") or [""])[0]
             with RUNS_LOCK:
@@ -838,6 +934,16 @@ def main() -> int:
     missing = [k for k in ("TAVILY_API_KEY", "TRITONAI_API_KEY") if not os.environ.get(k)]
     if missing:
         print(f"warning: {', '.join(missing)} not set in .env - the page will say so too")
+
+    # A run's live state is held in this process's memory, so any run row still
+    # marked running belongs to a server that is gone. Close them out here rather
+    # than leaving the history claiming work is in flight.
+    try:
+        stale = db.sweep_interrupted(db.connect())
+        if stale:
+            print(f"marked {stale} interrupted run(s) from a previous session")
+    except Exception as exc:  # history is a convenience; never block the server
+        print(f"warning: could not sweep interrupted runs: {exc}")
 
     url = f"http://{args.host}:{args.port}/"
     server = ThreadingHTTPServer((args.host, args.port), Handler)

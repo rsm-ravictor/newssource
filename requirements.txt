@@ -4,3 +4,6 @@ pydantic>=2.0
 jinja2>=3.1
 pyyaml>=6.0
 tavily-python>=0.5
+# Only needed when the history store points at Postgres (DATABASE_URL).
+# The SQLite path is stdlib and needs nothing.
+psycopg[binary]>=3.1

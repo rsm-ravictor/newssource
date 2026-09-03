@@ -57,6 +57,16 @@
 .pause-btn:disabled { border-color: var(--line); }
 .runbar:not(.running) .pause-btn { display: none; }
 
+/* Only offered when the store actually holds an interrupted run, and never while
+   one is live: resuming is a recovery path, not a second way to start. */
+.resume-btn {
+  color: var(--text); background: var(--sunken);
+  border: 1px solid var(--line); padding: 8px 15px;
+}
+.resume-btn b { font-weight: 600; color: var(--muted); }
+.runbar:not(.has-resume) .resume-btn,
+.runbar.running .resume-btn { display: none; }
+
 .cost { font-size: 11.5px; color: var(--faint); white-space: nowrap; }
 .cost b { color: var(--muted); font-weight: 600; }
 .cost input {
@@ -279,10 +289,19 @@
 
   {#- Stops the search/review loop between entities, then lets the run finish the
       rest of the way - curate and render - on whatever it already retrieved. Not a
-      cancel, and not resumable: the next run starts from the top of the roster. -#}
+      cancel, and not resumable - it ends in the briefing that was asked for, so the
+      next run starts from the top. Resume next to it is for a run that DIED. -#}
   <button class="run-btn pause-btn" id="pause-btn" type="button" disabled
           title="Stop retrieving now; review and curate whatever has come back so far into the email">
     <span class="run-glyph" aria-hidden="true">&#10074;&#10074;</span> Pause &amp; build email
+  </button>
+
+  {#- Recovery, not a second Run button: it appears only when the history store
+      holds a run whose process died mid-roster. Entities that run already screened
+      are replayed from the store, so resuming re-pays for nothing. -#}
+  <button class="run-btn resume-btn" id="resume-btn" type="button"
+          title="Continue the interrupted run: already-screened entities are replayed from history, not searched again">
+    <span class="run-glyph" aria-hidden="true">&#8635;</span> <span id="resume-label">Resume interrupted run</span>
   </button>
 
   {% if not has_tritonai or not has_tavily %}
@@ -409,6 +428,7 @@
     var btnM = document.getElementById('btn-mobile');
     var runBtn = document.getElementById('run-btn');
     var pauseBtn = document.getElementById('pause-btn');
+    var resumeBtn = document.getElementById('resume-btn');
     var saveBtn = document.getElementById('save-snapshot');
     var limitInput = document.getElementById('limit-input');
     var costNote = document.getElementById('cost-note');
@@ -506,6 +526,7 @@
       var sm = localStorage.getItem('runnerMode'); if (sm) setMode(sm);
     } catch (e) {}
     setDays(activeDays);
+    checkResumable();
     initThemeToggle();
 
     function flash(msg) {
@@ -558,8 +579,13 @@
       return '';
     }
 
-    runBtn.addEventListener('click', function () {
+    // Both buttons start a run; the only difference is whether the server is told
+    // to continue an interrupted one. A resume ignores the date-range picker - the
+    // window belongs to the run being continued - so the server sends back the
+    // lookback it actually used and the progress title is written from that.
+    function startRun(resumeOf) {
       runBtn.disabled = true;
+      resumeBtn.disabled = true;
       saveBtn.disabled = true;
       pauseBtn.disabled = false;
       pauseBtn.innerHTML = '<span class="run-glyph" aria-hidden="true">&#10074;&#10074;</span> Pause &amp; build email';
@@ -567,24 +593,57 @@
       progress.classList.remove('hidden');
       resetSteps();
       logEl.innerHTML = '';
+      pollFails = 0;
       progBar.style.width = '0';
-      progTitle.textContent = 'Running — ' + windowLabel(activeDays);
+      progTitle.textContent = (resumeOf ? 'Resuming — ' : 'Running — ') + windowLabel(activeDays);
       progCount.textContent = 'starting…';
+
+      var payload = {days: activeDays, limit: parseInt(limitInput.value, 10) || 0};
+      if (resumeOf) payload.resume = resumeOf;
 
       fetch('api/run', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({days: activeDays, limit: parseInt(limitInput.value, 10) || 0})
+        body: JSON.stringify(payload)
       }).then(function (r) { return r.json(); }).then(function (j) {
         if (j.error) { throw new Error(j.error); }
         lastRunId = j.run_id;
+        if (j.resumed) {
+          setDays(j.days);
+          progTitle.textContent = 'Resuming — ' + windowLabel(j.days);
+          addLog('resuming the interrupted run — already-screened entities are replayed, not re-searched', 'dim');
+        }
         poll();
       }).catch(function (e) {
         addLog('could not start: ' + e.message, 'bad');
         markStepFailed('list');
         finish(false);
       });
+    }
+
+    // The interrupted run this page is offering to continue, or null. A run that
+    // dies takes the page with it, so this is what the reviewer comes back to.
+    var resumeId = null;
+
+    runBtn.addEventListener('click', function () { startRun(null); });
+    resumeBtn.addEventListener('click', function () {
+      if (resumeId) startRun(resumeId);
     });
+
+    function checkResumable() {
+      fetch('api/resumable')
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var run = (j.runs || [])[0];
+          resumeId = run ? run.id : null;
+          runbar.classList.toggle('has-resume', !!run);
+          if (!run) return;
+          resumeBtn.disabled = false;
+          document.getElementById('resume-label').innerHTML =
+            'Resume interrupted run <b>' + run.finished + ' screened</b>';
+        })
+        .catch(function () { runbar.classList.remove('has-resume'); });
+    }
 
     // Pause: tell the server to stop retrieving. It keeps going through review and
     // curate on what it already has, so the run still ends in a rendered email -
@@ -608,6 +667,9 @@
     });
 
     var shown = 0;
+    // Consecutive failed polls. The work runs in a background thread, so one
+    // refused fetch says nothing about the run - only a run of them does.
+    var pollFails = 0;
     // Measured usage: the providers' own numbers, arriving with each status poll.
     // Kept separate from the toolbar's estimate on purpose - one is arithmetic
     // over the roster before the run, the other is the bill.
@@ -636,6 +698,7 @@
       fetch('api/status?id=' + encodeURIComponent(lastRunId))
         .then(function (r) { return r.json(); })
         .then(function (s) {
+          pollFails = 0;
           if (s.steps) renderSteps(s.steps);
           renderUsage(s.usage);
           (s.log || []).slice(shown).forEach(function (l) { addLog(l, classify(l)); });
@@ -671,7 +734,18 @@
           }
         })
         .catch(function (e) {
-          addLog('lost contact with server: ' + e.message, 'bad');
+          // Retry a few times before declaring the run lost: a dropped poll is
+          // usually a blip, and giving up leaves a run that may still be working
+          // with no way back into it.
+          pollFails += 1;
+          if (pollFails < 6) {
+            if (pollFails === 1) addLog('lost contact with server - retrying', 'dim');
+            pollTimer = setTimeout(poll, 1500);
+            return;
+          }
+          addLog('lost contact with server: ' + e.message
+            + ' - the runner process is no longer answering. Restart it and run again.', 'bad');
+          progTitle.textContent = 'Lost contact with the runner';
           finish(false);
         });
     }
@@ -683,6 +757,9 @@
       saveBtn.disabled = !ok;
       shown = 0;
       clearTimeout(pollTimer);
+      // A run that just ended may have left work behind - and one whose server
+      // died certainly did. Ask again rather than carrying a stale offer.
+      checkResumable();
     }
 
     // Live results arrive as strings, so this runner must use srcdoc - and inside

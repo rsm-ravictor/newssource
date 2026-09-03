@@ -1,0 +1,28 @@
+# The deployment is one read-only function over the history store. Nothing that
+# runs the pipeline, and none of the sample output, needs to ship with it - a
+# file that is not deployed cannot be served by mistake.
+docs/
+data/
+templates/
+tests/
+config/
+utils/
+*.docx
+*.html
+*.md
+!README.md
+serve.py
+judge.py
+search.py
+render.py
+ingest.py
+prose.py
+sources.py
+watchlist.py
+usage.py
+db.py
+generate_summaries.py
+build_preview.py
+export_rubrics.py
+copy_history.py
+smoke_test.py

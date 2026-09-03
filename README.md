@@ -248,13 +248,23 @@ which were thrown out with the reason.
 - **Pause & build email** appears only while a run is live. It stops the retrieval loop at the
   next entity boundary — never mid-entity, so nothing is left searched-but-unjudged — and then
   lets the run finish the rest of the way: review, curate, render. You get a real email built
-  from whatever came back, not a cancelled run. It is one-way; there is no resume, the next run
-  starts at the top of the roster. A paused briefing is labelled honestly: its period line reads
+  from whatever came back, not a cancelled run. A pause is deliberately not resumable — it ended
+  in the briefing you asked for, so the next run starts at the top of the roster. (A run whose
+  *process* died is a different case: see **Resume** below.) A paused briefing is labelled honestly: its period line reads
   `... · paused after 24 of 626 tenants` and its "monitored" count is the number actually
   screened, not the roster size. A report type the pause landed before is not rendered at all
   rather than sent as a misleading empty briefing.
 - **Cap entities** limits how many names per list get run — use it to keep demos fast and cheap.
   The cost line shows the credit estimate before you click.
+- **Resume interrupted run** appears only when the history store holds a run whose process died
+  mid-roster — a closed terminal, a killed shell, a laptop that slept. Every entity is checkpointed
+  to `run_progress` the moment it is judged, so resuming replays the finished ones straight out of
+  the store: no Tavily request, no judge call, nothing paid twice. It continues the *original* run
+  row rather than opening a second one, keeps that run's `started_at`, and carries its API spend
+  forward, so the history shows one run that took two attempts. The date range is taken from the
+  run being resumed and the picker is overridden to match — mixing two evidence windows into one
+  briefing would make its date line a lie. A 626-tenant run that dies at entity 400 costs 226
+  entities to finish, not 626.
 - **Reference** opens `/reference` — see below.
 - **Copy HTML** copies the active report's email.
 - **Save as snapshot** freezes the finished run into `data/sample_alerts_*.json` and rebuilds
@@ -526,8 +536,27 @@ cause of a big-tenant-only briefing is escalating large names on thin material.
 
 ## The history store
 
-`db.py` keeps a SQLite database at `data/history.db`, created on first use and re-runnable —
-`python db.py` makes it if absent and prints its state (counts, then the last five runs).
+`db.py` keeps four tables in either of two stores, created on first use and re-runnable —
+`python db.py` makes them if absent and prints the state (counts, then the last five runs).
+
+- **SQLite** (default) — a file at `data/history.db`. Nothing to install, nothing to configure,
+  works on a plane.
+- **Postgres** — set `DATABASE_URL` in `.env` to a Neon connection string and the same tables live
+  there instead. Needs `pip install 'psycopg[binary]'`.
+
+Every function is written once, in plain SQL with `?` placeholders. The handful of places the two
+dialects genuinely differ — placeholder style, conflict clauses, the column check behind
+`migrate()` — are isolated in the *dialects* section at the top of `db.py` and nowhere else. The
+Postgres schema is *derived* from the SQLite one rather than copied (one line differs:
+`AUTOINCREMENT` becomes an identity column), so the two cannot drift apart; a test asserts exactly
+that. An explicit path always wins over the environment, which is what keeps the test suite on a
+disposable temp file no matter what `.env` holds.
+
+To move existing history across, `python copy_history.py --dry-run` counts what would move and
+`python copy_history.py` moves it. It is additive and safe to run twice — every insert ignores a
+row already present — it preserves `alert_id` so anything already marked emailed stays matched to
+the same finding, and it never deletes from the source. Keep the SQLite file until you trust the
+new store: a copy that exists in one place is not a copy.
 
 - **`runs`** — one row per run: report type, lookback, model, status, and the kept/dropped counters
   stamped by `finish_run`.
@@ -536,14 +565,22 @@ cause of a big-tenant-only briefing is escalating large names on thin material.
   again, so re-running a window costs nothing in tokens and can't resurface an old story. Dedupe is
   scoped per entity *and* report type, and stripping tracking params happens before hashing, so two
   links to the same story collapse.
+- **`run_progress`** — one row per entity a run finished, holding the judged payload as JSON plus
+  that entity's counters. This is the resume point: it is written after the entity is fully judged
+  and recorded, so a process that dies leaves work that is either finished or absent, never
+  half-done. An entity that was screened and yielded nothing still gets a row with a null payload —
+  "found nothing" and "never looked" are different facts, and only the second is worth paying to
+  redo. `sweep_interrupted()` runs at server start and marks any run still flagged `running` as
+  `interrupted`, since live run state lives in the server process's memory and cannot outlive it.
 - **`alerts`** — the judged-relevant findings, with `priority`, the CEO flag, `event_date`,
   `event_key`, `deal_metrics`, and `emailed_at`. `fresh_events()` reads `event_key` to stop one
   development being reported twice from two URLs.
   `pending()` / `mark_emailed()` are the backstop that will let the send stage email a story at
   most once, ever — which makes daily-vs-weekly a pure scheduling choice.
 
-The database is **machine-local and gitignored**. It holds real findings about real tenants, and
-copying it between machines mostly copies confusion — a new install should start empty.
+The SQLite file is **machine-local and gitignored**, and `DATABASE_URL` is a credential that
+belongs in `.env` for the same reason. The store holds real findings about real tenants; a new
+install should start empty rather than inherit someone else's.
 
 ## Not built yet
 
