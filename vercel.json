@@ -1,24 +1,5 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-
-  "//": [
-    "Static hosting of the rendered briefings, and nothing else. docs/ is what",
-    "build_preview.py writes and what GitHub Pages already serves, so Vercel is",
-    "pointed at the same folder rather than at a second copy of it.",
-    "",
-    "No build step: these are finished HTML files. Nothing here runs the",
-    "pipeline, reads the history store, or needs a credential - a run takes",
-    "hours and belongs on the local runner, not in a serverless request.",
-    "",
-    "The read-only viewer lives in viewer/index.py, deliberately OUTSIDE api/ so",
-    "that Vercel does not pick it up as a function. To turn it on: move it back",
-    "to api/index.py, add a rewrite of / to /api/index below, and set",
-    "DATABASE_URL in the project's environment settings."
-  ],
-
   "outputDirectory": "docs",
-  "buildCommand": null,
-  "framework": null,
   "cleanUrls": true,
   "trailingSlash": false
 }
