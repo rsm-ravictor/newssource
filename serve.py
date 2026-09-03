@@ -14,12 +14,25 @@ Search (Tavily) -> judge (TritonAI) -> render, over the real watchlists, with
 per-entity progress streamed to the page. Both API keys are read from .env and stay
 in this process; nothing secret is ever sent to the browser.
 
-WHY THIS IS LOCAL-ONLY: GitHub Pages serves static files and cannot hold API keys or
-make outbound calls, and a public Run button would let anyone spend your Tavily
-credits. Use "Save as snapshot" to freeze a completed run into data/ + docs/, then
-commit and push to publish it to the Pages link.
+LOCAL BY DEFAULT, HOSTED ON PURPOSE
+    Binds 127.0.0.1 unless told otherwise: reachable from this machine only. To
+    put it on a host, set HOST=0.0.0.0 (or pass --host) and RUNNER_PASSWORD - the
+    server refuses to listen on a public interface without one, because a Run
+    button anyone can reach is a Tavily bill anyone can run up. Every route is
+    behind HTTP Basic; there is no unauthenticated surface to get wrong.
 
-Binds to 127.0.0.1 by default: reachable from this machine only, not the network.
+    It has to be a long-lived process, not a serverless function: a run over the
+    full roster takes hours, where the ceiling on a serverless request is minutes.
+    See render.yaml.
+
+    GitHub Pages is still the place for a *published* briefing - it serves static
+    files, holds no keys, and makes no outbound calls. "Save as snapshot" freezes
+    a finished run into data/ + docs/ for exactly that.
+
+DAILY RUNS
+    Set DAILY_RUN_AT=HH:MM (UTC) and one run starts itself each day, through the
+    same code path as the button. Unset, nothing is scheduled - a deployment that
+    began spending money on its own would be a nasty surprise.
 """
 
 from __future__ import annotations
@@ -27,11 +40,17 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 import threading
+import time
 import traceback
 import uuid
 import webbrowser
 from datetime import datetime, timedelta, timezone
+from datetime import time as dt_time
+import base64
+import binascii
+import hmac
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -98,13 +117,39 @@ def notes_path(key: str) -> Path:
 
 
 def read_notes(key: str) -> str:
-    path = notes_path(key)
-    return path.read_text(encoding="utf-8") if path.exists() else ""
+    """Notes from the history store, falling back to the local file.
+
+    The store is authoritative because a hosted runner's filesystem does not
+    survive a redeploy. The file stays as the fallback so a machine with no store
+    still works, and so notes written by an older build are not stranded.
+    """
+    try:
+        return db.get_note(db.connect(), key) or _notes_file(key)
+    except Exception:  # noqa: BLE001 - notes are an input, never a reason to stop
+        return _notes_file(key)
 
 
 def write_notes(key: str, text: str) -> None:
-    NOTES_DIR.mkdir(parents=True, exist_ok=True)
-    notes_path(key).write_text(text.replace("\r\n", "\n"), encoding="utf-8")
+    """Write to the store, and to the file when there is one to write to.
+
+    Both, not either: the store is what survives a redeploy, and the file is what
+    a person can still read when the store is unreachable.
+    """
+    body = text.replace("\r\n", "\n")
+    try:
+        db.set_note(db.connect(), key, body)
+    except Exception as exc:  # noqa: BLE001
+        print(f"warning: could not save notes to the store: {type(exc).__name__}: {exc}")
+    try:
+        NOTES_DIR.mkdir(parents=True, exist_ok=True)
+        notes_path(key).write_text(body, encoding="utf-8")
+    except OSError:
+        pass  # read-only filesystem on a hosted box; the store already has it
+
+
+def _notes_file(key: str) -> str:
+    path = notes_path(key)
+    return path.read_text(encoding="utf-8") if path.exists() else ""
 
 
 def default_days(config: dict) -> int:
@@ -553,6 +598,67 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
             RUNS[run_id]["failed_step"] = RUNS[run_id].get("step")
 
 
+def launch_run(days: int, limit: int, resume_of: str | None = None) -> str | None:
+    """Register a run and start its worker thread. None if one is already going.
+
+    Shared by the button and the schedule so there is exactly one way a run
+    starts. The in-progress check and the registration happen under one lock, or
+    two requests a millisecond apart could both find the runner idle.
+    """
+    with RUNS_LOCK:
+        if any(r["state"] == "running" for r in RUNS.values()):
+            return None
+        run_id = uuid.uuid4().hex[:12]
+        RUNS[run_id] = {
+            "state": "running", "log": [], "done": 0, "total": 0, "reports": {},
+            "step": "list", "steps_done": [], "step_notes": {},
+            # Pause flag, and whether the finished run actually honoured one.
+            "stop": False, "stopped": False,
+            # Measured provider usage, replaced after every entity.
+            "usage": Meter().totals(),
+        }
+    threading.Thread(target=execute_run, args=(run_id, days, limit, resume_of), daemon=True).start()
+    return run_id
+
+
+def next_occurrence(at: dt_time, now: datetime | None = None) -> datetime:
+    """The next UTC datetime matching a wall-clock time. Today if it has not
+    passed, tomorrow if it has."""
+    now = now or datetime.now(timezone.utc)
+    target = now.replace(hour=at.hour, minute=at.minute, second=0, microsecond=0)
+    return target if target > now else target + timedelta(days=1)
+
+
+def parse_daily_time(raw: str) -> dt_time | None:
+    """HH:MM, UTC. Anything else is None, and the caller says so out loud rather
+    than silently never running."""
+    try:
+        hour, _, minute = raw.strip().partition(":")
+        return dt_time(int(hour), int(minute))
+    except (ValueError, AttributeError):
+        return None
+
+
+def schedule_daily(at: dt_time, days: int, limit: int) -> None:
+    """Start one run a day, forever, on a worker thread.
+
+    Deliberately a sleep loop rather than a cron dependency: the process is
+    already long-lived - that is the whole reason the runner is hosted this way -
+    and a scheduler that lives inside it cannot disagree with it about whether a
+    run is already going. A run in progress when the hour comes round is left
+    alone; the next day's tick will do it.
+    """
+    while True:
+        due = next_occurrence(at)
+        time.sleep(max(1.0, (due - datetime.now(timezone.utc)).total_seconds()))
+        run_id = launch_run(days, limit)
+        stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+        if run_id:
+            print(f"[{stamp}] scheduled run started ({days}-day window)")
+        else:
+            print(f"[{stamp}] scheduled run skipped - a run was already in progress")
+
+
 def step_states(run: dict) -> list[dict]:
     """The status bar's view of one run: every step with its state and note.
 
@@ -626,8 +732,46 @@ def write_snapshot(run_id: str) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
+# Set when the server is told to listen anywhere but loopback. None means the
+# old behaviour exactly: a local tool on a local port, no password, no prompt.
+PASSWORD: str | None = None
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "TenantIntelRunner/1.0"
+
+    def authorized(self) -> bool:
+        """HTTP Basic, checked on every route.
+
+        This page can start a run that spends real money and shows real findings
+        about real companies, so exposing it without a password is not a
+        configuration choice anyone should be able to make by accident - see
+        main(), which refuses to bind a public interface without one.
+
+        Any username is accepted; the password is the whole secret. compare_digest
+        because a timing side channel on a shared password is worth the one line
+        it costs to avoid.
+        """
+        if PASSWORD is None:
+            return True
+        header = self.headers.get("Authorization") or ""
+        if not header.startswith("Basic "):
+            return False
+        try:
+            decoded = base64.b64decode(header[6:]).decode("utf-8", "replace")
+        except (ValueError, binascii.Error):
+            return False
+        _, _, supplied = decoded.partition(":")
+        return hmac.compare_digest(supplied, PASSWORD)
+
+    def demand_password(self) -> None:
+        body = b"Authentication required."
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="Intel runner"')
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def log_message(self, fmt, *args):  # quieter console
         if "api/status" not in (args[0] if args else ""):
@@ -650,6 +794,8 @@ class Handler(BaseHTTPRequestHandler):
 
     # -- routes -----------------------------------------------------------
     def do_GET(self):  # noqa: N802
+        if not self.authorized():
+            return self.demand_password()
         route = urlparse(self.path)
         path = route.path.rstrip("/") or "/"
 
@@ -726,6 +872,8 @@ class Handler(BaseHTTPRequestHandler):
         return self._json({"error": "not found"}, 404)
 
     def do_POST(self):  # noqa: N802
+        if not self.authorized():
+            return self.demand_password()
         route = urlparse(self.path)
         path = route.path.rstrip("/") or "/"
 
@@ -763,22 +911,9 @@ class Handler(BaseHTTPRequestHandler):
                 if stored_days:
                     days = stored_days
 
-            with RUNS_LOCK:
-                if any(r["state"] == "running" for r in RUNS.values()):
-                    return self._json({"error": "a run is already in progress"}, 409)
-                run_id = uuid.uuid4().hex[:12]
-                RUNS[run_id] = {
-                    "state": "running", "log": [], "done": 0, "total": 0, "reports": {},
-                    "step": "list", "steps_done": [], "step_notes": {},
-                    # Pause flag, and whether the finished run actually honoured one.
-                    "stop": False, "stopped": False,
-                    # Measured provider usage, replaced after every entity.
-                    "usage": Meter().totals(),
-                }
-
-            threading.Thread(
-                target=execute_run, args=(run_id, days, limit, resume_of), daemon=True
-            ).start()
+            run_id = launch_run(days, limit, resume_of)
+            if run_id is None:
+                return self._json({"error": "a run is already in progress"}, 409)
             return self._json({"run_id": run_id, "days": days, "resumed": bool(resume_of)})
 
         # Stop retrieving. The worker notices between entities and then finishes the
@@ -947,11 +1082,39 @@ def render_reference() -> str:
 
 
 def main() -> int:
+    # A hosted process writes to a log pipe, not a terminal, and Python
+    # block-buffers a pipe: without this the startup lines and every scheduled-run
+    # message sit in a buffer for hours. Logs nobody can read are not logs.
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--port", type=int, default=8765)
-    ap.add_argument("--host", default="127.0.0.1", help="default is loopback only, on purpose")
+    # PORT and HOST come from the environment because that is how every hosting
+    # platform tells a process where to listen. Unset, the defaults are what they
+    # always were: this machine only.
+    ap.add_argument("--port", type=int, default=int(os.environ.get("PORT") or 8765))
+    ap.add_argument("--host", default=os.environ.get("HOST") or "127.0.0.1",
+                    help="default is loopback only, on purpose")
     ap.add_argument("--no-browser", action="store_true")
     args = ap.parse_args()
+
+    # The interlock. A run started from this page spends real money and shows real
+    # findings, so the server will not listen anywhere but this machine unless a
+    # password exists to put in front of it. Refusing to start is the only
+    # response that cannot be ignored.
+    global PASSWORD
+    PASSWORD = os.environ.get("RUNNER_PASSWORD") or None
+    local_only = args.host in ("127.0.0.1", "localhost", "::1")
+    if not local_only and not PASSWORD:
+        print(f"refusing to listen on {args.host} without a password.\n"
+              "  Set RUNNER_PASSWORD, or bind 127.0.0.1 to keep it local.",
+              file=sys.stderr)
+        return 2
+    if PASSWORD and len(PASSWORD) < 12:
+        print(f"refusing to start: RUNNER_PASSWORD is {len(PASSWORD)} characters.\n"
+              "  This page can spend money and is reachable from the internet; use 12 or more.",
+              file=sys.stderr)
+        return 2
 
     missing = [k for k in ("TAVILY_API_KEY", "TRITONAI_API_KEY") if not os.environ.get(k)]
     if missing:
@@ -967,10 +1130,46 @@ def main() -> int:
     except Exception as exc:  # history is a convenience; never block the server
         print(f"warning: could not sweep interrupted runs: {exc}")
 
+    # The daily run. Off unless DAILY_RUN_AT is set, because a schedule that
+    # starts itself the first time the app is deployed would spend money nobody
+    # asked it to spend.
+    raw_at = os.environ.get("DAILY_RUN_AT", "").strip()
+    if raw_at:
+        at = parse_daily_time(raw_at)
+        if at is None:
+            print(f"refusing to start: DAILY_RUN_AT={raw_at!r} is not HH:MM (UTC).",
+                  file=sys.stderr)
+            print("  A schedule that silently never fires is worse than no schedule.",
+                  file=sys.stderr)
+            return 2
+        config = load_config()
+        presets = config.get("lookback_presets", [7, 30, 90])
+        try:
+            daily_days = int(os.environ.get("DAILY_RUN_DAYS") or 1)
+        except ValueError:
+            daily_days = 1
+        if daily_days not in presets:
+            print(f"refusing to start: DAILY_RUN_DAYS={daily_days} is not one of {presets}",
+                  file=sys.stderr)
+            return 2
+        try:
+            daily_limit = max(0, int(os.environ.get("DAILY_RUN_LIMIT") or 0))
+        except ValueError:
+            daily_limit = 0
+
+        scope = f"{daily_limit} entities" if daily_limit else "the whole roster"
+        print(f"daily run at {at.strftime('%H:%M')} UTC - {daily_days}-day window over {scope}"
+              f" (next: {next_occurrence(at):%Y-%m-%d %H:%M} UTC)")
+        threading.Thread(target=schedule_daily, args=(at, daily_days, daily_limit),
+                         daemon=True).start()
+
     url = f"http://{args.host}:{args.port}/"
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     print(f"live runner on {url}   (Ctrl+C to stop)")
-    if not args.no_browser:
+    print("password required" if PASSWORD else "no password - local only")
+    # Only ever on this machine. A hosted process has no browser to open, and
+    # opening one there would be a request from the server to itself.
+    if not args.no_browser and local_only:
         webbrowser.open(url)
     try:
         server.serve_forever()

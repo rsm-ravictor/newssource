@@ -313,6 +313,44 @@ Real news is mostly noise, and the criteria are built to say no. In testing, Ill
 10 articles over 30 days and **all 10 were excluded**; Qualcomm returned 8 and **4 were kept**.
 An empty digest is a correct result, not a broken one — `--empty` renders that state on purpose.
 
+## Running it hosted, on a schedule
+
+The runner is a long-lived process, not a serverless function. A full-roster run takes about four
+hours; the ceiling on a serverless request is minutes. So it belongs on Render, Railway, Fly or any
+box that stays up — `render.yaml` is a working blueprint, and the same start command works
+anywhere, because the app reads `PORT` and `HOST` from the environment.
+
+**The password is not optional.** `serve.py` refuses to listen on anything but loopback unless
+`RUNNER_PASSWORD` is set, and refuses to start if it is shorter than 12 characters. A Run button
+anyone can reach is a Tavily bill anyone can run up. Every route sits behind HTTP Basic — the page,
+the reference page, and every API endpoint — so there is no unauthenticated surface. Running
+locally is unchanged: no password, no prompt.
+
+**The daily run** is off unless `DAILY_RUN_AT=HH:MM` (UTC) is set; a deployment that started
+spending money on its own would be a nasty surprise. It goes through the same code path as the
+button, and skips its turn if a run is already going rather than starting a second one.
+
+| variable | what it does |
+|---|---|
+| `RUNNER_PASSWORD` | required to expose the page at all; 12 characters minimum |
+| `DAILY_RUN_AT` | `HH:MM` in UTC. Unset = no schedule |
+| `DAILY_RUN_DAYS` | lookback for scheduled runs. `1` for a daily cadence — a 7-day window run daily re-reads the same week seven times |
+| `DAILY_RUN_LIMIT` | entity cap. `0` is the whole roster |
+| `NEWS_DEDUPE` | turn this on for a scheduled runner, or the same story is re-judged and re-reported every day |
+| `DATABASE_URL` | the history store. Required in practice when hosted — see below |
+
+**Nothing may depend on that box's disk.** A redeploy wipes it. History goes to Postgres, and
+reviewer notes are written to the store as well as to a file, so notes that shape what the judge
+does cannot quietly vanish. Snapshots (`Save as snapshot`) still write to `data/` and `docs/`, which
+means on a hosted box they last until the next deploy — fine for reading now, not a place to keep
+anything.
+
+**Costs, before you switch the schedule on.** Two Tavily queries per entity, 689 entities: about
+1,378 Tavily requests *per run*, every run, whether or not anything is new — you have to search to
+find out. From metered usage, a full roster is roughly 689 LLM calls and ~5.8M tokens. Daily for a
+month is ~41,000 Tavily requests. Dedupe cuts the judging half over time; it cannot cut the search
+floor. Consider a daily high-priority subset with the full roster weekly.
+
 ## Reference page — review only
 
 ```

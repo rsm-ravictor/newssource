@@ -1,0 +1,50 @@
+# Render blueprint for the hosted runner.
+#
+# A run over the full roster takes about four hours, which is why this is a web
+# service on a machine that stays up rather than anything serverless. Render is
+# not special here - Railway and Fly take the same start command, because the app
+# reads PORT and HOST from the environment like any twelve-factor process.
+#
+# Set every value marked sync:false in the dashboard; none of them belong in git.
+services:
+  - type: web
+    name: intel-runner
+    runtime: python
+    # Not the free plan: free instances spin down when idle, and a spun-down
+    # instance is a killed run. Resume would recover it, but paying $7 to not
+    # need resume is the better trade.
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    # --host 0.0.0.0 is what makes serve.py demand RUNNER_PASSWORD; it refuses to
+    # start without one. PORT is injected by Render and read from the environment.
+    startCommand: python serve.py --host 0.0.0.0 --no-browser
+    # No healthCheckPath on purpose: every route is behind Basic auth, so a health
+    # check would get a 401 and Render would call a working service dead.
+    envVars:
+      # The password in front of the page. 12 characters minimum, enforced at boot.
+      - key: RUNNER_PASSWORD
+        sync: false
+      # The history store. Postgres, so nothing depends on this box's disk.
+      - key: DATABASE_URL
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: TRITONAI_API_KEY
+        sync: false
+      # The daily run: HH:MM in UTC. Remove this to leave the schedule off and
+      # drive the runner by hand.
+      - key: DAILY_RUN_AT
+        value: "07:00"
+      # Lookback for scheduled runs. 1 = yesterday's news, which is what a daily
+      # cadence wants; a 7-day window run daily re-reads the same week seven times.
+      - key: DAILY_RUN_DAYS
+        value: "1"
+      # 0 = the whole roster. Set a number while you are watching what it costs.
+      - key: DAILY_RUN_LIMIT
+        value: "0"
+      # Cross-run dedupe. On for a scheduled runner: without it the same story is
+      # re-judged, and re-reported, every single day.
+      - key: NEWS_DEDUPE
+        value: "on"
+      - key: PYTHON_VERSION
+        value: "3.12"

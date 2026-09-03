@@ -168,6 +168,16 @@ CREATE TABLE IF NOT EXISTS run_progress (
     PRIMARY KEY (run_id, entity_name)
 );
 
+-- Reviewer notes from the reference page: free text that sharpens the criteria
+-- for the next run. In the store rather than in a file because a hosted runner
+-- has no filesystem worth trusting - a redeploy wipes it, and notes that quietly
+-- vanish change what the judge does without anyone being told.
+CREATE TABLE IF NOT EXISTS notes (
+    report_type TEXT PRIMARY KEY,
+    body        TEXT NOT NULL,
+    updated_at  TEXT NOT NULL
+);
+
 -- emailed_at first: "what has never been sent" is the query the email step runs.
 CREATE INDEX IF NOT EXISTS idx_alerts_event    ON alerts (report_type, entity_name, event_key);
 CREATE INDEX IF NOT EXISTS idx_alerts_unsent   ON alerts (emailed_at, priority);
@@ -682,6 +692,19 @@ def mark_emailed(conn, alert_ids: list[int]) -> None:
 
 
 # -- read helpers for a history view ---------------------------------------
+
+
+def get_note(conn, report_type: str) -> str:
+    """The reviewer's notes for one report type, empty string if none."""
+    row = conn.execute("SELECT body FROM notes WHERE report_type = ?", (report_type,)).fetchone()
+    return row["body"] if row else ""
+
+
+def set_note(conn, report_type: str, body: str) -> None:
+    insert(conn, "notes", {
+        "report_type": report_type, "body": body, "updated_at": now(),
+    }, on_conflict="update", key=("report_type",))
+    conn.commit()
 
 
 def run_row(conn, run_id: str) -> dict | None:
