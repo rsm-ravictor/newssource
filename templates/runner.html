@@ -567,6 +567,12 @@
       try { window.localStorage.setItem(STORE_KEY, JSON.stringify(picked)); } catch (e) {}
     }
 
+    // A roster row is a company IN A MARKET. Kilroy Realty has three rows - San
+    // Diego, San Francisco, Bellevue - and each searches its own city, so the
+    // selection key has to carry both. Keying on name alone made all three share
+    // one checkbox and made the count read "57 of 63" with everything ticked.
+    function keyOf(e) { return e.name + '||' + (e.city || ''); }
+
     function pickedNames(type) { return Object.keys(picked[type] || {}); }
 
     function pickedTotal() {
@@ -580,7 +586,7 @@
       types.forEach(function (t) {
         if (!roster[t] || !picked[t]) return;
         var live = {};
-        roster[t].entities.forEach(function (e) { live[e.name] = true; });
+        roster[t].entities.forEach(function (e) { live[keyOf(e)] = true; });
         Object.keys(picked[t]).forEach(function (name) {
           if (!live[name]) delete picked[t][name];
         });
@@ -634,12 +640,12 @@
         // that segment rather than the whole roster hiding behind the filter.
         all.addEventListener('click', function () {
           picked[t] = picked[t] || {};
-          shown.forEach(function (e) { picked[t][e.name] = true; });
+          shown.forEach(function (e) { picked[t][keyOf(e)] = true; });
           afterPickChange();
         });
         none.addEventListener('click', function () {
           if (!picked[t]) return;
-          shown.forEach(function (e) { delete picked[t][e.name]; });
+          shown.forEach(function (e) { delete picked[t][keyOf(e)]; });
           afterPickChange();
         });
 
@@ -657,10 +663,10 @@
           var row = document.createElement('label');
           var box = document.createElement('input');
           box.type = 'checkbox';
-          box.checked = !!(picked[t] && picked[t][e.name]);
+          box.checked = !!(picked[t] && picked[t][keyOf(e)]);
           box.addEventListener('change', function () {
             picked[t] = picked[t] || {};
-            if (box.checked) { picked[t][e.name] = true; } else { delete picked[t][e.name]; }
+            if (box.checked) { picked[t][keyOf(e)] = true; } else { delete picked[t][keyOf(e)]; }
             savePicked();
             count.textContent = pickedNames(t).length
               ? pickedNames(t).length + ' of ' + info.entities.length

@@ -253,11 +253,28 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
         for key, spec in specs.items():
             entries = read_entries(ROOT / spec["watchlist"], spec.get("name_aliases"))
             if picked is not None:
-                # Matched case-insensitively against the roster, and anything not
-                # on it is dropped: the roster is the authority on who exists, and
-                # a typo should narrow a run rather than invent an entity.
-                wanted = {n.casefold() for n in picked.get(key, [])}
-                entries = [e for e in entries if e.name.casefold() in wanted]
+                # A roster row is a company IN A MARKET, not a company: Kilroy
+                # Realty has three rows - San Diego, San Francisco, Bellevue - and
+                # each one searches its own city. So a selection is matched on name
+                # AND city, or picking one market would silently run all of them.
+                #
+                # A bare name still matches every market for that company, which is
+                # what an older client sends and what someone means by "run Kilroy".
+                pairs, names = set(), set()
+                for token in picked.get(key, []):
+                    name, sep, city = token.partition("||")
+                    if sep:
+                        pairs.add((name.strip().casefold(), city.strip().casefold()))
+                    else:
+                        names.add(name.strip().casefold())
+                # Anything not on the roster is dropped: the roster is the authority
+                # on who exists, so a stale name narrows a run rather than inventing
+                # an entity.
+                entries = [
+                    e for e in entries
+                    if e.name.casefold() in names
+                    or (e.name.casefold(), (e.city or "").casefold()) in pairs
+                ]
             planned[key] = entries[:limit] if limit else entries
         with RUNS_LOCK:
             RUNS[run_id]["total"] = sum(len(v) for v in planned.values())
