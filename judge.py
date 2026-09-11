@@ -13,6 +13,7 @@ Every call goes through ``utils.connect`` - no second client, no direct
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import time
@@ -355,7 +356,26 @@ def json_contract(schema: type) -> str:
     )
 
 
-def judge_entity(entity: dict, spec: dict, *, schema: type, note=None, attempts: int = 3, **kw):
+# How many times to ask before giving up on an entity. One attempt is one
+# ask_json plus one repair, so the default already gives the model two chances -
+# and now that the repair carries the output contract, most recoveries happen
+# there. Raising it recovers a few more entities and costs a full call each time
+# for every entity that was going to fail anyway; a roster run feels the
+# difference. Set JUDGE_ATTEMPTS=3 when completeness matters more than speed.
+JUDGE_ATTEMPTS = max(1, int(os.environ.get("JUDGE_ATTEMPTS") or 1))
+
+# Ceiling on one judgment call's output. 4000 was tuned for Claude, which answered
+# a 10-article entity in well under it. This proxy's on-prem models spend a large
+# and wildly variable amount of the budget on reasoning the proxy then strips -
+# measured on one entity: 3,776 tokens for 3 articles, 14,714 for 10 - and a call
+# that runs out mid-thought returns an EMPTY string, not truncated JSON. That is
+# the "JSONDecodeError: Expecting value: line 1 column 1 (char 0)" behind most
+# skipped entities: there was never any JSON to repair.
+JUDGE_MAX_TOKENS = max(1000, int(os.environ.get("JUDGE_MAX_TOKENS") or 16000))
+
+
+def judge_entity(entity: dict, spec: dict, *, schema: type, note=None,
+                 attempts: int = JUDGE_ATTEMPTS, **kw):
     """``ask_json`` first; repair the response if the model mangled its JSON, and
     ask again from scratch if the repair cannot rescue it either.
 
@@ -410,6 +430,7 @@ def judge_entities(
     tiers=None,
     citable_max: int = UNGATED,
     window_start: date | None = None,
+    attempts: int = JUDGE_ATTEMPTS,
 ) -> tuple[list[dict], int, int, list[str]]:
     """Judge a list of entities, returning (kept_entities, kept, dropped, failed).
 
@@ -446,11 +467,12 @@ def judge_entities(
                 entity,
                 spec,
                 schema=schema,
+                attempts=attempts,
                 note=lambda m, n=entity["display_name"]: say(f"{n}: {m}"),
                 model=model,
                 system=criteria,
                 temperature=0.2,
-                max_tokens=4000,
+                max_tokens=JUDGE_MAX_TOKENS,
                 verbose=verbose,
                 client=client,
             )
