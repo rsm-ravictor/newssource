@@ -122,6 +122,14 @@
 .picker-foot .tally { font-size: 12.5px; color: var(--muted); }
 .picker-foot .tally b { color: var(--text); }
 
+/* The extended-query toggle. Off by default and priced differently, so it
+   carries its own "when did this last run" line rather than relying on memory. */
+.ext { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px;
+       color: var(--muted); white-space: nowrap; cursor: pointer; }
+.ext input { margin: 0; }
+.ext .ago { color: var(--faint); }
+.ext .ago.stale { color: var(--tag-fg); font-weight: 600; }
+
 .cost { font-size: 11.5px; color: var(--faint); white-space: nowrap; }
 .cost b { color: var(--muted); font-weight: 600; }
 .cost input {
@@ -334,6 +342,16 @@
     <input id="limit-input" type="number" min="0" step="1" value="0" title="0 = no cap">
   </label>
 
+  {#- Leadership and ownership changes have no search terms in a normal run, so
+      those categories are only ever filled by accident. This asks for them
+      explicitly. Off by default: it adds a query per entity, and the news it
+      finds moves on a timescale of months. -#}
+  <label class="ext" for="ext-toggle" title="Adds a query per entity covering CEO/CFO changes, mergers and take-privates">
+    <input type="checkbox" id="ext-toggle">
+    Leadership &amp; M&amp;A
+    <span class="ago" id="ext-ago"></span>
+  </label>
+
   <span class="cost" id="cost-note"></span>
 
   {#- The manual trigger. Nothing runs on a schedule and nothing runs on page load:
@@ -504,6 +522,8 @@
     var runBtn = document.getElementById('run-btn');
     var pauseBtn = document.getElementById('pause-btn');
     var resumeBtn = document.getElementById('resume-btn');
+    var extToggle = document.getElementById('ext-toggle');
+    var extAgo = document.getElementById('ext-ago');
     var pickBtn = document.getElementById('pick-btn');
     var pickLabel = document.getElementById('pick-label');
     var picker = document.getElementById('picker');
@@ -526,6 +546,7 @@
     var activeDays = {{ default_days | tojson }};
     var entityCounts = {{ entity_counts | tojson }};
     var queriesPerEntity = {{ queries_per_entity | tojson }};
+    var extraQueries = {{ extra_queries | tojson }};
     var lastRunId = null;
 
     function setType(key) {
@@ -810,12 +831,18 @@
     function updateCost() {
       var cap = parseInt(limitInput.value, 10) || 0;
       var total = 0;
+      var credits = 0;
       var chose = pickedTotal() > 0;
       types.forEach(function (t) {
         // A selection replaces the roster as the thing being counted, so the
         // estimate says what this run will cost rather than what a full one would.
         var n = chose ? pickedNames(t).length : (entityCounts[t] || 0);
-        total += cap > 0 ? Math.min(cap, n) : n;
+        n = cap > 0 ? Math.min(cap, n) : n;
+        total += n;
+        // Priced per type: the extended set is one query for tenants and two for
+        // competitors, so one shared number would overcharge whichever has fewer.
+        var per = queriesPerEntity + (extToggle.checked ? (extraQueries[t] || 0) : 0);
+        credits += n * per;
       });
       // Tavily bills per SEARCH REQUEST, not per day of history, so this figure
       // is deliberately independent of the lookback window: two queries per
@@ -823,10 +850,11 @@
       // many articles come back per request, and therefore the LLM tokens - and
       // tokens cannot be known in advance, so they are measured during the run
       // and shown in the usage readout rather than guessed at here.
-      var credits = total * queriesPerEntity;
+      var perEntity = total ? (credits / total) : queriesPerEntity;
       costNote.innerHTML = (chose ? 'runs <b>' + total + ' selected</b>' : 'runs <b>both</b> reports') +
         ' &middot; <b>' + credits +
-        '</b> Tavily requests (' + queriesPerEntity + '/entity, any window), <b>' +
+        '</b> Tavily requests (' + (Math.round(perEntity * 10) / 10) +
+        '/entity, any window), <b>' +
         total + '</b> LLM calls';
       costNote.title =
         'Tavily charges per search request, so this does not change with the date ' +
@@ -841,6 +869,27 @@
     btnD.addEventListener('click', function () { setMode('desktop'); });
     btnM.addEventListener('click', function () { setMode('mobile'); });
     limitInput.addEventListener('input', updateCost);
+    extToggle.addEventListener('change', updateCost);
+
+    // How long since the leadership / M&A queries actually ran. They are off by
+    // default, so nothing else in the system remembers.
+    function checkExtended() {
+      fetch('api/extended')
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j.days_ago === null || j.days_ago === undefined) {
+            extAgo.textContent = '(never run)';
+            extAgo.className = 'ago stale';
+            return;
+          }
+          var d = j.days_ago;
+          extAgo.textContent = '(last run ' + (d === 0 ? 'today' : d + 'd ago') + ')';
+          // A nudge, never a block: these categories move over months, so a month
+          // without them is worth noticing and not worth refusing to run over.
+          extAgo.className = d > 30 ? 'ago stale' : 'ago';
+        })
+        .catch(function () { extAgo.textContent = ''; });
+    }
 
     document.addEventListener('keydown', function (e) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -862,6 +911,7 @@
     loadPicked();
     loadRoster();
     checkResumable();
+    checkExtended();
     initThemeToggle();
 
     function flash(msg) {
@@ -933,7 +983,8 @@
       progTitle.textContent = (resumeOf ? 'Resuming — ' : 'Running — ') + windowLabel(activeDays);
       progCount.textContent = 'starting…';
 
-      var payload = {days: activeDays, limit: parseInt(limitInput.value, 10) || 0};
+      var payload = {days: activeDays, limit: parseInt(limitInput.value, 10) || 0,
+                     extended: extToggle.checked};
       if (resumeOf) payload.resume = resumeOf;
       // Only sent when something is actually selected. Absent means the whole
       // roster, which is what the server treats as the default; sending an empty
@@ -1102,6 +1153,7 @@
       // A run that just ended may have left work behind - and one whose server
       // died certainly did. Ask again rather than carrying a stale offer.
       checkResumable();
+      checkExtended();
     }
 
     // Live results arrive as strings, so this runner must use srcdoc - and inside

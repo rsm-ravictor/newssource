@@ -99,7 +99,11 @@ CREATE TABLE IF NOT EXISTS runs (
     llm_calls         INTEGER DEFAULT 0,
     input_tokens      INTEGER DEFAULT 0,
     output_tokens     INTEGER DEFAULT 0,
-    status            TEXT DEFAULT 'running'
+    status            TEXT DEFAULT 'running',
+    -- 1 when the run included the extended (leadership / M&A) queries. Those
+    -- categories have no search terms in a normal run, so this is how the UI can
+    -- say how long it has been since they were actually looked for.
+    extended          INTEGER DEFAULT 0
 );
 
 -- Every article ever fetched, judged or not. The dedupe surface: a URL in here
@@ -423,6 +427,10 @@ MIGRATIONS: dict[str, dict[str, str]] = {
         "llm_calls": "INTEGER DEFAULT 0",
         "input_tokens": "INTEGER DEFAULT 0",
         "output_tokens": "INTEGER DEFAULT 0",
+        # Did this run include the leadership / M&A queries? Recorded because
+        # those categories are only searched when someone asks, so "when did we
+        # last look" is a real question with no other answer.
+        "extended": "INTEGER DEFAULT 0",
     },
     "alerts": {
         "event_date": "TEXT",
@@ -455,13 +463,15 @@ def migrate(conn) -> list[str]:
 # -- runs ------------------------------------------------------------------
 
 
-def start_run(conn, report_type: str, *, lookback_days=None, model=None, run_id=None) -> str:
+def start_run(conn, report_type: str, *, lookback_days=None, model=None, run_id=None,
+              extended: bool = False) -> str:
     """Open a run row and return its id. Reuses the caller's id when given one,
     so the UI's run id and the stored one are the same string."""
     rid = run_id or uuid.uuid4().hex[:12]
     insert(conn, "runs", {
         "run_id": rid, "report_type": report_type, "started_at": now(),
         "lookback_days": lookback_days, "model": model, "status": "running",
+        "extended": 1 if extended else 0,
     }, on_conflict="update", key=("run_id",))
     conn.commit()
     return rid
@@ -705,6 +715,18 @@ def set_note(conn, report_type: str, body: str) -> None:
         "report_type": report_type, "body": body, "updated_at": now(),
     }, on_conflict="update", key=("report_type",))
     conn.commit()
+
+
+def last_extended_run(conn) -> str | None:
+    """When the extended queries last ran, as an ISO timestamp, or None.
+
+    Answers the only question the toggle raises: it is off by default and costs
+    real credits, so somebody has to remember when it was last on. Nobody does.
+    """
+    row = conn.execute(
+        "SELECT MAX(started_at) AS started FROM runs WHERE extended = 1"
+    ).fetchone()
+    return row["started"] if row and row["started"] else None
 
 
 def run_row(conn, run_id: str) -> dict | None:

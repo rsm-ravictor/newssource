@@ -172,7 +172,7 @@ def default_days(config: dict) -> int:
 
 
 def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None,
-                picked: dict[str, list[str]] | None = None) -> None:
+                picked: dict[str, list[str]] | None = None, extended: bool = False) -> None:
     """Search -> judge -> render for every report type. Runs on a worker thread.
 
     Pausable: /api/stop sets ``stop`` on the run, and the entity loop checks it
@@ -374,7 +374,8 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
                 log(f"[{spec['label']}] none selected — not run")
                 continue
 
-            log(f"[{spec['label']}] {len(entries)} {spec['entity_noun_plural']}, {period}")
+            log(f"[{spec['label']}] {len(entries)} {spec['entity_noun_plural']}, {period}"
+                + (" · including leadership/M&A queries" if extended else ""))
 
             # Whatever the reviewer typed on the reference page sharpens the criteria
             # for this run only; nothing in config/report_types.yaml is rewritten.
@@ -406,7 +407,7 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
             else:
                 hist_run = remember(
                     "start_run", db.start_run, key,
-                    lookback_days=days, model=model, run_id=hist_id,
+                    lookback_days=days, model=model, run_id=hist_id, extended=extended,
                 )
 
             # Meter reading as this type starts, so its own usage is the delta.
@@ -455,7 +456,7 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
                     tavily,
                     name,
                     city,
-                    templates=spec["query_templates"],
+                    templates=search_mod.templates_for(spec, extended=extended),
                     days=days,
                     max_results=search_cfg.get("max_results_per_query", 5),
                     search_depth=search_cfg.get("search_depth", "basic"),
@@ -663,7 +664,7 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
 
 
 def launch_run(days: int, limit: int, resume_of: str | None = None,
-               picked: dict[str, list[str]] | None = None) -> str | None:
+               picked: dict[str, list[str]] | None = None, extended: bool = False) -> str | None:
     """Register a run and start its worker thread. None if one is already going.
 
     Shared by the button and the schedule so there is exactly one way a run
@@ -682,7 +683,7 @@ def launch_run(days: int, limit: int, resume_of: str | None = None,
             # Measured provider usage, replaced after every entity.
             "usage": Meter().totals(),
         }
-    threading.Thread(target=execute_run, args=(run_id, days, limit, resume_of, picked),
+    threading.Thread(target=execute_run, args=(run_id, days, limit, resume_of, picked, extended),
                      daemon=True).start()
     return run_id
 
@@ -901,6 +902,22 @@ class Handler(BaseHTTPRequestHandler):
                           default=2)
             return self._json({"types": out, "queries_per_entity": queries})
 
+        # When the leadership / M&A queries last ran. They are off by default, so
+        # without this the only record of the last one is somebody's memory.
+        if path == "/api/extended":
+            try:
+                last = db.last_extended_run(db.connect())
+            except Exception:  # noqa: BLE001 - a reminder is never worth an error
+                return self._json({"last": None})
+            days_ago = None
+            if last:
+                try:
+                    when = datetime.fromisoformat(last)
+                    days_ago = (datetime.now(timezone.utc) - when).days
+                except ValueError:
+                    days_ago = None
+            return self._json({"last": last, "days_ago": days_ago})
+
         if path == "/api/resumable":
             try:
                 rows = db.resumable(db.connect())
@@ -1009,7 +1026,8 @@ class Handler(BaseHTTPRequestHandler):
                 if not any(picked.values()):
                     return self._json({"error": "no companies selected"}, 400)
 
-            run_id = launch_run(days, limit, resume_of, picked)
+            extended = bool(body.get("extended"))
+            run_id = launch_run(days, limit, resume_of, picked, extended)
             if run_id is None:
                 return self._json({"error": "a run is already in progress"}, 409)
             return self._json({"run_id": run_id, "days": days, "resumed": bool(resume_of)})
@@ -1094,6 +1112,13 @@ def render_page() -> str:
         default_days=default_days(config),
         entity_counts=entity_counts,
         queries_per_entity=queries,
+        # The toggle's price, per entity, PER REPORT TYPE - tenants add one
+        # extended query and competitors add two, so a single number would
+        # overcharge one of them. Read from config so adding a query updates the
+        # toolbar by itself.
+        extra_queries={
+            key: len(spec.get("extended_query_templates") or []) for key, spec in specs.items()
+        },
         watchlist_paths=watchlist_paths,
         # Rendered pending; /api/status replaces the states as the run moves.
         steps=[{"key": k, "label": lab, "state": "pending", "note": ""} for k, lab in STEPS],

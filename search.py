@@ -104,6 +104,20 @@ def format_published(raw: str | None) -> str:
     return f"{dt.strftime('%b')} {dt.day}, {dt.year}"
 
 
+def templates_for(spec: dict, *, extended: bool = False) -> list[str]:
+    """The query templates one run should send for a report type.
+
+    The extended set covers the categories the standard queries have no terms for
+    - leadership changes, ownership changes, valuation comps - and is off unless
+    asked for, because it adds a query per entity and those categories move on a
+    timescale of months rather than days.
+    """
+    templates = list(spec["query_templates"])
+    if extended:
+        templates += list(spec.get("extended_query_templates") or [])
+    return templates
+
+
 def build_queries(name: str, city: str, templates: list[str], *, include_city: bool = True) -> list[str]:
     """Expand the query templates for one entity.
 
@@ -228,6 +242,8 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0, help="only the first N entities")
     ap.add_argument("--no-city", action="store_true", help="send the name only, omit the city")
     ap.add_argument("--dry-run", action="store_true", help="print the queries and exit, calling nothing")
+    ap.add_argument("--extended", action="store_true",
+                    help="also send the leadership / M&A / valuation queries (adds a query per entity)")
     args = ap.parse_args()
 
     config = load_config()
@@ -246,9 +262,15 @@ def main() -> int:
 
     if args.dry_run:
         for name, city in entries:
-            for q in build_queries(name, city, spec["query_templates"], include_city=not args.no_city):
+            for q in build_queries(name, city, templates_for(spec, extended=args.extended),
+                                   include_city=not args.no_city):
                 print(f"  {q}")
-        print(f"\n{len(entries) * len(spec['query_templates'])} queries would cost that many credits")
+        # Counted from the templates this invocation will actually send, not from
+        # the standard set - otherwise --extended prints three queries per entity
+        # and then quotes the price of two.
+        per_entity = len(templates_for(spec, extended=args.extended))
+        print(f"\n{len(entries) * per_entity} queries would cost that many credits"
+              f" ({per_entity} per entity)")
         return 0
 
     client = get_client()
@@ -258,7 +280,7 @@ def main() -> int:
             client,
             name,
             city,
-            templates=spec["query_templates"],
+            templates=templates_for(spec, extended=args.extended),
             days=args.days,
             max_results=search_cfg.get("max_results_per_query", 5),
             search_depth=search_cfg.get("search_depth", "basic"),

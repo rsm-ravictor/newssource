@@ -235,6 +235,18 @@ report_types:
       - '"{name}" {city} (layoffs OR bankruptcy OR restructuring OR "loan default" OR "cost cutting")'
       - '"{name}" {city} (office lease OR headquarters OR relocation OR expansion OR sublease)'
 
+    # Run only when the reviewer asks for it, not on every pass. The two queries
+    # above cover financial_distress, office_move and expansion; leadership_change
+    # and ma_ownership_change have no terms of their own, so those categories can
+    # only ever be filled by an article that happened to match a lease or
+    # bankruptcy word. That is a silent gap - nothing errors, the categories are
+    # just quietly always empty.
+    #
+    # Separate from query_templates rather than a third entry in it, so the
+    # default cost of a run cannot drift upward by 50% through an edit here.
+    extended_query_templates:
+      - '"{name}" {city} (CEO OR CFO OR "names new" OR resigns OR "steps down" OR acquires OR acquired OR merger OR "take-private")'
+
     categories:
       financial_distress:  {label: Financial distress, bg: '#fef3f2', fg: '#b42318'}
       expansion:           {label: Expansion,          bg: '#ecfdf3', fg: '#027a48'}
@@ -399,6 +411,14 @@ report_types:
       # required, the topic words are the alternation.
       - '"{name}" {city} (acquires OR acquisition OR sells OR portfolio OR "breaks ground")'
       - '"{name}" {city} (lease OR leasing OR fund OR refinancing OR occupancy OR vacancy)'
+
+    # Same gap on this side, and wider: leadership_change, pricing_valuation_comps
+    # and corporate_investor_events all lack terms of their own. Terms chosen for
+    # those three categories rather than copied from the tenant list - a
+    # competitor's leadership news and its valuation comps are different searches.
+    extended_query_templates:
+      - '"{name}" {city} (CEO OR CFO OR "names new" OR resigns OR "steps down" OR merger OR "take-private")'
+      - '"{name}" {city} ("cap rate" OR "price per square foot" OR valuation OR earnings OR guidance OR dividend)'
 
     categories:
       acquisition:               {label: Acquisition,      bg: '#eff8ff', fg: '#175cd3'}
