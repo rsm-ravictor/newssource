@@ -28,11 +28,23 @@ import re
 # against". Matched as substrings against the model id, so a version bump does
 # not need a code change.
 PREFERRED = (
+    # Frontier families first: the rubric was written against one, so if a key
+    # ever regains that tier the run should go back to it without an edit.
     "claude-opus", "claude-sonnet", "claude",
     "gpt-5", "gpt-4", "gpt-oss", "gpt",
     "gemini-3-pro", "gemini-3", "gemini",
     "llama-4", "llama",
-    "deepseek", "glm", "gemma", "qwen", "mistral",
+    # Below here the order is MEASURED on this proxy rather than assumed, judging
+    # one 6-article entity under the real rubric at a 16000-token ceiling:
+    #   muse-glimmer-30b  valid, 2,196 out tokens, 14.8s
+    #   gemma-4-31b       invalid, 4,154 tokens
+    #   deepseek-v4-flash invalid, hit the 16000 cap, 66.8s
+    #   glm-5.3           invalid, hit the 16000 cap, 329.1s
+    # The two that failed are reasoning models that spend the whole allowance
+    # before answering. That is a fact about this job - a long rubric and a
+    # strict JSON envelope - not a general ranking of these models.
+    "muse-glimmer", "muse",
+    "gemma", "deepseek", "glm", "qwen", "mistral",
 )
 
 # Models that cannot judge anything, whatever else they are good at. Matched as
