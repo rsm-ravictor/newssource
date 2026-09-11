@@ -214,8 +214,12 @@ report_types:
     # square footage, lease dates, building names, or anything else from the rent roll.
     # tests/test_search.py asserts that built queries contain nothing but those two.
     query_templates:
-      - '"{name}" {city} layoffs OR bankruptcy OR restructuring OR default OR "cost cutting"'
-      - '"{name}" {city} office lease OR headquarters OR relocation OR expansion OR sublease'
+      # The alternation is bracketed so the company name stays a REQUIRED term.
+      # Unbracketed, the engine may satisfy the query on any one of the topic
+      # words alone, which is how one Law360 story about other companies came
+      # back for 41 different competitors in the Sep 3 run.
+      - '"{name}" {city} (layoffs OR bankruptcy OR restructuring OR default OR "cost cutting")'
+      - '"{name}" {city} (office lease OR headquarters OR relocation OR expansion OR sublease)'
 
     categories:
       financial_distress:  {label: Financial distress, bg: '#fef3f2', fg: '#b42318'}
@@ -377,8 +381,10 @@ report_types:
 
     # Same rule as above: {name} and {city} only.
     query_templates:
-      - '"{name}" {city} acquires OR acquisition OR sells OR portfolio OR "breaks ground"'
-      - '"{name}" {city} lease OR leasing OR fund OR refinancing OR occupancy OR vacancy'
+      # Bracketed for the same reason as the tenant templates above: the name is
+      # required, the topic words are the alternation.
+      - '"{name}" {city} (acquires OR acquisition OR sells OR portfolio OR "breaks ground")'
+      - '"{name}" {city} (lease OR leasing OR fund OR refinancing OR occupancy OR vacancy)'
 
     categories:
       acquisition:               {label: Acquisition,      bg: '#eff8ff', fg: '#175cd3'}

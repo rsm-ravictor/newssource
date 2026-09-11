@@ -339,24 +339,45 @@ def build_prompt(entity: dict, spec: dict) -> str:
     return "\n".join(lines)
 
 
-def judge_entity(entity: dict, spec: dict, *, schema: type, note=None, **kw):
-    """``ask_json`` first; repair the response if the model mangled its JSON.
+def judge_entity(entity: dict, spec: dict, *, schema: type, note=None, attempts: int = 3, **kw):
+    """``ask_json`` first; repair the response if the model mangled its JSON, and
+    ask again from scratch if the repair cannot rescue it either.
 
     TritonAI accepts ``response_format={"type": "json_object"}`` but does not
     enforce it, so responses intermittently arrive as ```json ... ```, as a bare
     array, or with trailing prose, and fail Pydantic validation inside
     ``ask_json``. ``connect.py`` is verbatim-locked and cannot strip them, so the
-    retry happens here: same model, same client, same prompt - a parsing repair,
+    repair happens here: same model, same client, same prompt - a parsing repair,
     not a model fallback.
+
+    WHY IT ASKS MORE THAN ONCE
+        The mangling is intermittent, not systematic - the same prompt that fails
+        often succeeds on a fresh call. With one attempt, an on-prem model that
+        mangles roughly one response in three loses that share of the roster
+        outright, and a skipped entity is one that was searched, paid for, and
+        then silently left out of the briefing. Retrying costs an extra call only
+        when a call has already failed, which is the cheapest possible place to
+        spend one.
     """
     prompt = build_prompt(entity, spec)
-    try:
-        return ask_json(prompt, schema=schema, **kw)
-    except ValidationError:
-        if note:
-            note("response was not clean JSON; retrying via ask() + repair")
-        text = ask(prompt, **kw) or ""
-        return schema.model_validate(coerce_envelope(json.loads(unfence(text))))
+    last: Exception | None = None
+
+    for attempt in range(1, max(1, attempts) + 1):
+        try:
+            return ask_json(prompt, schema=schema, **kw)
+        except ValidationError as exc:
+            last = exc
+            if note:
+                note("response was not clean JSON; repairing")
+        try:
+            text = ask(prompt, **kw) or ""
+            return schema.model_validate(coerce_envelope(json.loads(unfence(text))))
+        except (ValidationError, json.JSONDecodeError, TypeError) as exc:
+            last = exc
+            if note and attempt < max(1, attempts):
+                note(f"repair failed; asking again ({attempt} of {attempts})")
+
+    raise last if last else RuntimeError("judge_entity exhausted its attempts")
 
 
 def judge_entities(
