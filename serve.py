@@ -60,6 +60,7 @@ from dotenv import load_dotenv
 load_dotenv()  # before utils.connect is imported anywhere
 
 import db  # noqa: E402
+import model_choice  # noqa: E402
 import search as search_mod  # noqa: E402
 from judge import judge_entities  # noqa: E402
 from prose import structure  # noqa: E402
@@ -195,7 +196,6 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
     specs = config["report_types"]
     search_cfg = config.get("search", {})
     env = get_env()
-    from utils.connect import DEFAULT_MODEL as model
 
     # Evidence policy for this run, read once. The window is the same range the
     # user picked: a finding has to be about something that happened inside it,
@@ -289,9 +289,17 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
         # verbatim-locked and discards resp.usage, but it accepts a client, and
         # that injection point is where the real token counts are captured.
         tavily = meter.wrap_tavily(search_mod.get_client())
-        from utils.connect import get_client as llm_client
+        from utils.connect import DEFAULT_MODEL, get_client as llm_client
 
         llm = meter.wrap_llm(llm_client())
+
+        # Which model this run judges with is decided here, not at import time. A
+        # TritonAI key carries a team and the team decides which models it may
+        # use, so the configured default is a preference the key may not honour.
+        # Resolving it per run means a key that regains a better model starts
+        # using it with nothing to edit, and a key that loses one says so in the
+        # log instead of failing 689 times with a 403.
+        model = model_choice.resolve(llm, DEFAULT_MODEL, note=lambda m: log(f"  {m}"))
 
         # History belongs to the pipeline, not to this page: an email-only build that
         # drops the UI keeps the same store by calling the same functions. Opened in

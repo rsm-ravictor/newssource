@@ -373,6 +373,44 @@ JUDGE_ATTEMPTS = max(1, int(os.environ.get("JUDGE_ATTEMPTS") or 1))
 # skipped entities: there was never any JSON to repair.
 JUDGE_MAX_TOKENS = max(1000, int(os.environ.get("JUDGE_MAX_TOKENS") or 16000))
 
+# Ceiling on growing that budget after an empty response, and how many times to
+# grow it. A model that returns nothing at 64k is not going to return something
+# at 128k; past that point the entity is the problem, not the allowance.
+MAX_BUDGET = max(JUDGE_MAX_TOKENS, int(os.environ.get("JUDGE_MAX_BUDGET") or 64000))
+MAX_GROWTHS = 3
+
+
+def ran_out_of_room(text: str) -> bool:
+    """Did this response stop mid-sentence rather than come out malformed?
+
+    Well-formed JSON ends on a closing brace or bracket. A body that ends inside
+    a string, or on a comma, or simply stops, is a response the model was still
+    writing when its allowance ran out - which is an allowance problem, not a
+    formatting one, and no amount of repairing will close the braces. Cheap and
+    approximate on purpose: the cost of being wrong is one larger retry.
+    """
+    tail = (text or "").rstrip().rstrip("`").rstrip()
+    if not tail:
+        return True
+    if tail.endswith(("}", "]")):
+        return False
+    # Unbalanced braces mean it never finished the object it opened.
+    return tail.count("{") > tail.count("}") or tail.count("[") > tail.count("]")
+
+
+class EmptyResponse(RuntimeError):
+    """The model returned nothing at all.
+
+    Distinct from malformed output on purpose: malformed output is a parsing
+    problem with a repair, an empty body is an allowance problem with a bigger
+    allowance. Treating the second as the first is what made a roster run drop
+    entities it had already paid to search.
+    """
+
+    def __init__(self, budget: int):
+        super().__init__(f"empty response at max_tokens={budget}")
+        self.budget = budget
+
 
 def judge_entity(entity: dict, spec: dict, *, schema: type, note=None,
                  attempts: int = JUDGE_ATTEMPTS, **kw):
@@ -397,19 +435,56 @@ def judge_entity(entity: dict, spec: dict, *, schema: type, note=None,
     """
     prompt = build_prompt(entity, spec)
     last: Exception | None = None
+    budget = int(kw.pop("max_tokens", JUDGE_MAX_TOKENS) or JUDGE_MAX_TOKENS)
+    attempt = 0
+    grown = 0
 
-    for attempt in range(1, max(1, attempts) + 1):
+    while attempt < max(1, attempts):
         try:
-            return ask_json(prompt, schema=schema, **kw)
+            return ask_json(prompt, schema=schema, max_tokens=budget, **kw)
         except ValidationError as exc:
             last = exc
             if note:
                 note("response was not clean JSON; repairing")
+
         try:
-            text = ask(prompt + json_contract(schema), **kw) or ""
-            return schema.model_validate(coerce_envelope(json.loads(unfence(text))))
+            text = ask(prompt + json_contract(schema), max_tokens=budget, **kw) or ""
+            if not text.strip():
+                raise EmptyResponse(budget)
+            try:
+                return schema.model_validate(coerce_envelope(json.loads(unfence(text))))
+            except json.JSONDecodeError:
+                # A response that stops mid-string or mid-object did not get the
+                # format wrong, it got cut off. Same cause as an empty body, one
+                # step further along, so it takes the same cure rather than
+                # burning an attempt on a repair that cannot close the braces.
+                if ran_out_of_room(text):
+                    raise EmptyResponse(budget) from None
+                raise
+
+        except EmptyResponse as exc:
+            # Not a parsing failure, and a same-size retry cannot help: an empty
+            # body means the model spent its whole allowance without finishing,
+            # so the only thing that changes the outcome is a larger allowance.
+            # Any model that reasons before answering can do this, which is why
+            # it is handled by measurement here rather than tuned per model.
+            #
+            # Growing the budget deliberately does NOT consume an attempt. The
+            # attempts setting exists to bound how long a doomed entity holds up
+            # a roster run, and this failure is diagnosed rather than doomed.
+            last = exc
+            if grown >= MAX_GROWTHS or budget >= MAX_BUDGET:
+                if note:
+                    note(f"still empty at {budget} tokens; skipping this entity")
+                break
+            budget = min(budget * 2, MAX_BUDGET)
+            grown += 1
+            if note:
+                note(f"model ran out of room; asking again with {budget} tokens")
+
         except (ValidationError, json.JSONDecodeError, TypeError) as exc:
             last = exc
+            attempt += 1
             if note and attempt < max(1, attempts):
                 note(f"repair failed; asking again ({attempt} of {attempts})")
 
