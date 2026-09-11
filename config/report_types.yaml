@@ -218,7 +218,10 @@ report_types:
       # Unbracketed, the engine may satisfy the query on any one of the topic
       # words alone, which is how one Law360 story about other companies came
       # back for 41 different competitors in the Sep 3 run.
-      - '"{name}" {city} (layoffs OR bankruptcy OR restructuring OR default OR "cost cutting")'
+      # "loan default" rather than a bare "default": the bare word matches a court
+      # default judgment, a default setting, and the phrase "by default", none of
+      # which say anything about a tenant's finances.
+      - '"{name}" {city} (layoffs OR bankruptcy OR restructuring OR "loan default" OR "cost cutting")'
       - '"{name}" {city} (office lease OR headquarters OR relocation OR expansion OR sublease)'
 
     categories:
