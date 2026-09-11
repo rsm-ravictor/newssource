@@ -93,6 +93,19 @@
   font: inherit; font-size: 10.5px; text-transform: none; letter-spacing: 0;
   background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0;
 }
+/* Top-N. Sits with all/none because it answers the same question - how much of
+   this list do I want - for the case where the answer is "the first 200". */
+.picker-col h3 .topn { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.picker-col h3 .topn input {
+  width: 52px; font: inherit; font-size: 11px; color: var(--text);
+  background: var(--sunken); border: 1px solid var(--line); border-radius: 5px;
+  padding: 2px 5px; text-transform: none; letter-spacing: 0;
+}
+.picker-col h3 .topn button {
+  border: 1px solid var(--line); border-radius: 5px; padding: 2px 7px;
+  background: var(--sunken); color: var(--accent);
+}
+
 .picker-list {
   max-height: 230px; overflow-y: auto; border: 1px solid var(--line);
   border-radius: 8px; background: var(--sunken); padding: 5px;
@@ -554,7 +567,8 @@
     // tedious enough that nobody does it.
     var STORE_KEY = 'intel.picked.v1';
     var roster = {};   // type -> {label, noun, entities[]}
-    var picked = {};   // type -> {name: true}
+    var picked = {};   // type -> {name||city: true}
+    var topSize = {};  // type -> the last "top N" asked for, so the box keeps it
 
     function loadPicked() {
       try {
@@ -612,6 +626,13 @@
         var col = document.createElement('div');
         col.className = 'picker-col';
 
+        // Computed before the header: the top-N control selects from what is on
+        // screen, so it needs the filtered list to close over.
+        var shown = info.entities.filter(function (e) {
+          if (!needle) return true;
+          return (e.name + ' ' + (e.city || '')).toLowerCase().indexOf(needle) !== -1;
+        });
+
         var chosen = pickedNames(t).length;
         var head = document.createElement('h3');
         head.appendChild(document.createTextNode(info.label + ' '));
@@ -629,12 +650,41 @@
         none.textContent = 'none';
         head.appendChild(all);
         head.appendChild(none);
+
+        // Top N. The roster arrives in rank order, so for a ranked list this is
+        // "the N most important" - which is the selection anyone actually wants
+        // and cannot reasonably click 200 times to make. It replaces the list's
+        // selection rather than adding to it: "top 200" means those 200.
+        var topWrap = document.createElement('span');
+        topWrap.className = 'topn';
+        var topField = document.createElement('input');
+        topField.type = 'number';
+        topField.min = '1';
+        topField.max = String(info.entities.length);
+        topField.placeholder = 'N';
+        topField.value = topSize[t] || '';
+        topField.setAttribute('aria-label', 'how many from the top of ' + info.label);
+        var topGo = document.createElement('button');
+        topGo.type = 'button';
+        topGo.textContent = 'top';
+
+        function takeTop() {
+          var n = parseInt(topField.value, 10);
+          if (!n || n < 1) return;
+          topSize[t] = n;
+          picked[t] = {};
+          shown.slice(0, n).forEach(function (e) { picked[t][keyOf(e)] = true; });
+          afterPickChange();
+        }
+        topGo.addEventListener('click', takeTop);
+        topField.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter') { ev.preventDefault(); takeTop(); }
+        });
+        topWrap.appendChild(topField);
+        topWrap.appendChild(topGo);
+        head.appendChild(topWrap);
         col.appendChild(head);
 
-        var shown = info.entities.filter(function (e) {
-          if (!needle) return true;
-          return (e.name + ' ' + (e.city || '')).toLowerCase().indexOf(needle) !== -1;
-        });
 
         // "all" and "none" act on what is on screen, so a filtered "all" selects
         // that segment rather than the whole roster hiding behind the filter.
@@ -701,8 +751,29 @@
           whole + '</b> companies, <b>' + (whole * queriesPerEntity) + '</b> Tavily requests.';
         return;
       }
+      // Segment breakdown, because rank is counted WITHIN a segment: the roster
+      // runs Office #1-271, then Retail #1-N. "Top 200" therefore means the top
+      // 200 of whichever segment comes first, not the top 200 tenants overall -
+      // there is no such ordering. Showing the spread means nobody has to know
+      // that in order to read what they just selected.
+      var segs = {};
+      types.forEach(function (t) {
+        if (!roster[t]) return;
+        roster[t].entities.forEach(function (e) {
+          if (picked[t] && picked[t][keyOf(e)]) {
+            var seg = e.segment || 'unsegmented';
+            segs[seg] = (segs[seg] || 0) + 1;
+          }
+        });
+      });
+      var spread = Object.keys(segs)
+        .sort(function (a, b) { return segs[b] - segs[a]; })
+        .slice(0, 4)
+        .map(function (k) { return k + ' ' + segs[k]; })
+        .join(', ');
       pickTally.innerHTML = '<b>' + n + '</b> selected · <b>' + (n * queriesPerEntity) +
-        '</b> Tavily requests · <b>' + n + '</b> LLM calls';
+        '</b> Tavily requests · <b>' + n + '</b> LLM calls' +
+        (spread ? ' <span style="color:var(--faint)">· ' + spread + '</span>' : '');
     }
 
     function syncRunLabel() {
