@@ -21,6 +21,7 @@ import yaml  # noqa: E402
 from search import (  # noqa: E402
     build_queries,
     canonical_url,
+    search_entity,
     format_published,
     period_label,
     source_name,
@@ -138,6 +139,47 @@ class TestPeriodLabel(unittest.TestCase):
     def test_one_day_reads_as_hours(self):
         # "Last 1 days" would ship in the email subject line.
         self.assertTrue(period_label(1).startswith("Last 24 hours ("))
+
+
+class DomainRestrictionTest(unittest.TestCase):
+    """Retrieval is open by default, and "off" must mean the parameter is absent.
+
+    An empty include_domains list is not the same request as no include_domains
+    at all - a provider is free to read the first as "restrict to nothing". The
+    difference is invisible from the config, so it is pinned at the call itself.
+    """
+
+    class SpyClient:
+        def __init__(self):
+            self.calls = []
+
+        def search(self, query, **kwargs):
+            self.calls.append(kwargs)
+            return {"results": []}
+
+    TEMPLATES = ['"{name}" {city} (layoffs OR bankruptcy)']
+
+    def kwargs_for(self, include_domains):
+        spy = self.SpyClient()
+        search_entity(spy, "Acme Co", "San Diego", templates=self.TEMPLATES,
+                      days=7, sleep=0, include_domains=include_domains)
+        return spy.calls[0]
+
+    def test_no_restriction_sends_no_parameter(self):
+        self.assertNotIn("include_domains", self.kwargs_for(None))
+
+    def test_an_empty_list_also_sends_no_parameter(self):
+        self.assertNotIn("include_domains", self.kwargs_for([]))
+
+    def test_a_real_list_is_passed_through(self):
+        self.assertEqual(self.kwargs_for(["reuters.com"])["include_domains"], ["reuters.com"])
+
+    def test_the_shipped_config_leaves_retrieval_open(self):
+        """A static allowlist cannot keep up with local and regional outlets, so
+        the default is open web search."""
+        from render import load_config
+
+        self.assertFalse(load_config().get("search", {}).get("citable_sources_only"))
 
 
 if __name__ == "__main__":
