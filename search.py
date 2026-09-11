@@ -130,24 +130,31 @@ def search_entity(
     include_city: bool = True,
     sleep: float = 0.5,
     on_error=None,
+    include_domains: list[str] | None = None,
 ) -> list[dict]:
     """Run every query for one entity and return deduped article dicts.
 
     Errors on a single query are reported and skipped rather than aborting the
     entity - one bad query should not lose the other one's results.
+
+    ``include_domains`` restricts retrieval to the outlets a finding could be
+    cited to. The judge already refuses anything else, so without it the run pays
+    to fetch and read articles it has already decided it cannot use.
     """
     seen: set[str] = set()
     articles: list[dict] = []
 
     for query in build_queries(name, city, templates, include_city=include_city):
         try:
-            resp = client.search(
-                query,
-                topic="news",
-                days=days,
-                max_results=max_results,
-                search_depth=search_depth,
-            )
+            kwargs = {
+                "topic": "news",
+                "days": days,
+                "max_results": max_results,
+                "search_depth": search_depth,
+            }
+            if include_domains:
+                kwargs["include_domains"] = list(include_domains)
+            resp = client.search(query, **kwargs)
         except Exception as exc:  # noqa: BLE001 - continue with the remaining query
             if on_error:
                 on_error(f"{name}: query failed ({type(exc).__name__}: {str(exc)[:90]})")

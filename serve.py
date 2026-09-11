@@ -65,7 +65,7 @@ import search as search_mod  # noqa: E402
 from judge import judge_entities  # noqa: E402
 from prose import structure  # noqa: E402
 from usage import Meter  # noqa: E402
-from sources import citable_limit, source_tiers  # noqa: E402
+from sources import citable_domains, citable_limit, source_tiers  # noqa: E402
 from render import (  # noqa: E402
     DOCS,
     ROOT,
@@ -338,6 +338,14 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
                 log(f"  ! history reconnect failed: {type(exc).__name__}: {str(exc)[:80]}")
                 return None
 
+        # Retrieve only what could be cited, when the config says so. Computed
+        # once per run: it is the same list for every entity.
+        citable_only = (
+            citable_domains(config) if search_cfg.get("citable_sources_only") else None
+        )
+        if citable_only:
+            log(f"  searching {len(citable_only)} citable outlets only")
+
         period = search_mod.period_label(days)
         run_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         results: dict[str, dict] = {}
@@ -453,6 +461,7 @@ def execute_run(run_id: str, days: int, limit: int, resume_of: str | None = None
                     search_depth=search_cfg.get("search_depth", "basic"),
                     sleep=search_cfg.get("sleep_between_calls", 0.5),
                     on_error=lambda m: log(f"  ! {m}"),
+                    include_domains=citable_only,
                 )
                 log(f"  {name}: {len(articles)} articles found")
                 found_total += len(articles)

@@ -42,6 +42,18 @@ search:
   max_results_per_query: 5
   search_depth: basic
   sleep_between_calls: 0.5
+  # Ask the search provider only for outlets a finding could be cited to - the
+  # same tier list the judge gates on, used as a retrieval filter instead of a
+  # rejection rule. Without it a run pays to fetch and read articles it has
+  # already decided it cannot use: on one measured run, 87% of everything
+  # retrieved came from domains the gate rejects unread, 227 of them from a
+  # single legal-trade outlet.
+  #
+  # The gap this accepts is deliberate. A development that only ever appears on
+  # an unlisted outlet is now never retrieved, where before it was retrieved and
+  # then dropped - the briefing is the same either way, the cost is not. Set this
+  # to false to go back to retrieving everything.
+  citable_sources_only: true
 
 # Source reliability, doing two jobs.
 #

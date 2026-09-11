@@ -99,6 +99,25 @@ def own_domain(url: str, entity_name: str) -> bool:
     return any(core in labels for core in cores)
 
 
+def citable_domains(config: dict) -> list[str]:
+    """Every domain a finding could actually be cited to.
+
+    The same tier data the judge gates on, read as a retrieval filter instead of
+    a rejection rule. Handing this to the search provider asks it for the sources
+    the briefing is allowed to use, rather than paying to fetch everything and
+    discarding most of it unread - on one measured run, 87% of retrieved articles
+    came from domains the gate rejects without reading.
+
+    The gap this accepts is real and deliberate: a development that only ever
+    appears on an unlisted outlet is now never retrieved, where before it was
+    retrieved and then dropped. Same briefing either way; the difference is what
+    it costs to produce.
+    """
+    lookup, _ = source_tiers(config)
+    limit = citable_limit(config)
+    return sorted({domain for domain, tier in lookup.items() if tier <= limit})
+
+
 def citable_limit(config: dict) -> int:
     """The worst tier position still allowed to carry a finding.
 
