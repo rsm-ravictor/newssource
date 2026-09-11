@@ -108,6 +108,21 @@ def resolve(client, preferred: str, *, note=None) -> str:
     if preferred in ids:
         return preferred
 
+    # A measurement of this key's own models beats the static order below, which
+    # is only ever a guess made somewhere else. calibrate.py writes it, and it is
+    # ignored automatically once the key's access set changes.
+    try:
+        import calibrate
+
+        measured = calibrate.best_for(client)
+    except Exception:  # noqa: BLE001 - calibration is an optimisation, never a gate
+        measured = None
+    if measured and measured in ids:
+        if note:
+            note(f"{preferred} is not available to this key; judging with {measured} "
+                 "(measured best by calibrate.py)")
+        return measured
+
     candidates = [m for m in ids if usable(m)]
     if not candidates:
         return preferred

@@ -357,12 +357,24 @@ def json_contract(schema: type) -> str:
 
 
 # How many times to ask before giving up on an entity. One attempt is one
-# ask_json plus one repair, so the default already gives the model two chances -
-# and now that the repair carries the output contract, most recoveries happen
-# there. Raising it recovers a few more entities and costs a full call each time
-# for every entity that was going to fail anyway; a roster run feels the
-# difference. Set JUDGE_ATTEMPTS=3 when completeness matters more than speed.
-JUDGE_ATTEMPTS = max(1, int(os.environ.get("JUDGE_ATTEMPTS") or 1))
+# ask_json plus one repair, so three attempts is up to six calls.
+#
+# What the right number is depends entirely on what an attempt costs and whether
+# failure is intermittent, and both were measured. Against a reasoning model that
+# burned 16,000 tokens and 60s per attempt and failed the same way every time,
+# retrying was pure waste and 1 was correct. Against a model that answers a
+# 10-article entity in ~2,000 tokens and ~6s and fails only occasionally, a retry
+# usually succeeds and costs little - so the entity is worth asking for again
+# rather than dropping after it has already been searched and paid for.
+#
+# Set JUDGE_ATTEMPTS=1 to fail fast when a roster run has to finish on time.
+JUDGE_ATTEMPTS = max(1, int(os.environ.get("JUDGE_ATTEMPTS") or 3))
+
+# How many of an entity's articles go into one judging call. Small enough that a
+# response stays short and a failure is survivable, large enough that the event
+# clustering still sees related articles together. Measured on a real 10-article
+# entity: one call per entity failed intermittently, chunks of 3 were 4/4 valid.
+JUDGE_BATCH = max(1, int(os.environ.get("JUDGE_BATCH") or 4))
 
 # Ceiling on one judgment call's output. 4000 was tuned for Claude, which answered
 # a 10-article entity in well under it. This proxy's on-prem models spend a large
@@ -526,6 +538,9 @@ def judge_entities(
 
     out: list[dict] = []
     failed: list[str] = []
+    # entity -> how many of its articles could not be judged. A partial entity is
+    # not a failure and not a success, and the briefing should be able to say so.
+    partial: dict[str, int] = {}
     kept = dropped = 0
 
     for entity in entities:
@@ -537,28 +552,68 @@ def judge_entities(
         by_url = {a["source_url"]: a for a in entity["articles"]}
         say(f"{entity['display_name']}: judging {len(by_url)} articles")
 
-        try:
-            result = judge_entity(
-                entity,
-                spec,
-                schema=schema,
-                attempts=attempts,
-                note=lambda m, n=entity["display_name"]: say(f"{n}: {m}"),
-                model=model,
-                system=criteria,
-                temperature=0.2,
-                max_tokens=JUDGE_MAX_TOKENS,
-                verbose=verbose,
-                client=client,
-            )
-        except Exception as exc:  # noqa: BLE001 - one bad entity must not lose the run
+        # Judged a few articles at a time rather than all at once. Measured on a
+        # real 10-article entity whose one-shot call failed intermittently: every
+        # chunk of 3 came back valid. Two reasons, and the second matters more.
+        #
+        # A smaller response is a smaller target - most of what goes wrong is
+        # escaping thousands of characters of messy article text into JSON
+        # strings, and a third of the text is a third of the risk. And a chunk
+        # that fails costs three articles instead of the whole company: an entity
+        # that was searched and paid for still reports what could be judged,
+        # rather than vanishing from the briefing entirely.
+        #
+        # It costs the system prompt once per chunk. On an on-prem model at
+        # $0.30/1M input that is pennies against losing entities outright, and it
+        # costs nothing at all on a model good enough to never need it.
+        batches = [
+            entity["articles"][i:i + JUDGE_BATCH]
+            for i in range(0, len(entity["articles"]), JUDGE_BATCH)
+        ] or [[]]
+
+        judgments = []
+        unjudged = 0
+        last_error: Exception | None = None
+        for number, batch in enumerate(batches, 1):
+            where = f" (batch {number} of {len(batches)})" if len(batches) > 1 else ""
+            try:
+                result = judge_entity(
+                    dict(entity, articles=batch),
+                    spec,
+                    schema=schema,
+                    attempts=attempts,
+                    note=lambda m, n=entity["display_name"], w=where: say(f"{n}{w}: {m}"),
+                    model=model,
+                    system=criteria,
+                    temperature=0.2,
+                    max_tokens=JUDGE_MAX_TOKENS,
+                    verbose=verbose,
+                    client=client,
+                )
+                judgments.extend(result.judgments)
+            except Exception as exc:  # noqa: BLE001 - one bad batch must not lose the entity
+                last_error = exc
+                unjudged += len(batch)
+                say(f"{entity['display_name']}{where}: {len(batch)} articles could not be "
+                    f"judged ({type(exc).__name__})")
+                print(f"  ! {entity['display_name']}{where}: {type(exc).__name__}: "
+                      f"{str(exc)[:140]}", file=sys.stderr)
+
+        if not judgments:
+            # Nothing survived, so the entity really is missing from the briefing.
             failed.append(entity["display_name"])
-            say(f"{entity['display_name']}: SKIPPED ({type(exc).__name__})")
-            print(f"  ! {entity['display_name']}: {type(exc).__name__}: {str(exc)[:140]}", file=sys.stderr)
+            say(f"{entity['display_name']}: SKIPPED ({type(last_error).__name__ if last_error else 'no judgments'})")
             continue
 
+        if unjudged:
+            # Said out loud rather than folded into the counts: "0 kept" means
+            # something different when part of the evidence was never read.
+            partial[entity["display_name"]] = unjudged
+            say(f"{entity['display_name']}: judged {len(by_url) - unjudged} of {len(by_url)} "
+                f"articles; {unjudged} could not be read")
+
         candidates = []
-        for j in result.judgments:
+        for j in judgments:
             art = by_url.get(j.source_url)
             if art is None:
                 print(f"  ! judgment for unknown url {j.source_url!r}", file=sys.stderr)
