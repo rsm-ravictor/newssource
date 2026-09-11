@@ -339,6 +339,22 @@ def build_prompt(entity: dict, spec: dict) -> str:
     return "\n".join(lines)
 
 
+def json_contract(schema: type) -> str:
+    """The output contract, stated in the prompt itself.
+
+    ``ask_json`` appends a schema hint of its own, but the repair path calls plain
+    ``ask`` - and plain ``ask`` sends the prompt exactly as given. ``build_prompt``
+    says nothing about JSON, so without this the retry asks a question that never
+    mentions the format and then rejects the answer for not being JSON. A model
+    that writes a numbered markdown summary there is doing as it was told.
+    """
+    return (
+        "\n\nReturn ONLY a JSON object matching this schema. No prose before or "
+        "after it, no markdown, no code fences, no numbered commentary:\n"
+        f"{schema.model_json_schema()}"
+    )
+
+
 def judge_entity(entity: dict, spec: dict, *, schema: type, note=None, attempts: int = 3, **kw):
     """``ask_json`` first; repair the response if the model mangled its JSON, and
     ask again from scratch if the repair cannot rescue it either.
@@ -370,7 +386,7 @@ def judge_entity(entity: dict, spec: dict, *, schema: type, note=None, attempts:
             if note:
                 note("response was not clean JSON; repairing")
         try:
-            text = ask(prompt, **kw) or ""
+            text = ask(prompt + json_contract(schema), **kw) or ""
             return schema.model_validate(coerce_envelope(json.loads(unfence(text))))
         except (ValidationError, json.JSONDecodeError, TypeError) as exc:
             last = exc
